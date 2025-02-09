@@ -3,14 +3,14 @@ import { getDatabase } from "firebase/database";
 import { getAuth } from "firebase/auth";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyCS1y393ouUcF8zX4MB3B_79_LnH650StM",
-  authDomain: "testappforwisemindsadmin.firebaseapp.com",
-  databaseURL: "https://testappforwisemindsadmin-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "testappforwisemindsadmin",
-  storageBucket: "testappforwisemindsadmin.firebasestorage.app",
-  messagingSenderId: "221401094009",
-  appId: "1:221401094009:web:4e145cb01ddbb4f4d741a8",
-  measurementId: "G-72B7PB2YJ3"
+  apiKey: process.env.REACT_APP_FIREBASE_KEY,
+  authDomain: "wisemindsadmin.firebaseapp.com",
+  databaseURL: "https://wisemindsadmin-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "wisemindsadmin",
+  storageBucket: "wisemindsadmin.firebasestorage.app",
+  messagingSenderId: "149980377851",
+  appId: "1:149980377851:web:c27b24a0cb00564e14b65e",
+  measurementId: "G-LPVX749JKR"
 };
 
 const app = initializeApp(firebaseConfig);

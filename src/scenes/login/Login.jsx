@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useContext, useState } from "react";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../../data/firebase";
 import { useNavigate } from "react-router-dom";
 import { Email, Lock } from "@mui/icons-material";
 import { ToastContainer, toast } from "react-toastify";
+import { AuthContext } from "../../context/AuthContext";
 import "react-toastify/dist/ReactToastify.css";
 import {
   Box,
@@ -19,12 +20,20 @@ const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
+  const { dispatch } = useContext(AuthContext);
 
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      navigate("/");
+      await signInWithEmailAndPassword(auth, email, password)
+      .then((userCredential) => {
+        const user = userCredential.user;
+        dispatch({ type: "LOGIN", payload: user });
+        navigate("/");
+      })
+      .catch((error) => {
+        toast.error("Invalid email or password");
+      });
     } catch (err) {
       toast.error("Invalid email or password");
     }
