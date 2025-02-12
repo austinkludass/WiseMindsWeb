@@ -26,14 +26,14 @@ const Login = () => {
     e.preventDefault();
     try {
       await signInWithEmailAndPassword(auth, email, password)
-      .then((userCredential) => {
-        const user = userCredential.user;
-        dispatch({ type: "LOGIN", payload: user });
-        navigate("/");
-      })
-      .catch((error) => {
-        toast.error("Invalid email or password");
-      });
+        .then((userCredential) => {
+          const user = userCredential.user;
+          dispatch({ type: "LOGIN", payload: user });
+          navigate("/");
+        })
+        .catch((error) => {
+          toast.error("Invalid email or password");
+        });
     } catch (err) {
       toast.error("Invalid email or password");
     }
@@ -45,7 +45,6 @@ const Login = () => {
         minHeight: "100vh",
         display: "flex",
         alignItems: "center",
-        background: "linear-gradient(to bottom right, #EEF2FF, #E0E7FF)",
         py: 4,
       }}
     >

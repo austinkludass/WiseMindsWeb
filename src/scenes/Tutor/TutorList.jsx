@@ -1,7 +1,12 @@
 import React from "react";
 import { DataGrid } from "@mui/x-data-grid";
 import Paper from "@mui/material/Paper";
-import { Box } from "@mui/material";
+import { Box, useTheme } from "@mui/material";
+import Stack from "@mui/material/Stack";
+import Button from "@mui/material/Button";
+import { tokens } from "../../theme";
+import { useNavigate } from "react-router-dom";
+import { Typography } from "@mui/material";
 
 const columns = [
   { field: "id", headerName: "ID", width: 100 },
@@ -65,18 +70,35 @@ const rows = [
 const paginationModel = { page: 0, pageSize: 10 };
 
 const TutorList = () => {
+  const theme = useTheme();
+  const colors = tokens(theme.palette.mode);
+  const navigate = useNavigate();
+
   return (
     <Box display="flex" m="20px">
-      <Paper sx={{ width: "1300px", backgroundColor: "transparent" }}>
-        <DataGrid
-          rows={rows}
-          columns={columns}
-          initialState={{ pagination: { paginationModel } }}
-          pageSizeOptions={[10, 25]}
-          checkboxSelection
-          sx={{ border: 0 }}
-        />
-      </Paper>
+      <Stack>
+        <Button
+          onClick={() => navigate("/newtutor")}
+          variant="contained"
+          sx={{
+            width: "20%",
+            backgroundColor: `${colors.orangeAccent[700]}`,
+            fontSize: "1.3em"
+          }}
+        >
+          <Typography variant="h6">ADD</Typography>
+        </Button>
+        <Paper sx={{ width: "100vh", backgroundColor: "transparent" }}>
+          <DataGrid
+            rows={rows}
+            columns={columns}
+            initialState={{ pagination: { paginationModel } }}
+            pageSizeOptions={[10]}
+            checkboxSelection
+            sx={{ border: 0 }}
+          />
+        </Paper>
+      </Stack>
     </Box>
   );
 };

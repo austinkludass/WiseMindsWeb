@@ -3,6 +3,7 @@ import Topbar from "./scenes/global/Topbar";
 import Sidebar from "./scenes/global/Sidebar";
 import Dashboard from "./scenes/dashboard";
 import TutorList from "./scenes/Tutor/TutorList";
+import NewTutor from "./scenes/Tutor/NewTutor";
 import { ColorModeContext, useMode } from "./theme";
 import { CssBaseline, ThemeProvider } from "@mui/material";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
@@ -26,6 +27,7 @@ function App() {
                 <Routes>
                   <Route path="/" element={<Dashboard />} />
                   <Route path="/tutors" element={<TutorList />} />
+                  <Route path="/newtutor" element={<NewTutor />} />
                   <Route path="*" element={<Navigate to="/" />} />
                 </Routes>
               </main>
