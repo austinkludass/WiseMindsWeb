@@ -1,8 +1,5 @@
 import { Box, Typography, useTheme } from "@mui/material";
 import { tokens } from "../theme";
-import { useEffect, useState } from "react";
-import { ref, query, limitToLast, onValue } from "firebase/database";
-import { database } from "../data/firebase";
 
 const Summaryboard = () => {
   const theme = useTheme();
