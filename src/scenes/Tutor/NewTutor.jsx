@@ -258,9 +258,9 @@ const NewTutor = () => {
             </AccordionSummary>
             <AccordionDetails>
               <Stack spacing={2}>
-                <TextField required label="Full Name" />
+                <TextField label="Full Name" />
                 <FormControl fullWidth>
-                  <InputLabel required id="relationship-select-label">
+                  <InputLabel id="relationship-select-label">
                     Relationship
                   </InputLabel>
                   <Select
@@ -277,7 +277,7 @@ const NewTutor = () => {
                     <MenuItem value={"wife"}>Wife</MenuItem>
                   </Select>
                 </FormControl>
-                <TextField required label="Phone Number" />
+                <TextField label="Phone Number" />
                 <TextField label="Email" />
               </Stack>
             </AccordionDetails>
