@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { DataGrid } from "@mui/x-data-grid";
 import Paper from "@mui/material/Paper";
-import { Box, useTheme } from "@mui/material";
+import { Avatar, Box, useTheme } from "@mui/material";
 import Stack from "@mui/material/Stack";
 import Button from "@mui/material/Button";
 import { tokens } from "../../theme";
@@ -11,8 +11,20 @@ import { collection, getDocs } from "firebase/firestore";
 import { db } from "../../data/firebase";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import Header from "../../components/Header";
 
 const columns = [
+  {
+    field: "avatar",
+    headerName: "",
+    width: 80,
+    sortable: false,
+    renderCell: (params) => (
+      <Box sx={{ display: "flex", alignItems: "center", height: "100%" }}>
+        <Avatar src={params.value} sx={{ width: 40, height: 40 }} />
+      </Box>
+    ),
+  },
   { field: "firstName", headerName: "First name", width: 130 },
   { field: "lastName", headerName: "Last name", width: 130 },
 ];
@@ -31,8 +43,9 @@ const TutorList = () => {
         // const querySnapshot = await getDocs(collection(db, "tutors"));
         // const tutorData = querySnapshot.docs.map((doc) => ({
         //   id: doc.id,
+        //   avatar: doc.data().avatar,
         //   firstName: doc.data().firstName,
-        //   lastName: doc.data().lastName
+        //   lastName: doc.data().lastName,
         // }));
         // setRows(tutorData);
       } catch (error) {
@@ -46,6 +59,7 @@ const TutorList = () => {
   return (
     <Box display="flex" m="20px">
       <Stack>
+        <Header title="TUTORS" subtitle="View all tutors" />
         <Button
           onClick={() => navigate("/newtutor")}
           variant="contained"

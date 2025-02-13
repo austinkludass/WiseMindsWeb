@@ -14,16 +14,18 @@ import {
   Button,
   FormControlLabel,
   Switch,
+  Box,
 } from "@mui/material";
 import { ToastContainer, toast } from "react-toastify";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
-import { ColorPicker, useColor } from "react-color-palette";
+import { Saturation, Hue, useColor } from "react-color-palette";
 import { createUserWithEmailAndPassword } from "firebase/auth";
-import { auth, db } from "../../data/firebase";
+import { auth, db, sb } from "../../data/firebase";
 import { doc, setDoc } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import Grid from "@mui/material/Grid2";
 import IconButton from "@mui/material/IconButton";
@@ -31,12 +33,22 @@ import InputAdornment from "@mui/material/InputAdornment";
 import TextField from "@mui/material/TextField";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
+import EditIcon from "@mui/icons-material/Edit";
 import "react-toastify/dist/ReactToastify.css";
 import "react-color-palette/css";
 import "dayjs/locale/en-gb";
+import Header from "../../components/Header";
 
 const NewTutor = () => {
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const [secondPassword, setSecondPassword] = useState("");
+  const [color, setColor] = useColor("#6e6e6e");
+  const [showPassword, setShowPassword] = useState(false);
+  const [hover, setHover] = useState(false);
+  const [image, setImage] = useState("");
+  const [profilePicFile, setProfilePicFile] = useState(null);
+
   const [formData, setFormData] = useState({
     firstName: "",
     middleName: null,
@@ -45,9 +57,6 @@ const NewTutor = () => {
     wiseMindsEmail: "",
     password: "",
   });
-
-  const [loading, setLoading] = useState(false);
-  const [secondPassword, setSecondPassword] = useState("");
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -65,6 +74,14 @@ const NewTutor = () => {
       formData.wiseMindsEmail &&
       formData.password
     );
+  };
+
+  const uploadImage = async (userId) => {
+    if (!profilePicFile) return null;
+
+    const storageRef = ref(sb, `profilePictures/${userId}`);
+    await uploadBytes(storageRef, profilePicFile);
+    return await getDownloadURL(storageRef);
   };
 
   const handleSubmit = async (e) => {
@@ -90,13 +107,18 @@ const NewTutor = () => {
       );
       const user = userCredential.user;
 
+      let avatarUrl = "";
+      if (profilePicFile) {
+        avatarUrl = await uploadImage(user.uid);
+      }
+
       await setDoc(doc(db, "tutors", user.uid), {
         firstName: formData.firstName,
         middleName: formData.middleName,
         lastName: formData.lastName,
         dateOfBirth: formData.dateOfBirth.toISOString(),
         wiseMindsEmail: formData.wiseMindsEmail,
-        createdAt: new Date(),
+        avatar: avatarUrl,
       });
 
       toast.success("Successfully added tutor!");
@@ -108,8 +130,6 @@ const NewTutor = () => {
     }
   };
 
-  const [color, setColor] = useColor("#6e6e6e");
-  const [showPassword, setShowPassword] = useState(false);
   const handleClickShowPassword = () => setShowPassword((show) => !show);
   const handleMouseDownPassword = (event) => {
     event.preventDefault();
@@ -118,8 +138,24 @@ const NewTutor = () => {
     event.preventDefault();
   };
 
+  const handleAvatarClick = () => {
+    document.getElementById("profilePicInput").click();
+  };
+
+  const handleProfilePicChange = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      setProfilePicFile(file);
+      const imageUrl = URL.createObjectURL(file);
+      setImage(imageUrl);
+    }
+  };
+
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="en-gb">
+      <Box display="flex" m="20px">
+        <Header title="NEW TUTOR" subtitle="Enter details for a new tutor" />
+      </Box>
       {/* Profile Information */}
       <Paper sx={{ p: 3, maxWidth: 1000, minWidth: 600, m: 4 }}>
         <Grid container spacing={2} alignItems="center">
@@ -129,14 +165,62 @@ const NewTutor = () => {
             sx={{ display: "flex", justifyContent: "center" }}
           >
             <Stack spacing={2}>
-              <Avatar sx={{ width: 140, height: 140, bgcolor: color.hex }} />
-              <ColorPicker
-                height={50}
-                color={color}
-                onChange={setColor}
-                hideAlpha="true"
-                hideInput={["rgb", "hsv", "hex"]}
-              />
+              <Box
+                style={{
+                  position: "relative",
+                  width: "140px",
+                  height: "140px",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+                onMouseEnter={() => setHover(true)}
+                onMouseLeave={() => setHover(false)}
+              >
+                <Avatar
+                  src={image}
+                  sx={{
+                    width: 140,
+                    height: 140,
+                    bgcolor: color.hex,
+                    position: "absolute",
+                    border: `4px solid ${color.hex}`,
+                  }}
+                />
+                {hover && (
+                  <IconButton
+                    onClick={handleAvatarClick}
+                    sx={[
+                      {
+                        width: 140,
+                        height: 140,
+                        position: "absolute",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: "white",
+                      },
+                      {
+                        "&:hover": {
+                          backgroundColor: "rgba(0, 0, 0, 0.5)",
+                        },
+                      },
+                    ]}
+                  >
+                    <EditIcon />
+                  </IconButton>
+                )}
+                <input
+                  type="file"
+                  id="profilePicInput"
+                  hidden
+                  accept="image/*"
+                  onChange={handleProfilePicChange}
+                />
+              </Box>
+              <Stack spacing={1}>
+                <Saturation height={70} color={color} onChange={setColor} />
+                <Hue color={color} onChange={setColor} />
+              </Stack>
             </Stack>
           </Grid>
           <Grid item size={8}>

@@ -1,7 +1,7 @@
 import Login from "./scenes/login/Login";
 import Topbar from "./scenes/global/Topbar";
 import Sidebar from "./scenes/global/Sidebar";
-import Dashboard from "./scenes/dashboard";
+import Dashboard from "./scenes/dashboard/Dashboard";
 import TutorList from "./scenes/Tutor/TutorList";
 import NewTutor from "./scenes/Tutor/NewTutor";
 import { ColorModeContext, useMode } from "./theme";
