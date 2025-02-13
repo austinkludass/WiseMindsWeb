@@ -165,7 +165,7 @@ export const themeSettings = (mode) => {
               light: colors.grey[100],
             },
             background: {
-              default: "#fcfcfc",
+              default: "#fbfbfb",
             },
           }),
     },
@@ -196,6 +196,62 @@ export const themeSettings = (mode) => {
         fontFamily: ["Source Sans Pro", "sans-serif"].join(","),
         fontSize: 14,
       },
+    },
+    components: {
+      MuiPaper: {
+        styleOverrides: {
+          root: {
+            backgroundColor:
+              mode === "dark" ? colors.primary[500] : colors.primary[400],
+          },
+        },
+      },
+      MuiButton: {
+        styleOverrides: {
+          containedPrimary: {
+            backgroundColor: colors.orangeAccent[700],
+          },
+        },
+      },
+      MuiAccordion: {
+        styleOverrides: {
+          root: {
+            backgroundColor: colors.primary[400],
+          },
+        },
+      },
+      MuiSwitch: {
+        styleOverrides: {
+          switchBase: {
+            color: colors.orangeAccent[500],
+            "&.Mui-checked": {
+              color: colors.orangeAccent[400],
+            },
+            "&.Mui-checked + .MuiSwitch-track": {
+              backgroundColor: colors.orangeAccent[400],
+            },
+          },
+          track: {
+            backgroundColor: colors.orangeAccent[500],
+          },
+        },
+      },
+      MuiSlider: {
+        styleOverrides: {
+          root: {
+            color: colors.orangeAccent[400],
+          },
+          thumb: {
+            color: colors.orangeAccent[400],
+          },
+          track: {
+            color: colors.orangeAccent[400],
+          },
+          rail: {
+            color: colors.orangeAccent[400],
+          }
+        }
+      }
     },
   };
 };

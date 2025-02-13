@@ -15,6 +15,7 @@ import {
   FormControlLabel,
   Switch,
   Box,
+  Slider,
 } from "@mui/material";
 import { ToastContainer, toast } from "react-toastify";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
@@ -151,6 +152,25 @@ const NewTutor = () => {
     }
   };
 
+  const [minMaxValue, setMinMaxValue] = useState([0, 20]);
+  const handleMinMaxChange = (event, newValue, activeThumb) => {
+    if (!Array.isArray(newValue)) {
+      return;
+    }
+
+    if (activeThumb === 0) {
+      setMinMaxValue([
+        Math.min(newValue[0], minMaxValue[1] - 3),
+        minMaxValue[1],
+      ]);
+    } else {
+      setMinMaxValue([
+        minMaxValue[0],
+        Math.max(newValue[1], minMaxValue[0] + 3),
+      ]);
+    }
+  };
+
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="en-gb">
       <Box display="flex" m="20px">
@@ -206,7 +226,7 @@ const NewTutor = () => {
                       },
                     ]}
                   >
-                    <EditIcon />
+                    <EditIcon sx={{ width: 40, height: 40 }} />
                   </IconButton>
                 )}
                 <input
@@ -320,7 +340,7 @@ const NewTutor = () => {
       </Paper>
 
       <Paper sx={{ p: 3, maxWidth: 1000, minWidth: 600, m: 4 }}>
-        <Stack spacing={2}>
+        <Stack spacing={4}>
           {/* Contact Information */}
           <Accordion>
             <AccordionSummary expandIcon={<ExpandMoreIcon />}>
@@ -331,6 +351,42 @@ const NewTutor = () => {
                 <TextField label="Personal Email" />
                 <TextField label="Phone Number" />
                 <TextField label="Address" />
+              </Stack>
+            </AccordionDetails>
+          </Accordion>
+
+          {/* Personal Information */}
+          <Accordion>
+            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+              <Typography variant="h4">Personal Information</Typography>
+            </AccordionSummary>
+            <AccordionDetails>
+              <Stack spacing={2}>
+                <TextField label="Career" />
+                <TextField label="Degree" />
+                <TextField label="Position" />
+                <TextField label="Assigned Location" />
+                <FormControl disabled fullWidth>
+                  <InputLabel id="role-select-label">Role</InputLabel>
+                  <Select
+                    defaultValue={"tutor"}
+                    label="Role"
+                    labelId="role-select-label"
+                  >
+                    <MenuItem value={"tutor"}>Tutor</MenuItem>
+                  </Select>
+                </FormControl>
+                <Box sx={{ paddingLeft: 2, paddingRight: 2 }}>
+                  <Typography gutterBottom>Hours</Typography>
+                  <Slider
+                    valueLabelDisplay="auto"
+                    onChange={handleMinMaxChange}
+                    value={minMaxValue}
+                    disableSwap
+                    max={60}
+                    min={0}
+                  />
+                </Box>
               </Stack>
             </AccordionDetails>
           </Accordion>
@@ -441,7 +497,7 @@ const NewTutor = () => {
               <Stack spacing={2}>
                 <TextField label="Name" />
                 <FormControlLabel
-                  control={<Switch checked="true" />}
+                  control={<Switch />}
                   label="National Police Check"
                 />
                 <TextField label="Address" />
@@ -460,6 +516,18 @@ const NewTutor = () => {
         </Stack>
       </Paper>
 
+      <Paper sx={{ p: 3, maxWidth: 1000, minWidth: 600, m: 4 }}>
+        <Typography variant="h4">Availability</Typography>
+      </Paper>
+
+      <Paper sx={{ p: 3, maxWidth: 1000, minWidth: 600, m: 4 }}>
+        <Typography variant="h4">Capabilities</Typography>
+      </Paper>
+
+      <Paper sx={{ p: 3, maxWidth: 1000, minWidth: 600, m: 4 }}>
+        <Typography variant="h4">Blocked Students</Typography>
+      </Paper>
+
       {/* Submit Button */}
       <Grid container justifyContent="flex-end" sx={{ m: 4 }}>
         <Button
@@ -468,7 +536,7 @@ const NewTutor = () => {
           variant="contained"
           color="primary"
         >
-          <Typography variant="h5">Submit</Typography>
+          <Typography variant="h4">Submit</Typography>
         </Button>
       </Grid>
       <ToastContainer position="top-right" autoClose={3000} />
