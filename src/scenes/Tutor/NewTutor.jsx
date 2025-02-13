@@ -39,6 +39,7 @@ import "react-toastify/dist/ReactToastify.css";
 import "react-color-palette/css";
 import "dayjs/locale/en-gb";
 import Header from "../../components/Header";
+import AvailabilitySelector from "../../components/AvailabilitySelector";
 
 const NewTutor = () => {
   const navigate = useNavigate();
@@ -518,6 +519,7 @@ const NewTutor = () => {
 
       <Paper sx={{ p: 3, maxWidth: 1000, minWidth: 600, m: 4 }}>
         <Typography variant="h4">Availability</Typography>
+        <AvailabilitySelector userId="123" />
       </Paper>
 
       <Paper sx={{ p: 3, maxWidth: 1000, minWidth: 600, m: 4 }}>
