@@ -40,6 +40,7 @@ import "react-color-palette/css";
 import "dayjs/locale/en-gb";
 import Header from "../../components/Header";
 import AvailabilitySelector from "../../components/AvailabilitySelector";
+import UnavailabilitySelector from "../../components/UnavailabilitySelector";
 
 const NewTutor = () => {
   const navigate = useNavigate();
@@ -50,7 +51,8 @@ const NewTutor = () => {
   const [hover, setHover] = useState(false);
   const [image, setImage] = useState("");
   const [profilePicFile, setProfilePicFile] = useState(null);
-
+  const [specificUnavailability, setSpecificUnavailability] = useState([]);
+  
   const [formData, setFormData] = useState({
     firstName: "",
     middleName: null,
@@ -518,8 +520,20 @@ const NewTutor = () => {
       </Paper>
 
       <Paper sx={{ p: 3, maxWidth: 1000, minWidth: 600, m: 4 }}>
-        <Typography variant="h4">Availability</Typography>
-        <AvailabilitySelector userId="123" />
+        <Stack spacing={2}>
+          <Typography variant="h4">Availability</Typography>
+          <AvailabilitySelector userId="123" />
+        </Stack>
+      </Paper>
+
+      <Paper sx={{ p: 3, maxWidth: 1000, minWidth: 600, m: 4 }}>
+        <Stack spacing={2}>
+          <Typography variant="h4">Unavailability</Typography>
+          <UnavailabilitySelector
+            unavailability={specificUnavailability}
+            onChange={setSpecificUnavailability}
+          />
+        </Stack>
       </Paper>
 
       <Paper sx={{ p: 3, maxWidth: 1000, minWidth: 600, m: 4 }}>

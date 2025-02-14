@@ -208,8 +208,22 @@ export const themeSettings = (mode) => {
       },
       MuiButton: {
         styleOverrides: {
+          root: {
+            "&.MuiButton-textPrimary": {
+              color: "white",
+            },
+          },
           containedPrimary: {
             backgroundColor: colors.orangeAccent[700],
+          },
+        },
+      },
+      MuiIconButton: {
+        styleOverrides: {
+          root: {
+            "&.MuiIconButton-colorSecondary": {
+              color: colors.orangeAccent[700],
+            },
           },
         },
       },
@@ -249,9 +263,18 @@ export const themeSettings = (mode) => {
           },
           rail: {
             color: colors.orangeAccent[400],
-          }
-        }
-      }
+          },
+        },
+      },
+      MuiMenuItem: {
+        styleOverrides: {
+          root: {
+            "&.Mui-selected": {
+              backgroundColor: `${colors.orangeAccent[700]} !important`,
+            },
+          },
+        },
+      },
     },
   };
 };

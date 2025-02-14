@@ -1,14 +1,30 @@
 import React, { useState } from "react";
 import {
-  Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper,
-  Button, IconButton
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  Button,
+  IconButton,
 } from "@mui/material";
-import { TimePicker } from "@mui/x-date-pickers/TimePicker";
+import AddCircleIcon from "@mui/icons-material/AddCircle";
+import { DesktopTimePicker } from "@mui/x-date-pickers/DesktopTimePicker";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import DeleteIcon from "@mui/icons-material/Delete";
 
-const daysOfWeek = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+const daysOfWeek = [
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+  "Sunday",
+];
 
 const AvailabilitySelector = ({ tutorId }) => {
   const [availability, setAvailability] = useState({});
@@ -17,7 +33,13 @@ const AvailabilitySelector = ({ tutorId }) => {
   const addTimeSlot = (day) => {
     setAvailability((prev) => ({
       ...prev,
-      [day]: [...(prev[day] || []), { start: new Date(), end: new Date() }],
+      [day]: [
+        ...(prev[day] || []),
+        {
+          start: new Date().setHours(6, 0, 0, 0),
+          end: new Date().setHours(22, 0, 0, 0),
+        },
+      ],
     }));
   };
 
@@ -41,9 +63,7 @@ const AvailabilitySelector = ({ tutorId }) => {
   };
 
   // Save to Firestore
-  const saveAvailability = async () => {
-    
-  };
+  const saveAvailability = async () => {};
 
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
@@ -53,53 +73,66 @@ const AvailabilitySelector = ({ tutorId }) => {
             <TableRow>
               <TableCell>Day</TableCell>
               <TableCell>Available Time Slots</TableCell>
-              <TableCell>Actions</TableCell>
+              <TableCell></TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {daysOfWeek.map((day) => (
               <TableRow key={day}>
                 <TableCell>{day}</TableCell>
-                <TableCell>
+                <TableCell sx={{ width: 600, verticalAlign: "top" }}>
                   {availability[day]?.map((slot, index) => (
-                    <div key={index} style={{ display: "flex", gap: "10px", marginBottom: "5px" }}>
-                      <TimePicker
+                    <div
+                      key={index}
+                      style={{
+                        display: "flex",
+                        gap: "10px",
+                        paddingTop: `${index === 0 ? "0px" : "15px"}`,
+                      }}
+                    >
+                      <DesktopTimePicker
                         label="Start Time"
                         value={slot.start}
-                        onChange={(newValue) => handleTimeChange(day, index, "start", newValue)}
+                        onChange={(newValue) =>
+                          handleTimeChange(day, index, "start", newValue)
+                        }
                         renderInput={(params) => <input {...params} />}
                       />
-                      <TimePicker
+                      <DesktopTimePicker
                         label="End Time"
                         value={slot.end}
-                        onChange={(newValue) => handleTimeChange(day, index, "end", newValue)}
+                        onChange={(newValue) =>
+                          handleTimeChange(day, index, "end", newValue)
+                        }
                         renderInput={(params) => <input {...params} />}
                       />
-                      <IconButton color="secondary" onClick={() => removeTimeSlot(day, index)}>
+                      <IconButton
+                        color="error"
+                        onClick={() => removeTimeSlot(day, index)}
+                      >
                         <DeleteIcon />
                       </IconButton>
                     </div>
                   ))}
                 </TableCell>
-                <TableCell>
-                  <Button variant="contained" color="primary" onClick={() => addTimeSlot(day)}>
-                    + Add Time Slot
-                  </Button>
+                <TableCell sx={{ verticalAlign: "top" }}>
+                  <IconButton sx={{ width: 55, height: 55 }} color="secondary">
+                    <AddCircleIcon
+                      sx={{ width: 30, height: 30 }}
+                      onClick={() => addTimeSlot(day)}
+                    />
+                  </IconButton>
                 </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
       </TableContainer>
-      <Button sx={{ mt: 2 }} variant="contained" color="success" onClick={saveAvailability}>
-        Save Availability
-      </Button>
     </LocalizationProvider>
   );
 };
 
 export default AvailabilitySelector;
-
 
 // Data structure stored in firebase
 // {
