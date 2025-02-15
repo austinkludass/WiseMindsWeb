@@ -45,7 +45,6 @@ import UnavailabilitySelector from "../../components/UnavailabilitySelector";
 const NewTutor = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const [secondPassword, setSecondPassword] = useState("");
   const [color, setColor] = useColor("#6e6e6e");
   const [showPassword, setShowPassword] = useState(false);
   const [hover, setHover] = useState(false);
@@ -55,11 +54,19 @@ const NewTutor = () => {
   
   const [formData, setFormData] = useState({
     firstName: "",
-    middleName: null,
+    middleName: "",
     lastName: "",
     dateOfBirth: null,
     wiseMindsEmail: "",
     password: "",
+    secondPassword: "",
+  });
+
+  const [touched, setTouched] = useState({
+    firstName: false,
+    wiseMindsEmail: false,
+    password: false,
+    secondPassword: false,
   });
 
   const handleChange = (e) => {
@@ -70,11 +77,16 @@ const NewTutor = () => {
     setFormData({ ...formData, dateOfBirth: date });
   };
 
+  const handleBlur = (e) => {
+    const { name } = e.target;
+    setTouched({ ...touched, [name]: true });
+  };
+
+  const isInvalid = (field) => touched[field] && !formData[field].trim();
+
   const isFormValid = () => {
     return (
       formData.firstName &&
-      formData.lastName &&
-      formData.dateOfBirth &&
       formData.wiseMindsEmail &&
       formData.password
     );
@@ -92,11 +104,17 @@ const NewTutor = () => {
     e.preventDefault();
 
     if (!isFormValid()) {
+      setTouched({
+        firstName: true,
+        wiseMindsEmail: true,
+        password: true,
+        secondPassword: true,
+      });
       toast.error("Complete all required fields");
       return;
     }
 
-    if (formData.password !== secondPassword) {
+    if (formData.password !== formData.secondPassword) {
       toast.error("Passwords do not match");
       return;
     }
@@ -252,8 +270,10 @@ const NewTutor = () => {
                 name="firstName"
                 value={formData.firstName}
                 onChange={handleChange}
+                onBlur={handleBlur}
                 required
                 label="First Name"
+                error={isInvalid("firstName")}
               />
               <TextField
                 name="middleName"
@@ -265,13 +285,12 @@ const NewTutor = () => {
                 name="lastName"
                 value={formData.lastName}
                 onChange={handleChange}
-                required
                 label="Last Name"
               />
               <DatePicker
                 value={formData.dateOfBirth}
                 onChange={handleDateChange}
-                label="Date of Birth *"
+                label="Date of Birth"
               />
             </Stack>
           </Grid>
@@ -286,14 +305,18 @@ const NewTutor = () => {
             name="wiseMindsEmail"
             value={formData.wiseMindsEmail}
             onChange={handleChange}
+            onBlur={handleBlur}
             required
             type="email"
             label="Wise Minds Email"
+            error={isInvalid("wiseMindsEmail")}
           />
           <TextField
             name="password"
             value={formData.password}
             onChange={handleChange}
+            onBlur={handleBlur}
+            error={isInvalid("password")}
             label="Password"
             autoComplete="new-password"
             required
@@ -316,10 +339,13 @@ const NewTutor = () => {
             }}
           />
           <TextField
-            value={secondPassword}
-            onChange={(e) => setSecondPassword(e.target.value)}
+            name="secondPassword"
+            value={formData.secondPassword}
+            onChange={handleChange}
             label="Re-enter Password"
             autoComplete="new-password"
+            onBlur={handleBlur}
+            error={isInvalid("secondPassword")}
             required
             type={showPassword ? "text" : "password"}
             slotProps={{
@@ -368,7 +394,14 @@ const NewTutor = () => {
                 <TextField label="Career" />
                 <TextField label="Degree" />
                 <TextField label="Position" />
-                <TextField label="Assigned Location" />
+                <FormControl disabled fullWidth>
+                  <InputLabel id="location-select-label">Home Location</InputLabel>
+                  <Select
+                    label="Home Location"
+                    labelId="location-select-label"
+                  >
+                  </Select>
+                </FormControl>
                 <FormControl disabled fullWidth>
                   <InputLabel id="role-select-label">Role</InputLabel>
                   <Select

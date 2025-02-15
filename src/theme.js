@@ -122,8 +122,9 @@ export const tokens = (mode) => ({
           900: "#e1e2fe",
         },
         orangeAccent: {
-          400: "#FFB744",
-          700: "#FCA61C",
+          400: "#3e4396",
+          700: "#3e4396",
+          // Old orange: 400 -> ffb744, 700 -> fca61c
         },
       }),
 });

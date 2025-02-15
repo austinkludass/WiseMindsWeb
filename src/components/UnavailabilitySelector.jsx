@@ -13,6 +13,14 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import { DesktopDatePicker } from "@mui/x-date-pickers/DesktopDatePicker";
 import dayjs from "dayjs";
 
+const formatDate = (date) => {
+  return new Intl.DateTimeFormat("en-GB", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  }).format(new Date(date));
+};
+
 const UnavailabilitySelector = ({ unavailability, onChange }) => {
   const [selectedDate, setSelectedDate] = useState(null);
   const [reason, setReason] = useState("");
@@ -73,7 +81,9 @@ const UnavailabilitySelector = ({ unavailability, onChange }) => {
             }
           >
             <ListItemText>
-              <Typography>{entry.date}: {entry.reason}</Typography>
+              <Typography>
+                {formatDate(entry.date)}: {entry.reason}
+              </Typography>
             </ListItemText>
           </ListItem>
         ))}

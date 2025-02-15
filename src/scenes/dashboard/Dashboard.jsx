@@ -27,8 +27,9 @@ const Dashboard = () => {
           alignItems="center"
           justifyContent="center"
           height="500px"
-          overflow="hidden">
-            <Summaryboard />
+          overflow="hidden"
+        >
+          <Summaryboard />
         </Box>
 
         <Box
@@ -37,9 +38,8 @@ const Dashboard = () => {
           display="flex"
           alignItems="center"
           justifyContent="center"
-          overflow="hidden">
-
-        </Box>
+          overflow="hidden"
+        ></Box>
 
         <Box
           gridColumn="span 4"
