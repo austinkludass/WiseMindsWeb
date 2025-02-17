@@ -51,7 +51,7 @@ const NewTutor = () => {
   const [image, setImage] = useState("");
   const [profilePicFile, setProfilePicFile] = useState(null);
   const [specificUnavailability, setSpecificUnavailability] = useState([]);
-  
+
   const [formData, setFormData] = useState({
     firstName: "",
     middleName: "",
@@ -60,6 +60,40 @@ const NewTutor = () => {
     wiseMindsEmail: "",
     password: "",
     secondPassword: "",
+    personalEmail: "",
+    phone: "",
+    address: "",
+    career: "",
+    degree: "",
+    position: "",
+    homeLocation: "",
+    role: "",
+    hours: "",
+    emergencyName: "",
+    emergencyRelationship: "",
+    emergencyPhone: "",
+    emergencyEmail: "",
+    bankName: "",
+    accountName: "",
+    bsb: "",
+    accountNumber: "",
+    tfn: "",
+    superCompany: "",
+    wwvpName: "",
+    wwvpRegNumber: "",
+    wwvpCardNumber: "",
+    wwvpExpiry: null,
+    faCourseDate: null,
+    faProvider: "",
+    faNumber: "",
+    faCourseType: "",
+    faCourseCode: "",
+    faExpiry: null,
+    pcName: "",
+    pcIsNational: false,
+    pcAddress: "",
+    pcResult: "",
+    pcAPPRef: "",
   });
 
   const [touched, setTouched] = useState({
@@ -85,11 +119,7 @@ const NewTutor = () => {
   const isInvalid = (field) => touched[field] && !formData[field].trim();
 
   const isFormValid = () => {
-    return (
-      formData.firstName &&
-      formData.wiseMindsEmail &&
-      formData.password
-    );
+    return formData.firstName && formData.wiseMindsEmail && formData.password;
   };
 
   const uploadImage = async (userId) => {
@@ -135,12 +165,12 @@ const NewTutor = () => {
       }
 
       await setDoc(doc(db, "tutors", user.uid), {
+        avatar: avatarUrl,
         firstName: formData.firstName,
         middleName: formData.middleName,
         lastName: formData.lastName,
         dateOfBirth: formData.dateOfBirth.toISOString(),
         wiseMindsEmail: formData.wiseMindsEmail,
-        avatar: avatarUrl,
       });
 
       toast.success("Successfully added tutor!");
@@ -377,9 +407,24 @@ const NewTutor = () => {
             </AccordionSummary>
             <AccordionDetails>
               <Stack spacing={2}>
-                <TextField label="Personal Email" />
-                <TextField label="Phone Number" />
-                <TextField label="Address" />
+                <TextField
+                  name="personalEmail"
+                  label="Personal Email"
+                  value={formData.personalEmail}
+                  onChange={handleChange}
+                />
+                <TextField
+                  name="phone"
+                  label="Phone Number"
+                  value={formData.phone}
+                  onChange={handleChange}
+                />
+                <TextField
+                  name="address"
+                  label="Address"
+                  value={formData.address}
+                  onChange={handleChange}
+                />
               </Stack>
             </AccordionDetails>
           </Accordion>
@@ -391,16 +436,32 @@ const NewTutor = () => {
             </AccordionSummary>
             <AccordionDetails>
               <Stack spacing={2}>
-                <TextField label="Career" />
-                <TextField label="Degree" />
-                <TextField label="Position" />
+                <TextField
+                  name="career"
+                  label="Career"
+                  value={formData.career}
+                  onChange={handleChange}
+                />
+                <TextField
+                  name="degree"
+                  label="Degree"
+                  value={formData.degree}
+                  onChange={handleChange}
+                />
+                <TextField
+                  name="position"
+                  label="Position"
+                  value={formData.position}
+                  onChange={handleChange}
+                />
                 <FormControl disabled fullWidth>
-                  <InputLabel id="location-select-label">Home Location</InputLabel>
+                  <InputLabel id="location-select-label">
+                    Home Location
+                  </InputLabel>
                   <Select
                     label="Home Location"
                     labelId="location-select-label"
-                  >
-                  </Select>
+                  ></Select>
                 </FormControl>
                 <FormControl disabled fullWidth>
                   <InputLabel id="role-select-label">Role</InputLabel>
@@ -434,7 +495,12 @@ const NewTutor = () => {
             </AccordionSummary>
             <AccordionDetails>
               <Stack spacing={2}>
-                <TextField label="Full Name" />
+                <TextField
+                  name="emergencyName"
+                  label="Full Name"
+                  value={formData.emergencyName}
+                  onChange={handleChange}
+                />
                 <FormControl fullWidth>
                   <InputLabel id="relationship-select-label">
                     Relationship
@@ -453,8 +519,18 @@ const NewTutor = () => {
                     <MenuItem value={"wife"}>Wife</MenuItem>
                   </Select>
                 </FormControl>
-                <TextField label="Phone Number" />
-                <TextField label="Email" />
+                <TextField
+                  name="emergencyPhone"
+                  label="Phone Number"
+                  value={formData.emergencyPhone}
+                  onChange={handleChange}
+                />
+                <TextField
+                  name="emergencyEmail"
+                  label="Email"
+                  value={formData.emergencyEmail}
+                  onChange={handleChange}
+                />
               </Stack>
             </AccordionDetails>
           </Accordion>
@@ -466,12 +542,42 @@ const NewTutor = () => {
             </AccordionSummary>
             <AccordionDetails>
               <Stack spacing={2}>
-                <TextField label="Bank Name" />
-                <TextField label="Account Name" />
-                <TextField label="BSB" />
-                <TextField label="Account Number" />
-                <TextField label="Tax File Number" />
-                <TextField label="Super Company" />
+                <TextField
+                  name="bankName"
+                  label="Bank Name"
+                  value={formData.bankName}
+                  onChange={handleChange}
+                />
+                <TextField
+                  name="accountName"
+                  label="Account Name"
+                  value={formData.accountName}
+                  onChange={handleChange}
+                />
+                <TextField
+                  name="bsb"
+                  label="BSB"
+                  value={formData.bsb}
+                  onChange={handleChange}
+                />
+                <TextField
+                  name="accountNumber"
+                  label="Account Number"
+                  value={formData.accountNumber}
+                  onChange={handleChange}
+                />
+                <TextField
+                  name="tfn"
+                  label="Tax File Number"
+                  value={formData.tfn}
+                  onChange={handleChange}
+                />
+                <TextField
+                  name="superCompany"
+                  label="Super Company"
+                  value={formData.superCompany}
+                  onChange={handleChange}
+                />
               </Stack>
             </AccordionDetails>
           </Accordion>
@@ -485,10 +591,25 @@ const NewTutor = () => {
             </AccordionSummary>
             <AccordionDetails>
               <Stack spacing={2}>
-                <TextField label="Name" />
-                <TextField label="Registration Number" />
-                <TextField label="Card Number" />
-                <DatePicker label="Expiry" />
+                <TextField
+                  name="wwvpName"
+                  label="Name"
+                  value={formData.wwvpName}
+                  onChange={handleChange}
+                />
+                <TextField
+                  name="wwvpRegNumber"
+                  label="Registration Number"
+                  value={formData.wwvpRegNumber}
+                  onChange={handleChange}
+                />
+                <TextField
+                  name="wwvpCardNumber"
+                  label="Card Number"
+                  value={formData.wwvpCardNumber}
+                  onChange={handleChange}
+                />
+                <DatePicker label="Expiry" value={formData.wwvpExpiry} />
                 <Button variant="contained" component="label">
                   UPLOAD WORKING WITH VULNERABLE PEOPLE DOCUMENT
                   <input hidden accept="*.pdf" type="file" />
@@ -507,12 +628,32 @@ const NewTutor = () => {
             </AccordionSummary>
             <AccordionDetails>
               <Stack spacing={2}>
-                <DatePicker label="Course Date" />
-                <TextField label="Provider" />
-                <TextField label="Number" />
-                <TextField label="Course Type" />
-                <TextField label="Course Code" />
-                <DatePicker label="Expiry" />
+                <DatePicker label="Course Date" value={formData.faCourseDate} />
+                <TextField
+                  name="faProvider"
+                  label="Provider"
+                  value={formData.faProvider}
+                  onChange={handleChange}
+                />
+                <TextField
+                  name="faNumber"
+                  label="Number"
+                  value={formData.faNumber}
+                  onChange={handleChange}
+                />
+                <TextField
+                  name="faCourseType"
+                  label="Course Type"
+                  value={formData.faCourseType}
+                  onChange={handleChange}
+                />
+                <TextField
+                  name="faCourseCode"
+                  label="Course Code"
+                  value={formData.faCourseCode}
+                  onChange={handleChange}
+                />
+                <DatePicker label="Expiry" value={formData.faExpiry} />
                 <Button variant="contained" component="label">
                   UPLOAD FIRST AID DOCUMENT
                   <input hidden accept="*.pdf" type="file" />
@@ -531,14 +672,34 @@ const NewTutor = () => {
             </AccordionSummary>
             <AccordionDetails>
               <Stack spacing={2}>
-                <TextField label="Name" />
+                <TextField
+                  name="pcName"
+                  label="Name"
+                  value={formData.pcName}
+                  onChange={handleChange}
+                />
                 <FormControlLabel
                   control={<Switch />}
                   label="National Police Check"
                 />
-                <TextField label="Address" />
-                <TextField label="Result" />
-                <TextField label="APP Reference" />
+                <TextField
+                  name="pcAddress"
+                  label="Address"
+                  value={formData.pcAddress}
+                  onChange={handleChange}
+                />
+                <TextField
+                  name="pcResult"
+                  label="Result"
+                  value={formData.pcResult}
+                  onChange={handleChange}
+                />
+                <TextField
+                  name="pcAPPRef"
+                  label="APP Reference"
+                  value={formData.pcAPPRef}
+                  onChange={handleChange}
+                />
                 <Button variant="contained" component="label">
                   UPLOAD POLICE CHECK DOCUMENT
                   <input hidden accept="*.pdf" type="file" />
