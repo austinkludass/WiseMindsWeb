@@ -51,6 +51,7 @@ const NewTutor = () => {
   const [image, setImage] = useState("");
   const [profilePicFile, setProfilePicFile] = useState(null);
   const [specificUnavailability, setSpecificUnavailability] = useState([]);
+  const [minMaxValue, setMinMaxValue] = useState([0, 20]);
 
   const [formData, setFormData] = useState({
     firstName: "",
@@ -67,8 +68,8 @@ const NewTutor = () => {
     degree: "",
     position: "",
     homeLocation: "",
-    role: "",
-    hours: "",
+    role: "tutor",
+    hours: minMaxValue,
     emergencyName: "",
     emergencyRelationship: "",
     emergencyPhone: "",
@@ -107,8 +108,12 @@ const NewTutor = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleDateChange = (date) => {
-    setFormData({ ...formData, dateOfBirth: date });
+  const handleDateChange = (name) => (date) => {
+    setFormData({ ...formData, [name]: date });
+  };
+
+  const handleSwitchChange = (e) => {
+    setFormData({ ...formData, pcIsNational: e.target.checked });
   };
 
   const handleBlur = (e) => {
@@ -166,11 +171,49 @@ const NewTutor = () => {
 
       await setDoc(doc(db, "tutors", user.uid), {
         avatar: avatarUrl,
+        tutorColor: color.hex,
         firstName: formData.firstName,
         middleName: formData.middleName,
         lastName: formData.lastName,
-        dateOfBirth: formData.dateOfBirth.toISOString(),
+        dateOfBirth: formData.dateOfBirth?.toISOString() || null,
         wiseMindsEmail: formData.wiseMindsEmail,
+        personalEmail: formData.personalEmail,
+        phone: formData.phone,
+        address: formData.address,
+        career: formData.career,
+        degree: formData.degree,
+        position: formData.position,
+        homeLocation: formData.homeLocation,
+        role: formData.role,
+        hours: formData.hours,
+        emergencyName: formData.emergencyName,
+        emergencyRelationship: formData.emergencyRelationship,
+        emergencyPhone: formData.emergencyPhone,
+        emergencyEmail: formData.emergencyEmail,
+        bankName: formData.bankName,
+        accountName: formData.accountName,
+        bsb: formData.bsb,
+        accountNumber: formData.accountNumber,
+        tfn: formData.tfn,
+        superCompany: formData.superCompany,
+        wwvpName: formData.wwvpName,
+        wwvpRegNumber: formData.wwvpRegNumber,
+        wwvpCardNumber: formData.wwvpCardNumber,
+        wwvpExpiry: formData.wwvpExpiry?.toISOString() || null,
+        // wwvp File Path
+        faCourseDate: formData.faCourseDate?.toISOString() || null,
+        faProvider: formData.faProvider,
+        faNumber: formData.faNumber,
+        faCourseType: formData.faCourseType,
+        faCourseCode: formData.faCourseCode,
+        faExpiry: formData.faExpiry?.toISOString() || null,
+        // fa File Path
+        pcName: formData.pcName,
+        pcIsNational: formData.pcIsNational,
+        pcAddress: formData.pcAddress,
+        pcResult: formData.pcResult,
+        pcAPPRef: formData.pcAPPRef,
+        // pc File Path
       });
 
       toast.success("Successfully added tutor!");
@@ -203,7 +246,6 @@ const NewTutor = () => {
     }
   };
 
-  const [minMaxValue, setMinMaxValue] = useState([0, 20]);
   const handleMinMaxChange = (event, newValue, activeThumb) => {
     if (!Array.isArray(newValue)) {
       return;
@@ -319,7 +361,7 @@ const NewTutor = () => {
               />
               <DatePicker
                 value={formData.dateOfBirth}
-                onChange={handleDateChange}
+                onChange={handleDateChange("dateOfBirth")}
                 label="Date of Birth"
               />
             </Stack>
@@ -360,6 +402,7 @@ const NewTutor = () => {
                       onClick={handleClickShowPassword}
                       onMouseDown={handleMouseDownPassword}
                       onMouseUp={handleMouseUpPassword}
+                      tabIndex={-1}
                     >
                       {showPassword ? <Visibility /> : <VisibilityOff />}
                     </IconButton>
@@ -387,6 +430,7 @@ const NewTutor = () => {
                       onClick={handleClickShowPassword}
                       onMouseDown={handleMouseDownPassword}
                       onMouseUp={handleMouseUpPassword}
+                      tabIndex={-1}
                     >
                       {showPassword ? <Visibility /> : <VisibilityOff />}
                     </IconButton>
@@ -459,16 +503,21 @@ const NewTutor = () => {
                     Home Location
                   </InputLabel>
                   <Select
+                    name="homeLocation"
                     label="Home Location"
                     labelId="location-select-label"
+                    value={formData.homeLocation}
+                    onChange={handleChange}
                   ></Select>
                 </FormControl>
                 <FormControl disabled fullWidth>
                   <InputLabel id="role-select-label">Role</InputLabel>
                   <Select
-                    defaultValue={"tutor"}
+                    name="role"
                     label="Role"
                     labelId="role-select-label"
+                    value={formData.role}
+                    onChange={handleChange}
                   >
                     <MenuItem value={"tutor"}>Tutor</MenuItem>
                   </Select>
@@ -506,8 +555,11 @@ const NewTutor = () => {
                     Relationship
                   </InputLabel>
                   <Select
+                    name="emergencyRelationship"
                     label="Relationship"
                     labelId="relationship-select-label"
+                    value={formData.emergencyRelationship}
+                    onChange={handleChange}
                   >
                     <MenuItem value={"daughter"}>Daughter</MenuItem>
                     <MenuItem value={"father"}>Father</MenuItem>
@@ -609,7 +661,11 @@ const NewTutor = () => {
                   value={formData.wwvpCardNumber}
                   onChange={handleChange}
                 />
-                <DatePicker label="Expiry" value={formData.wwvpExpiry} />
+                <DatePicker
+                  label="Expiry"
+                  onChange={handleDateChange("wwvpExpiry")}
+                  value={formData.wwvpExpiry}
+                />
                 <Button variant="contained" component="label">
                   UPLOAD WORKING WITH VULNERABLE PEOPLE DOCUMENT
                   <input hidden accept="*.pdf" type="file" />
@@ -628,7 +684,11 @@ const NewTutor = () => {
             </AccordionSummary>
             <AccordionDetails>
               <Stack spacing={2}>
-                <DatePicker label="Course Date" value={formData.faCourseDate} />
+                <DatePicker
+                  label="Course Date"
+                  onChange={handleDateChange("faCourseDate")}
+                  value={formData.faCourseDate}
+                />
                 <TextField
                   name="faProvider"
                   label="Provider"
@@ -653,7 +713,11 @@ const NewTutor = () => {
                   value={formData.faCourseCode}
                   onChange={handleChange}
                 />
-                <DatePicker label="Expiry" value={formData.faExpiry} />
+                <DatePicker
+                  label="Expiry"
+                  onChange={handleDateChange("faExpiry")}
+                  value={formData.faExpiry}
+                />
                 <Button variant="contained" component="label">
                   UPLOAD FIRST AID DOCUMENT
                   <input hidden accept="*.pdf" type="file" />
@@ -679,7 +743,12 @@ const NewTutor = () => {
                   onChange={handleChange}
                 />
                 <FormControlLabel
-                  control={<Switch />}
+                  control={
+                    <Switch
+                      checked={formData.pcIsNational}
+                      onChange={handleSwitchChange}
+                    />
+                  }
                   label="National Police Check"
                 />
                 <TextField
