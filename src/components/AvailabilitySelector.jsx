@@ -7,7 +7,6 @@ import {
   TableHead,
   TableRow,
   Paper,
-  Button,
   IconButton,
 } from "@mui/material";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
@@ -26,12 +25,17 @@ const daysOfWeek = [
   "Sunday",
 ];
 
-const AvailabilitySelector = ({ tutorId }) => {
+const AvailabilitySelector = ({ onAvailabilityChange }) => {
   const [availability, setAvailability] = useState({});
+
+  const updateAvailability = (newAvailability) => {
+    setAvailability(newAvailability);
+    onAvailabilityChange(newAvailability);
+  };
 
   // Add a new time slot for a day
   const addTimeSlot = (day) => {
-    setAvailability((prev) => ({
+    updateAvailability((prev) => ({
       ...prev,
       [day]: [
         ...(prev[day] || []),
@@ -45,7 +49,7 @@ const AvailabilitySelector = ({ tutorId }) => {
 
   // Remove a time slot
   const removeTimeSlot = (day, index) => {
-    setAvailability((prev) => {
+    updateAvailability((prev) => {
       const updatedSlots = [...(prev[day] || [])];
       updatedSlots.splice(index, 1);
       return { ...prev, [day]: updatedSlots };
@@ -55,15 +59,12 @@ const AvailabilitySelector = ({ tutorId }) => {
   // Update time values
   const handleTimeChange = (day, index, type, value) => {
     if (!value) return;
-    setAvailability((prev) => {
+    updateAvailability((prev) => {
       const updatedSlots = [...(prev[day] || [])];
       updatedSlots[index] = { ...updatedSlots[index], [type]: value };
       return { ...prev, [day]: updatedSlots };
     });
   };
-
-  // Save to Firestore
-  const saveAvailability = async () => {};
 
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
@@ -133,21 +134,3 @@ const AvailabilitySelector = ({ tutorId }) => {
 };
 
 export default AvailabilitySelector;
-
-// Data structure stored in firebase
-// {
-//   "tutorId": "abc123",
-//   "weeklyAvailability": {
-//     "Monday": [{ "start": "09:00", "end": "17:00" }],
-//     "Tuesday": [{ "start": "10:00", "end": "15:00" }],
-//     "Wednesday": [],
-//     "Thursday": [{ "start": "08:00", "end": "12:00" }, { "start": "14:00", "end": "18:00" }],
-//     "Friday": [{ "start": "09:00", "end": "13:00" }],
-//     "Saturday": [],
-//     "Sunday": []
-//   },
-//   "specificUnavailability": [
-//     { "date": "2025-02-20", "reason": "Vacation" },
-//     { "date": "2025-03-05", "reason": "Doctor Appointment" }
-//   ]
-// }

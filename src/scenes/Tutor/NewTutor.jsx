@@ -16,6 +16,9 @@ import {
   Switch,
   Box,
   Slider,
+  Dialog,
+  DialogContent,
+  DialogTitle,
 } from "@mui/material";
 import { ToastContainer, toast } from "react-toastify";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
@@ -50,8 +53,18 @@ const NewTutor = () => {
   const [hover, setHover] = useState(false);
   const [image, setImage] = useState("");
   const [profilePicFile, setProfilePicFile] = useState(null);
+  const [wwvpFile, setWwvpFile] = useState(null);
+  const [wwvpUrl, setWwvpUrl] = useState(null);
+  const [openWwvp, setOpenWwvp] = useState(false);
+  const [firstAidFile, setFirstAidFile] = useState(null);
+  const [firstAidUrl, setFirstAidUrl] = useState(null);
+  const [openFirstAid, setOpenFirstAid] = useState(false);
+  const [policeCheckFile, setPoliceCheckFile] = useState(null);
+  const [policeCheckUrl, setPoliceCheckUrl] = useState(null);
+  const [openPoliceCheck, setOpenPoliceCheck] = useState(false);
   const [specificUnavailability, setSpecificUnavailability] = useState([]);
   const [minMaxValue, setMinMaxValue] = useState([0, 20]);
+  const [availability, setAvailability] = useState({});
 
   const [formData, setFormData] = useState({
     firstName: "",
@@ -121,17 +134,69 @@ const NewTutor = () => {
     setTouched({ ...touched, [name]: true });
   };
 
+  const handleOpenPoliceCheckPDF = () => {
+    setOpenPoliceCheck(true);
+  };
+
+  const handleClosePoliceCheckPDF = () => {
+    setOpenPoliceCheck(false);
+  };
+
+  const handleOpenFirstAidPDF = () => {
+    setOpenFirstAid(true);
+  };
+
+  const handleCloseFirstAidPDF = () => {
+    setOpenFirstAid(false);
+  };
+
+  const handleOpenWwvpPDF = () => {
+    setOpenWwvp(true);
+  };
+
+  const handleCloseWwvpPDF = () => {
+    setOpenWwvp(false);
+  };
+
+  const handleAvailabilityChange = (updatedAvailability) => {
+    setAvailability(updatedAvailability);
+  };
+
   const isInvalid = (field) => touched[field] && !formData[field].trim();
 
   const isFormValid = () => {
     return formData.firstName && formData.wiseMindsEmail && formData.password;
   };
 
-  const uploadImage = async (userId) => {
+  const uploadProfileImage = async (userId) => {
     if (!profilePicFile) return null;
 
     const storageRef = ref(sb, `profilePictures/${userId}`);
     await uploadBytes(storageRef, profilePicFile);
+    return await getDownloadURL(storageRef);
+  };
+
+  const uploadWwvpFile = async (userId) => {
+    if (!wwvpFile) return null;
+
+    const storageRef = ref(sb, `wwvpFiles/${userId}`);
+    await uploadBytes(storageRef, wwvpFile);
+    return await getDownloadURL(storageRef);
+  };
+
+  const uploadFirstAidFile = async (userId) => {
+    if (!firstAidFile) return null;
+
+    const storageRef = ref(sb, `firstAidFiles/${userId}`);
+    await uploadBytes(storageRef, firstAidFile);
+    return await getDownloadURL(storageRef);
+  };
+
+  const uploadPoliceCheckFile = async (userId) => {
+    if (!policeCheckFile) return null;
+
+    const storageRef = ref(sb, `policeCheckFiles/${userId}`);
+    await uploadBytes(storageRef, policeCheckFile);
     return await getDownloadURL(storageRef);
   };
 
@@ -166,7 +231,22 @@ const NewTutor = () => {
 
       let avatarUrl = "";
       if (profilePicFile) {
-        avatarUrl = await uploadImage(user.uid);
+        avatarUrl = await uploadProfileImage(user.uid);
+      }
+
+      let wwvpFileUrl = "";
+      if (wwvpFile) {
+        wwvpFileUrl = await uploadWwvpFile(user.uid);
+      }
+
+      let firstAidFileUrl = "";
+      if (firstAidFile) {
+        firstAidFileUrl = await uploadFirstAidFile(user.uid);
+      }
+
+      let policeCheckFileUrl = "";
+      if (policeCheckFile) {
+        policeCheckFileUrl = await uploadPoliceCheckFile(user.uid);
       }
 
       await setDoc(doc(db, "tutors", user.uid), {
@@ -200,20 +280,22 @@ const NewTutor = () => {
         wwvpRegNumber: formData.wwvpRegNumber,
         wwvpCardNumber: formData.wwvpCardNumber,
         wwvpExpiry: formData.wwvpExpiry?.toISOString() || null,
-        // wwvp File Path
+        wwvpFilePath: wwvpFileUrl,
         faCourseDate: formData.faCourseDate?.toISOString() || null,
         faProvider: formData.faProvider,
         faNumber: formData.faNumber,
         faCourseType: formData.faCourseType,
         faCourseCode: formData.faCourseCode,
         faExpiry: formData.faExpiry?.toISOString() || null,
-        // fa File Path
+        faFilePath: firstAidFileUrl,
         pcName: formData.pcName,
         pcIsNational: formData.pcIsNational,
         pcAddress: formData.pcAddress,
         pcResult: formData.pcResult,
         pcAPPRef: formData.pcAPPRef,
-        // pc File Path
+        pcFilePath: policeCheckFileUrl,
+        availability: formattedAvailability,
+        unavailability: specificUnavailability,
       });
 
       toast.success("Successfully added tutor!");
@@ -246,6 +328,33 @@ const NewTutor = () => {
     }
   };
 
+  const handleWwvpFileChange = (event) => {
+    const file = event.target.files[0];
+    if (file && file.type === "application/pdf") {
+      const fileUrl = URL.createObjectURL(file);
+      setWwvpFile(file);
+      setWwvpUrl(fileUrl);
+    }
+  };
+
+  const handleFirstAidFileChange = (event) => {
+    const file = event.target.files[0];
+    if (file && file.type === "application/pdf") {
+      const fileUrl = URL.createObjectURL(file);
+      setFirstAidFile(file);
+      setFirstAidUrl(fileUrl);
+    }
+  };
+
+  const handlePoliceCheckFileChange = (event) => {
+    const file = event.target.files[0];
+    if (file && file.type === "application/pdf") {
+      const fileUrl = URL.createObjectURL(file);
+      setPoliceCheckFile(file);
+      setPoliceCheckUrl(fileUrl);
+    }
+  };
+
   const handleMinMaxChange = (event, newValue, activeThumb) => {
     if (!Array.isArray(newValue)) {
       return;
@@ -263,6 +372,22 @@ const NewTutor = () => {
       ]);
     }
   };
+
+  const formattedAvailability = Object.fromEntries(
+    Object.entries(availability).map(([day, slots]) => [
+      day,
+      slots.map((slot) => ({
+        start: new Date(slot.start).toLocaleTimeString("en-GB", {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+        end: new Date(slot.end).toLocaleTimeString("en-GB", {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+      })),
+    ])
+  );
 
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="en-gb">
@@ -668,9 +793,19 @@ const NewTutor = () => {
                 />
                 <Button variant="contained" component="label">
                   UPLOAD WORKING WITH VULNERABLE PEOPLE DOCUMENT
-                  <input hidden accept="*.pdf" type="file" />
+                  <input
+                    type="file"
+                    id="wwvpFileInput"
+                    hidden
+                    accept="application/pdf"
+                    onChange={handleWwvpFileChange}
+                  />
                 </Button>
-                <Button disabled variant="outlined">
+                <Button
+                  disabled={!wwvpFile}
+                  variant="outlined"
+                  onClick={handleOpenWwvpPDF}
+                >
                   VIEW
                 </Button>
               </Stack>
@@ -720,9 +855,19 @@ const NewTutor = () => {
                 />
                 <Button variant="contained" component="label">
                   UPLOAD FIRST AID DOCUMENT
-                  <input hidden accept="*.pdf" type="file" />
+                  <input
+                    type="file"
+                    id="firstAidFileInput"
+                    hidden
+                    accept="application/pdf"
+                    onChange={handleFirstAidFileChange}
+                  />
                 </Button>
-                <Button disabled variant="outlined">
+                <Button
+                  disabled={!firstAidFile}
+                  variant="outlined"
+                  onClick={handleOpenFirstAidPDF}
+                >
                   VIEW
                 </Button>
               </Stack>
@@ -771,9 +916,19 @@ const NewTutor = () => {
                 />
                 <Button variant="contained" component="label">
                   UPLOAD POLICE CHECK DOCUMENT
-                  <input hidden accept="*.pdf" type="file" />
+                  <input
+                    type="file"
+                    id="policeCheckFileInput"
+                    hidden
+                    accept="application/pdf"
+                    onChange={handlePoliceCheckFileChange}
+                  />
                 </Button>
-                <Button disabled variant="outlined">
+                <Button
+                  disabled={!policeCheckFile}
+                  variant="outlined"
+                  onClick={handleOpenPoliceCheckPDF}
+                >
                   VIEW
                 </Button>
               </Stack>
@@ -785,7 +940,9 @@ const NewTutor = () => {
       <Paper sx={{ p: 3, maxWidth: 1000, minWidth: 600, m: 4 }}>
         <Stack spacing={2}>
           <Typography variant="h4">Availability</Typography>
-          <AvailabilitySelector userId="123" />
+          <AvailabilitySelector
+            onAvailabilityChange={handleAvailabilityChange}
+          />
         </Stack>
       </Paper>
 
@@ -818,7 +975,75 @@ const NewTutor = () => {
           <Typography variant="h4">Submit</Typography>
         </Button>
       </Grid>
+
+      {/* Toast element */}
       <ToastContainer position="top-right" autoClose={3000} />
+
+      {/* WWVP Dialog */}
+      <Dialog
+        open={openWwvp}
+        onClose={handleCloseWwvpPDF}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>
+          <Typography variant="h3">Working With Vulnerable People</Typography>
+        </DialogTitle>
+        <DialogContent>
+          {wwvpUrl && (
+            <iframe
+              src={wwvpUrl}
+              width="100%"
+              height="500px"
+              title="Working With Vulnerable People"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* First Aid Dialog */}
+      <Dialog
+        open={openFirstAid}
+        onClose={handleCloseFirstAidPDF}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>
+          <Typography variant="h3">First Aid</Typography>
+        </DialogTitle>
+        <DialogContent>
+          {firstAidUrl && (
+            <iframe
+              src={firstAidUrl}
+              width="100%"
+              height="500px"
+              title="First Aid"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Police Check Dialog */}
+      <Dialog
+        open={openPoliceCheck}
+        onClose={handleClosePoliceCheckPDF}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>
+          <Typography variant="h3">Police Check</Typography>
+        </DialogTitle>
+        <DialogContent>
+          {policeCheckUrl && (
+            <iframe
+              src={policeCheckUrl}
+              width="100%"
+              height="500px"
+              title="Police Check"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </LocalizationProvider>
   );
 };
