@@ -1,4 +1,4 @@
-import { React, useState } from "react";
+import { React, useState, useMemo, useCallback } from "react";
 import { Paper, Typography, Stack, Button, Box } from "@mui/material";
 import { ToastContainer, toast } from "react-toastify";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
@@ -124,37 +124,49 @@ const NewTutor = () => {
     );
   };
 
-  const uploadProfileImage = async (userId) => {
-    if (!profilePic) return null;
+  const setProfileInfoCallback = useCallback(
+    (info) => setProfileInfo(info),
+    []
+  );
+  const setLoginInfoCallback = useCallback((info) => setLoginInfo(info), []);
+  const setContactInfoCallback = useCallback(
+    (info) => setContactInfo(info),
+    []
+  );
+  const setPersonalInfoCallback = useCallback(
+    (info) => setPersonalInfo(info),
+    []
+  );
+  const setEmergencyInfoCallback = useCallback(
+    (info) => setEmergencyInfo(info),
+    []
+  );
+  const setBankInfoCallback = useCallback((info) => setBankInfo(info), []);
+  const setWWVPInfoCallback = useCallback((info) => setWwvpInfo(info), []);
+  const setFirstAidInfoCallback = useCallback(
+    (info) => setFirstAidInfo(info),
+    []
+  );
+  const setPoliceCheckInfoCallback = useCallback(
+    (info) => setPoliceCheckInfo(info),
+    []
+  );
 
-    const storageRef = ref(sb, `profilePictures/${userId}`);
-    await uploadBytes(storageRef, profilePic);
-    return await getDownloadURL(storageRef);
+  const uploadFileToFirebase = async (file, path) => {
+    if (!file) return null;
+    const storageRef = ref(sb, path);
+    await uploadBytes(storageRef, file);
+    return getDownloadURL(storageRef);
   };
 
-  const uploadWwvpFile = async (userId) => {
-    if (!wwvpFile) return null;
-
-    const storageRef = ref(sb, `wwvpFiles/${userId}`);
-    await uploadBytes(storageRef, wwvpFile);
-    return await getDownloadURL(storageRef);
-  };
-
-  const uploadFirstAidFile = async (userId) => {
-    if (!firstAidFile) return null;
-
-    const storageRef = ref(sb, `firstAidFiles/${userId}`);
-    await uploadBytes(storageRef, firstAidFile);
-    return await getDownloadURL(storageRef);
-  };
-
-  const uploadPoliceCheckFile = async (userId) => {
-    if (!policeCheckFile) return null;
-
-    const storageRef = ref(sb, `policeCheckFiles/${userId}`);
-    await uploadBytes(storageRef, policeCheckFile);
-    return await getDownloadURL(storageRef);
-  };
+  const uploadProfileImage = (userId) =>
+    uploadFileToFirebase(profilePic, `profilePictures/${userId}`);
+  const uploadWwvpFile = (userId) =>
+    uploadFileToFirebase(wwvpFile, `wwvpFiles/${userId}`);
+  const uploadFirstAidFile = (userId) =>
+    uploadFileToFirebase(firstAidFile, `firstAidFiles/${userId}`);
+  const uploadPoliceCheckFile = (userId) =>
+    uploadFileToFirebase(policeCheckFile, `policeCheckFiles/${userId}`);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -185,25 +197,13 @@ const NewTutor = () => {
       );
       const user = userCredential.user;
 
-      let avatarUrl = "";
-      if (profilePic) {
-        avatarUrl = await uploadProfileImage(user.uid);
-      }
-
-      let wwvpFileUrl = "";
-      if (wwvpFile) {
-        wwvpFileUrl = await uploadWwvpFile(user.uid);
-      }
-
-      let firstAidFileUrl = "";
-      if (firstAidFile) {
-        firstAidFileUrl = await uploadFirstAidFile(user.uid);
-      }
-
-      let policeCheckFileUrl = "";
-      if (policeCheckFile) {
-        policeCheckFileUrl = await uploadPoliceCheckFile(user.uid);
-      }
+      const [avatarUrl, wwvpFileUrl, firstAidFileUrl, policeCheckFileUrl] =
+        await Promise.all([
+          uploadProfileImage(user.uid),
+          uploadWwvpFile(user.uid),
+          uploadFirstAidFile(user.uid),
+          uploadPoliceCheckFile(user.uid),
+        ]);
 
       await setDoc(doc(db, "tutors", user.uid), {
         avatar: avatarUrl,
@@ -263,21 +263,23 @@ const NewTutor = () => {
     }
   };
 
-  const formattedAvailability = Object.fromEntries(
-    Object.entries(availability).map(([day, slots]) => [
-      day,
-      slots.map((slot) => ({
-        start: new Date(slot.start).toLocaleTimeString("en-GB", {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-        end: new Date(slot.end).toLocaleTimeString("en-GB", {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-      })),
-    ])
-  );
+  const formattedAvailability = useMemo(() => {
+    return Object.fromEntries(
+      Object.entries(availability).map(([day, slots]) => [
+        day,
+        slots.map((slot) => ({
+          start: new Date(slot.start).toLocaleTimeString("en-GB", {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+          end: new Date(slot.end).toLocaleTimeString("en-GB", {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+        })),
+      ])
+    );
+  }, [availability]);
 
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="en-gb">
@@ -285,11 +287,10 @@ const NewTutor = () => {
         <Header title="NEW TUTOR" subtitle="Enter details for a new tutor" />
       </Box>
 
-      {/* Profile Information */}
       <Paper sx={{ p: 3, maxWidth: 1000, minWidth: 600, m: 4 }}>
         <TutorProfileInfo
           formData={profileInfo}
-          setFormData={setProfileInfo}
+          setFormData={setProfileInfoCallback}
           color={tutorColor}
           setColor={setTutorColor}
           profilePicFile={profilePic}
@@ -299,11 +300,10 @@ const NewTutor = () => {
         />
       </Paper>
 
-      {/* Login Information */}
       <Paper sx={{ p: 3, maxWidth: 1000, minWidth: 600, m: 4 }}>
         <TutorLoginInfo
           formData={loginInfo}
-          setFormData={setLoginInfo}
+          setFormData={setLoginInfoCallback}
           touched={touched}
           setTouched={setTouched}
         />
@@ -313,32 +313,35 @@ const NewTutor = () => {
         <Stack spacing={4}>
           <TutorContactInfo
             formData={contactInfo}
-            setFormData={setContactInfo}
+            setFormData={setContactInfoCallback}
           />
           <TutorPersonalInfo
             formData={personalInfo}
-            setFormData={setPersonalInfo}
+            setFormData={setPersonalInfoCallback}
           />
           <TutorEmergencyInfo
             formData={emergencyInfo}
-            setFormData={setEmergencyInfo}
+            setFormData={setEmergencyInfoCallback}
           />
-          <TutorBankInfo formData={bankInfo} setFormData={setBankInfo} />
+          <TutorBankInfo
+            formData={bankInfo}
+            setFormData={setBankInfoCallback}
+          />
           <TutorWWVPInfo
             formData={wwvpInfo}
-            setFormData={setWwvpInfo}
+            setFormData={setWWVPInfoCallback}
             wwvpFile={wwvpFile}
             setWwvpFile={setWwvpFile}
           />
           <TutorFirstAidInfo
             formData={firstAidInfo}
-            setFormData={setFirstAidInfo}
+            setFormData={setFirstAidInfoCallback}
             firstAidFile={firstAidFile}
             setFirstAidFile={setFirstAidFile}
           />
           <TutorPoliceCheckInfo
             formData={policeCheckInfo}
-            setFormData={setPoliceCheckInfo}
+            setFormData={setPoliceCheckInfoCallback}
             policeCheckFile={policeCheckFile}
             setPoliceCheckFile={setPoliceCheckFile}
           />
@@ -372,7 +375,6 @@ const NewTutor = () => {
         <Typography variant="h4">Blocked Students</Typography>
       </Paper>
 
-      {/* Submit Button */}
       <Grid container justifyContent="flex-end" sx={{ m: 4 }}>
         <Button
           loading={loading}
@@ -384,7 +386,6 @@ const NewTutor = () => {
         </Button>
       </Grid>
 
-      {/* Toast element */}
       <ToastContainer position="top-right" autoClose={3000} />
     </LocalizationProvider>
   );
