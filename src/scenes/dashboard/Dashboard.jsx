@@ -1,8 +1,8 @@
 import { Box, useTheme } from "@mui/material";
-import Header from "../../components/Header";
+import Header from "../../components/Global/Header";
 import { tokens } from "../../theme";
-import Noticeboard from "../../components/Noticeboard";
-import Summaryboard from "../../components/Summaryboard";
+import Noticeboard from "../../components/Dashboard/Noticeboard";
+import Summaryboard from "../../components/Dashboard/Summaryboard";
 
 const Dashboard = () => {
   const theme = useTheme();

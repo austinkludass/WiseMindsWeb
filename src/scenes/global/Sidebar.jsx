@@ -10,7 +10,7 @@ import PeopleAltOutlinedIcon from "@mui/icons-material/PeopleAltOutlined";
 import CalendarMonthOutlinedIcon from "@mui/icons-material/CalendarMonthOutlined";
 import MenuBookOutlinedIcon from "@mui/icons-material/MenuBookOutlined";
 import MenuOutlinedIcon from "@mui/icons-material/MenuOutlined";
-import OwlFacts from "../../components/OwlFacts";
+import OwlFacts from "../../components/Global/OwlFacts";
 
 const Item = ({ title, to, icon, selected, setSelected }) => {
   const theme = useTheme();

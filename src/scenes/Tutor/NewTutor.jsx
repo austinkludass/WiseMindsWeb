@@ -1,114 +1,40 @@
 import { React, useState } from "react";
-import {
-  Avatar,
-  Paper,
-  Typography,
-  Stack,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
-  Select,
-  MenuItem,
-  InputLabel,
-  FormControl,
-  Button,
-  FormControlLabel,
-  Switch,
-  Box,
-  Slider,
-  Dialog,
-  DialogContent,
-  DialogTitle,
-} from "@mui/material";
+import { Paper, Typography, Stack, Button, Box } from "@mui/material";
 import { ToastContainer, toast } from "react-toastify";
-import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
-import { Saturation, Hue, useColor } from "react-color-palette";
+import { useColor } from "react-color-palette";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { auth, db, sb } from "../../data/firebase";
 import { doc, setDoc } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import Grid from "@mui/material/Grid2";
-import IconButton from "@mui/material/IconButton";
-import InputAdornment from "@mui/material/InputAdornment";
-import TextField from "@mui/material/TextField";
-import Visibility from "@mui/icons-material/Visibility";
-import VisibilityOff from "@mui/icons-material/VisibilityOff";
-import EditIcon from "@mui/icons-material/Edit";
+import Header from "../../components/Global/Header";
+import AvailabilitySelector from "../../components/Tutor/AvailabilitySelector";
+import UnavailabilitySelector from "../../components/Tutor/UnavailabilitySelector";
+import TutorProfileInfo from "../../components/Tutor/TutorProfileInfo";
+import TutorLoginInfo from "../../components/Tutor/TutorLoginInfo";
+import TutorContactInfo from "../../components/Tutor/TutorContactInfo";
+import TutorPersonalInfo from "../../components/Tutor/TutorPersonalInfo";
+import TutorEmergencyInfo from "../../components/Tutor/TutorEmergencyInfo";
+import TutorBankInfo from "../../components/Tutor/TutorBankInfo";
+import TutorWWVPInfo from "../../components/Tutor/TutorWWVPInfo";
+import TutorFirstAidInfo from "../../components/Tutor/TutorFirstAidInfo";
+import TutorPoliceCheckInfo from "../../components/Tutor/TutorPoliceCheckInfo";
 import "react-toastify/dist/ReactToastify.css";
-import "react-color-palette/css";
 import "dayjs/locale/en-gb";
-import Header from "../../components/Header";
-import AvailabilitySelector from "../../components/AvailabilitySelector";
-import UnavailabilitySelector from "../../components/UnavailabilitySelector";
 
 const NewTutor = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const [color, setColor] = useColor("#6e6e6e");
-  const [showPassword, setShowPassword] = useState(false);
-  const [hover, setHover] = useState(false);
-  const [image, setImage] = useState("");
-  const [profilePicFile, setProfilePicFile] = useState(null);
-  const [wwvpFile, setWwvpFile] = useState(null);
-  const [wwvpUrl, setWwvpUrl] = useState(null);
-  const [openWwvp, setOpenWwvp] = useState(false);
-  const [firstAidFile, setFirstAidFile] = useState(null);
-  const [firstAidUrl, setFirstAidUrl] = useState(null);
-  const [openFirstAid, setOpenFirstAid] = useState(false);
-  const [policeCheckFile, setPoliceCheckFile] = useState(null);
-  const [policeCheckUrl, setPoliceCheckUrl] = useState(null);
-  const [openPoliceCheck, setOpenPoliceCheck] = useState(false);
   const [specificUnavailability, setSpecificUnavailability] = useState([]);
-  const [minMaxValue, setMinMaxValue] = useState([0, 20]);
   const [availability, setAvailability] = useState({});
-
-  const [formData, setFormData] = useState({
-    firstName: "",
-    middleName: "",
-    lastName: "",
-    dateOfBirth: null,
-    wiseMindsEmail: "",
-    password: "",
-    secondPassword: "",
-    personalEmail: "",
-    phone: "",
-    address: "",
-    career: "",
-    degree: "",
-    position: "",
-    homeLocation: "",
-    role: "tutor",
-    hours: minMaxValue,
-    emergencyName: "",
-    emergencyRelationship: "",
-    emergencyPhone: "",
-    emergencyEmail: "",
-    bankName: "",
-    accountName: "",
-    bsb: "",
-    accountNumber: "",
-    tfn: "",
-    superCompany: "",
-    wwvpName: "",
-    wwvpRegNumber: "",
-    wwvpCardNumber: "",
-    wwvpExpiry: null,
-    faCourseDate: null,
-    faProvider: "",
-    faNumber: "",
-    faCourseType: "",
-    faCourseCode: "",
-    faExpiry: null,
-    pcName: "",
-    pcIsNational: false,
-    pcAddress: "",
-    pcResult: "",
-    pcAPPRef: "",
-  });
+  const [profilePic, setProfilePic] = useState(null);
+  const [tutorColor, setTutorColor] = useColor("#6e6e6e");
+  const [wwvpFile, setWwvpFile] = useState(null);
+  const [firstAidFile, setFirstAidFile] = useState(null);
+  const [policeCheckFile, setPoliceCheckFile] = useState(null);
 
   const [touched, setTouched] = useState({
     firstName: false,
@@ -117,62 +43,92 @@ const NewTutor = () => {
     secondPassword: false,
   });
 
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
+  const [profileInfo, setProfileInfo] = useState({
+    firstName: "",
+    middleName: "",
+    lastName: "",
+    dateOfBirth: null,
+  });
 
-  const handleDateChange = (name) => (date) => {
-    setFormData({ ...formData, [name]: date });
-  };
+  const [loginInfo, setLoginInfo] = useState({
+    wiseMindsEmail: "",
+    password: "",
+    secondPassword: "",
+  });
 
-  const handleSwitchChange = (e) => {
-    setFormData({ ...formData, pcIsNational: e.target.checked });
-  };
+  const [contactInfo, setContactInfo] = useState({
+    personalEmail: "",
+    phone: "",
+    address: "",
+  });
 
-  const handleBlur = (e) => {
-    const { name } = e.target;
-    setTouched({ ...touched, [name]: true });
-  };
+  const [personalInfo, setPersonalInfo] = useState({
+    career: "",
+    degree: "",
+    position: "",
+    homeLocation: "",
+    role: "tutor",
+    hours: [0, 20],
+  });
 
-  const handleOpenPoliceCheckPDF = () => {
-    setOpenPoliceCheck(true);
-  };
+  const [emergencyInfo, setEmergencyInfo] = useState({
+    emergencyName: "",
+    emergencyRelationship: "",
+    emergencyPhone: "",
+    emergencyEmail: "",
+  });
 
-  const handleClosePoliceCheckPDF = () => {
-    setOpenPoliceCheck(false);
-  };
+  const [bankInfo, setBankInfo] = useState({
+    bankName: "",
+    accountName: "",
+    bsb: "",
+    accountNumber: "",
+    tfn: "",
+    superCompany: "",
+  });
 
-  const handleOpenFirstAidPDF = () => {
-    setOpenFirstAid(true);
-  };
+  const [wwvpInfo, setWwvpInfo] = useState({
+    wwvpName: "",
+    wwvpRegNumber: "",
+    wwvpCardNumber: "",
+    wwvpExpiry: null,
+  });
 
-  const handleCloseFirstAidPDF = () => {
-    setOpenFirstAid(false);
-  };
+  const [firstAidInfo, setFirstAidInfo] = useState({
+    faCourseDate: null,
+    faProvider: "",
+    faNumber: "",
+    faCourseType: "",
+    faCourseCode: "",
+    faExpiry: null,
+  });
 
-  const handleOpenWwvpPDF = () => {
-    setOpenWwvp(true);
-  };
-
-  const handleCloseWwvpPDF = () => {
-    setOpenWwvp(false);
-  };
+  const [policeCheckInfo, setPoliceCheckInfo] = useState({
+    pcName: "",
+    pcIsNational: false,
+    pcAddress: "",
+    pcResult: "",
+    pcAPPRef: "",
+  });
 
   const handleAvailabilityChange = (updatedAvailability) => {
     setAvailability(updatedAvailability);
   };
 
-  const isInvalid = (field) => touched[field] && !formData[field].trim();
-
   const isFormValid = () => {
-    return formData.firstName && formData.wiseMindsEmail && formData.password;
+    return (
+      profileInfo.firstName &&
+      loginInfo.wiseMindsEmail &&
+      loginInfo.password &&
+      loginInfo.secondPassword
+    );
   };
 
   const uploadProfileImage = async (userId) => {
-    if (!profilePicFile) return null;
+    if (!profilePic) return null;
 
     const storageRef = ref(sb, `profilePictures/${userId}`);
-    await uploadBytes(storageRef, profilePicFile);
+    await uploadBytes(storageRef, profilePic);
     return await getDownloadURL(storageRef);
   };
 
@@ -214,7 +170,7 @@ const NewTutor = () => {
       return;
     }
 
-    if (formData.password !== formData.secondPassword) {
+    if (loginInfo.password !== loginInfo.secondPassword) {
       toast.error("Passwords do not match");
       return;
     }
@@ -224,13 +180,13 @@ const NewTutor = () => {
     try {
       const userCredential = await createUserWithEmailAndPassword(
         auth,
-        formData.wiseMindsEmail,
-        formData.password
+        loginInfo.wiseMindsEmail,
+        loginInfo.password
       );
       const user = userCredential.user;
 
       let avatarUrl = "";
-      if (profilePicFile) {
+      if (profilePic) {
         avatarUrl = await uploadProfileImage(user.uid);
       }
 
@@ -251,51 +207,51 @@ const NewTutor = () => {
 
       await setDoc(doc(db, "tutors", user.uid), {
         avatar: avatarUrl,
-        tutorColor: color.hex,
-        firstName: formData.firstName,
-        middleName: formData.middleName,
-        lastName: formData.lastName,
-        dateOfBirth: formData.dateOfBirth?.toISOString() || null,
-        wiseMindsEmail: formData.wiseMindsEmail,
-        personalEmail: formData.personalEmail,
-        phone: formData.phone,
-        address: formData.address,
-        career: formData.career,
-        degree: formData.degree,
-        position: formData.position,
-        homeLocation: formData.homeLocation,
-        role: formData.role,
-        hours: formData.hours,
-        emergencyName: formData.emergencyName,
-        emergencyRelationship: formData.emergencyRelationship,
-        emergencyPhone: formData.emergencyPhone,
-        emergencyEmail: formData.emergencyEmail,
-        bankName: formData.bankName,
-        accountName: formData.accountName,
-        bsb: formData.bsb,
-        accountNumber: formData.accountNumber,
-        tfn: formData.tfn,
-        superCompany: formData.superCompany,
-        wwvpName: formData.wwvpName,
-        wwvpRegNumber: formData.wwvpRegNumber,
-        wwvpCardNumber: formData.wwvpCardNumber,
-        wwvpExpiry: formData.wwvpExpiry?.toISOString() || null,
         wwvpFilePath: wwvpFileUrl,
-        faCourseDate: formData.faCourseDate?.toISOString() || null,
-        faProvider: formData.faProvider,
-        faNumber: formData.faNumber,
-        faCourseType: formData.faCourseType,
-        faCourseCode: formData.faCourseCode,
-        faExpiry: formData.faExpiry?.toISOString() || null,
-        faFilePath: firstAidFileUrl,
-        pcName: formData.pcName,
-        pcIsNational: formData.pcIsNational,
-        pcAddress: formData.pcAddress,
-        pcResult: formData.pcResult,
-        pcAPPRef: formData.pcAPPRef,
-        pcFilePath: policeCheckFileUrl,
+        firstAidFilePath: firstAidFileUrl,
+        policeCheckFilePath: policeCheckFileUrl,
+        tutorColor: tutorColor.hex,
         availability: formattedAvailability,
         unavailability: specificUnavailability,
+        firstName: profileInfo.firstName,
+        middleName: profileInfo.middleName,
+        lastName: profileInfo.lastName,
+        dateOfBirth: profileInfo.dateOfBirth?.toISOString() || null,
+        wiseMindsEmail: loginInfo.wiseMindsEmail,
+        personalEmail: contactInfo.personalEmail,
+        phone: contactInfo.phone,
+        address: contactInfo.address,
+        career: personalInfo.career,
+        degree: personalInfo.degree,
+        position: personalInfo.position,
+        homeLocation: personalInfo.homeLocation,
+        role: personalInfo.role,
+        hours: personalInfo.hours,
+        emergencyName: emergencyInfo.emergencyName,
+        emergencyRelationship: emergencyInfo.emergencyRelationship,
+        emergencyPhone: emergencyInfo.emergencyPhone,
+        emergencyEmail: emergencyInfo.emergencyEmail,
+        bankName: bankInfo.bankName,
+        accountName: bankInfo.accountName,
+        bsb: bankInfo.bsb,
+        accountNumber: bankInfo.accountNumber,
+        tfn: bankInfo.tfn,
+        superCompany: bankInfo.superCompany,
+        wwvpName: wwvpInfo.wwvpName,
+        wwvpRegNumber: wwvpInfo.wwvpRegNumber,
+        wwvpCardNumber: wwvpInfo.wwvpCardNumber,
+        wwvpExpiry: wwvpInfo.wwvpExpiry?.toISOString() || null,
+        faCourseDate: firstAidInfo.faCourseDate?.toISOString() || null,
+        faProvider: firstAidInfo.faProvider,
+        faNumber: firstAidInfo.faNumber,
+        faCourseType: firstAidInfo.faCourseType,
+        faCourseCode: firstAidInfo.faCourseCode,
+        faExpiry: firstAidInfo.faExpiry?.toISOString() || null,
+        pcName: policeCheckInfo.pcName,
+        pcIsNational: policeCheckInfo.pcIsNational,
+        pcAddress: policeCheckInfo.pcAddress,
+        pcResult: policeCheckInfo.pcResult,
+        pcAPPRef: policeCheckInfo.pcAPPRef,
       });
 
       toast.success("Successfully added tutor!");
@@ -304,72 +260,6 @@ const NewTutor = () => {
       toast.error("Error: " + error.message);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleClickShowPassword = () => setShowPassword((show) => !show);
-  const handleMouseDownPassword = (event) => {
-    event.preventDefault();
-  };
-  const handleMouseUpPassword = (event) => {
-    event.preventDefault();
-  };
-
-  const handleAvatarClick = () => {
-    document.getElementById("profilePicInput").click();
-  };
-
-  const handleProfilePicChange = (event) => {
-    const file = event.target.files[0];
-    if (file) {
-      setProfilePicFile(file);
-      const imageUrl = URL.createObjectURL(file);
-      setImage(imageUrl);
-    }
-  };
-
-  const handleWwvpFileChange = (event) => {
-    const file = event.target.files[0];
-    if (file && file.type === "application/pdf") {
-      const fileUrl = URL.createObjectURL(file);
-      setWwvpFile(file);
-      setWwvpUrl(fileUrl);
-    }
-  };
-
-  const handleFirstAidFileChange = (event) => {
-    const file = event.target.files[0];
-    if (file && file.type === "application/pdf") {
-      const fileUrl = URL.createObjectURL(file);
-      setFirstAidFile(file);
-      setFirstAidUrl(fileUrl);
-    }
-  };
-
-  const handlePoliceCheckFileChange = (event) => {
-    const file = event.target.files[0];
-    if (file && file.type === "application/pdf") {
-      const fileUrl = URL.createObjectURL(file);
-      setPoliceCheckFile(file);
-      setPoliceCheckUrl(fileUrl);
-    }
-  };
-
-  const handleMinMaxChange = (event, newValue, activeThumb) => {
-    if (!Array.isArray(newValue)) {
-      return;
-    }
-
-    if (activeThumb === 0) {
-      setMinMaxValue([
-        Math.min(newValue[0], minMaxValue[1] - 3),
-        minMaxValue[1],
-      ]);
-    } else {
-      setMinMaxValue([
-        minMaxValue[0],
-        Math.max(newValue[1], minMaxValue[0] + 3),
-      ]);
     }
   };
 
@@ -394,546 +284,64 @@ const NewTutor = () => {
       <Box display="flex" m="20px">
         <Header title="NEW TUTOR" subtitle="Enter details for a new tutor" />
       </Box>
+
       {/* Profile Information */}
       <Paper sx={{ p: 3, maxWidth: 1000, minWidth: 600, m: 4 }}>
-        <Grid container spacing={2} alignItems="center">
-          <Grid
-            item
-            size={4}
-            sx={{ display: "flex", justifyContent: "center" }}
-          >
-            <Stack spacing={2}>
-              <Box
-                style={{
-                  position: "relative",
-                  width: "140px",
-                  height: "140px",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-                onMouseEnter={() => setHover(true)}
-                onMouseLeave={() => setHover(false)}
-              >
-                <Avatar
-                  src={image}
-                  sx={{
-                    width: 140,
-                    height: 140,
-                    bgcolor: color.hex,
-                    position: "absolute",
-                    border: `4px solid ${color.hex}`,
-                  }}
-                />
-                {hover && (
-                  <IconButton
-                    onClick={handleAvatarClick}
-                    sx={[
-                      {
-                        width: 140,
-                        height: 140,
-                        position: "absolute",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        color: "white",
-                      },
-                      {
-                        "&:hover": {
-                          backgroundColor: "rgba(0, 0, 0, 0.5)",
-                        },
-                      },
-                    ]}
-                  >
-                    <EditIcon sx={{ width: 40, height: 40 }} />
-                  </IconButton>
-                )}
-                <input
-                  type="file"
-                  id="profilePicInput"
-                  hidden
-                  accept="image/*"
-                  onChange={handleProfilePicChange}
-                />
-              </Box>
-              <Stack spacing={1}>
-                <Saturation height={70} color={color} onChange={setColor} />
-                <Hue color={color} onChange={setColor} />
-              </Stack>
-            </Stack>
-          </Grid>
-          <Grid item size={8}>
-            <Stack spacing={2}>
-              <TextField
-                name="firstName"
-                value={formData.firstName}
-                onChange={handleChange}
-                onBlur={handleBlur}
-                required
-                label="First Name"
-                error={isInvalid("firstName")}
-              />
-              <TextField
-                name="middleName"
-                value={formData.middleName}
-                onChange={handleChange}
-                label="Middle Name"
-              />
-              <TextField
-                name="lastName"
-                value={formData.lastName}
-                onChange={handleChange}
-                label="Last Name"
-              />
-              <DatePicker
-                value={formData.dateOfBirth}
-                onChange={handleDateChange("dateOfBirth")}
-                label="Date of Birth"
-              />
-            </Stack>
-          </Grid>
-        </Grid>
+        <TutorProfileInfo
+          formData={profileInfo}
+          setFormData={setProfileInfo}
+          color={tutorColor}
+          setColor={setTutorColor}
+          profilePicFile={profilePic}
+          setProfilePicFile={setProfilePic}
+          touched={touched}
+          setTouched={setTouched}
+        />
       </Paper>
 
       {/* Login Information */}
       <Paper sx={{ p: 3, maxWidth: 1000, minWidth: 600, m: 4 }}>
-        <Stack spacing={2}>
-          <Typography variant="h4">Login Information</Typography>
-          <TextField
-            name="wiseMindsEmail"
-            value={formData.wiseMindsEmail}
-            onChange={handleChange}
-            onBlur={handleBlur}
-            required
-            type="email"
-            label="Wise Minds Email"
-            error={isInvalid("wiseMindsEmail")}
-          />
-          <TextField
-            name="password"
-            value={formData.password}
-            onChange={handleChange}
-            onBlur={handleBlur}
-            error={isInvalid("password")}
-            label="Password"
-            autoComplete="new-password"
-            required
-            type={showPassword ? "text" : "password"}
-            slotProps={{
-              input: {
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <IconButton
-                      aria-label="toggle password visibility"
-                      onClick={handleClickShowPassword}
-                      onMouseDown={handleMouseDownPassword}
-                      onMouseUp={handleMouseUpPassword}
-                      tabIndex={-1}
-                    >
-                      {showPassword ? <Visibility /> : <VisibilityOff />}
-                    </IconButton>
-                  </InputAdornment>
-                ),
-              },
-            }}
-          />
-          <TextField
-            name="secondPassword"
-            value={formData.secondPassword}
-            onChange={handleChange}
-            label="Re-enter Password"
-            autoComplete="new-password"
-            onBlur={handleBlur}
-            error={isInvalid("secondPassword")}
-            required
-            type={showPassword ? "text" : "password"}
-            slotProps={{
-              input: {
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <IconButton
-                      aria-label="toggle password visibility"
-                      onClick={handleClickShowPassword}
-                      onMouseDown={handleMouseDownPassword}
-                      onMouseUp={handleMouseUpPassword}
-                      tabIndex={-1}
-                    >
-                      {showPassword ? <Visibility /> : <VisibilityOff />}
-                    </IconButton>
-                  </InputAdornment>
-                ),
-              },
-            }}
-          />
-        </Stack>
+        <TutorLoginInfo
+          formData={loginInfo}
+          setFormData={setLoginInfo}
+          touched={touched}
+          setTouched={setTouched}
+        />
       </Paper>
 
       <Paper sx={{ p: 3, maxWidth: 1000, minWidth: 600, m: 4 }}>
         <Stack spacing={4}>
-          {/* Contact Information */}
-          <Accordion>
-            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-              <Typography variant="h4">Contact Information</Typography>
-            </AccordionSummary>
-            <AccordionDetails>
-              <Stack spacing={2}>
-                <TextField
-                  name="personalEmail"
-                  label="Personal Email"
-                  value={formData.personalEmail}
-                  onChange={handleChange}
-                />
-                <TextField
-                  name="phone"
-                  label="Phone Number"
-                  value={formData.phone}
-                  onChange={handleChange}
-                />
-                <TextField
-                  name="address"
-                  label="Address"
-                  value={formData.address}
-                  onChange={handleChange}
-                />
-              </Stack>
-            </AccordionDetails>
-          </Accordion>
-
-          {/* Personal Information */}
-          <Accordion>
-            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-              <Typography variant="h4">Personal Information</Typography>
-            </AccordionSummary>
-            <AccordionDetails>
-              <Stack spacing={2}>
-                <TextField
-                  name="career"
-                  label="Career"
-                  value={formData.career}
-                  onChange={handleChange}
-                />
-                <TextField
-                  name="degree"
-                  label="Degree"
-                  value={formData.degree}
-                  onChange={handleChange}
-                />
-                <TextField
-                  name="position"
-                  label="Position"
-                  value={formData.position}
-                  onChange={handleChange}
-                />
-                <FormControl disabled fullWidth>
-                  <InputLabel id="location-select-label">
-                    Home Location
-                  </InputLabel>
-                  <Select
-                    name="homeLocation"
-                    label="Home Location"
-                    labelId="location-select-label"
-                    value={formData.homeLocation}
-                    onChange={handleChange}
-                  ></Select>
-                </FormControl>
-                <FormControl disabled fullWidth>
-                  <InputLabel id="role-select-label">Role</InputLabel>
-                  <Select
-                    name="role"
-                    label="Role"
-                    labelId="role-select-label"
-                    value={formData.role}
-                    onChange={handleChange}
-                  >
-                    <MenuItem value={"tutor"}>Tutor</MenuItem>
-                  </Select>
-                </FormControl>
-                <Box sx={{ paddingLeft: 2, paddingRight: 2 }}>
-                  <Typography gutterBottom>Hours</Typography>
-                  <Slider
-                    valueLabelDisplay="auto"
-                    onChange={handleMinMaxChange}
-                    value={minMaxValue}
-                    disableSwap
-                    max={60}
-                    min={0}
-                  />
-                </Box>
-              </Stack>
-            </AccordionDetails>
-          </Accordion>
-
-          {/* Emergency Contact */}
-          <Accordion>
-            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-              <Typography variant="h4">Emergency Contact</Typography>
-            </AccordionSummary>
-            <AccordionDetails>
-              <Stack spacing={2}>
-                <TextField
-                  name="emergencyName"
-                  label="Full Name"
-                  value={formData.emergencyName}
-                  onChange={handleChange}
-                />
-                <FormControl fullWidth>
-                  <InputLabel id="relationship-select-label">
-                    Relationship
-                  </InputLabel>
-                  <Select
-                    name="emergencyRelationship"
-                    label="Relationship"
-                    labelId="relationship-select-label"
-                    value={formData.emergencyRelationship}
-                    onChange={handleChange}
-                  >
-                    <MenuItem value={"daughter"}>Daughter</MenuItem>
-                    <MenuItem value={"father"}>Father</MenuItem>
-                    <MenuItem value={"friend"}>Friend</MenuItem>
-                    <MenuItem value={"husband"}>Husband</MenuItem>
-                    <MenuItem value={"mother"}>Mother</MenuItem>
-                    <MenuItem value={"partner"}>Partner</MenuItem>
-                    <MenuItem value={"son"}>Son</MenuItem>
-                    <MenuItem value={"wife"}>Wife</MenuItem>
-                  </Select>
-                </FormControl>
-                <TextField
-                  name="emergencyPhone"
-                  label="Phone Number"
-                  value={formData.emergencyPhone}
-                  onChange={handleChange}
-                />
-                <TextField
-                  name="emergencyEmail"
-                  label="Email"
-                  value={formData.emergencyEmail}
-                  onChange={handleChange}
-                />
-              </Stack>
-            </AccordionDetails>
-          </Accordion>
-
-          {/* Bank Details */}
-          <Accordion>
-            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-              <Typography variant="h4">Banking and Tax</Typography>
-            </AccordionSummary>
-            <AccordionDetails>
-              <Stack spacing={2}>
-                <TextField
-                  name="bankName"
-                  label="Bank Name"
-                  value={formData.bankName}
-                  onChange={handleChange}
-                />
-                <TextField
-                  name="accountName"
-                  label="Account Name"
-                  value={formData.accountName}
-                  onChange={handleChange}
-                />
-                <TextField
-                  name="bsb"
-                  label="BSB"
-                  value={formData.bsb}
-                  onChange={handleChange}
-                />
-                <TextField
-                  name="accountNumber"
-                  label="Account Number"
-                  value={formData.accountNumber}
-                  onChange={handleChange}
-                />
-                <TextField
-                  name="tfn"
-                  label="Tax File Number"
-                  value={formData.tfn}
-                  onChange={handleChange}
-                />
-                <TextField
-                  name="superCompany"
-                  label="Super Company"
-                  value={formData.superCompany}
-                  onChange={handleChange}
-                />
-              </Stack>
-            </AccordionDetails>
-          </Accordion>
-
-          {/* Working With Vulnerable People */}
-          <Accordion>
-            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-              <Typography variant="h4">
-                Working With Vulnerable People
-              </Typography>
-            </AccordionSummary>
-            <AccordionDetails>
-              <Stack spacing={2}>
-                <TextField
-                  name="wwvpName"
-                  label="Name"
-                  value={formData.wwvpName}
-                  onChange={handleChange}
-                />
-                <TextField
-                  name="wwvpRegNumber"
-                  label="Registration Number"
-                  value={formData.wwvpRegNumber}
-                  onChange={handleChange}
-                />
-                <TextField
-                  name="wwvpCardNumber"
-                  label="Card Number"
-                  value={formData.wwvpCardNumber}
-                  onChange={handleChange}
-                />
-                <DatePicker
-                  label="Expiry"
-                  onChange={handleDateChange("wwvpExpiry")}
-                  value={formData.wwvpExpiry}
-                />
-                <Button variant="contained" component="label">
-                  UPLOAD WORKING WITH VULNERABLE PEOPLE DOCUMENT
-                  <input
-                    type="file"
-                    id="wwvpFileInput"
-                    hidden
-                    accept="application/pdf"
-                    onChange={handleWwvpFileChange}
-                  />
-                </Button>
-                <Button
-                  disabled={!wwvpFile}
-                  variant="outlined"
-                  onClick={handleOpenWwvpPDF}
-                >
-                  VIEW
-                </Button>
-              </Stack>
-            </AccordionDetails>
-          </Accordion>
-
-          {/* First Aid */}
-          <Accordion>
-            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-              <Typography variant="h4">First Aid</Typography>
-            </AccordionSummary>
-            <AccordionDetails>
-              <Stack spacing={2}>
-                <DatePicker
-                  label="Course Date"
-                  onChange={handleDateChange("faCourseDate")}
-                  value={formData.faCourseDate}
-                />
-                <TextField
-                  name="faProvider"
-                  label="Provider"
-                  value={formData.faProvider}
-                  onChange={handleChange}
-                />
-                <TextField
-                  name="faNumber"
-                  label="Number"
-                  value={formData.faNumber}
-                  onChange={handleChange}
-                />
-                <TextField
-                  name="faCourseType"
-                  label="Course Type"
-                  value={formData.faCourseType}
-                  onChange={handleChange}
-                />
-                <TextField
-                  name="faCourseCode"
-                  label="Course Code"
-                  value={formData.faCourseCode}
-                  onChange={handleChange}
-                />
-                <DatePicker
-                  label="Expiry"
-                  onChange={handleDateChange("faExpiry")}
-                  value={formData.faExpiry}
-                />
-                <Button variant="contained" component="label">
-                  UPLOAD FIRST AID DOCUMENT
-                  <input
-                    type="file"
-                    id="firstAidFileInput"
-                    hidden
-                    accept="application/pdf"
-                    onChange={handleFirstAidFileChange}
-                  />
-                </Button>
-                <Button
-                  disabled={!firstAidFile}
-                  variant="outlined"
-                  onClick={handleOpenFirstAidPDF}
-                >
-                  VIEW
-                </Button>
-              </Stack>
-            </AccordionDetails>
-          </Accordion>
-
-          {/* Police Check */}
-          <Accordion>
-            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-              <Typography variant="h4">Police Check</Typography>
-            </AccordionSummary>
-            <AccordionDetails>
-              <Stack spacing={2}>
-                <TextField
-                  name="pcName"
-                  label="Name"
-                  value={formData.pcName}
-                  onChange={handleChange}
-                />
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={formData.pcIsNational}
-                      onChange={handleSwitchChange}
-                    />
-                  }
-                  label="National Police Check"
-                />
-                <TextField
-                  name="pcAddress"
-                  label="Address"
-                  value={formData.pcAddress}
-                  onChange={handleChange}
-                />
-                <TextField
-                  name="pcResult"
-                  label="Result"
-                  value={formData.pcResult}
-                  onChange={handleChange}
-                />
-                <TextField
-                  name="pcAPPRef"
-                  label="APP Reference"
-                  value={formData.pcAPPRef}
-                  onChange={handleChange}
-                />
-                <Button variant="contained" component="label">
-                  UPLOAD POLICE CHECK DOCUMENT
-                  <input
-                    type="file"
-                    id="policeCheckFileInput"
-                    hidden
-                    accept="application/pdf"
-                    onChange={handlePoliceCheckFileChange}
-                  />
-                </Button>
-                <Button
-                  disabled={!policeCheckFile}
-                  variant="outlined"
-                  onClick={handleOpenPoliceCheckPDF}
-                >
-                  VIEW
-                </Button>
-              </Stack>
-            </AccordionDetails>
-          </Accordion>
+          <TutorContactInfo
+            formData={contactInfo}
+            setFormData={setContactInfo}
+          />
+          <TutorPersonalInfo
+            formData={personalInfo}
+            setFormData={setPersonalInfo}
+          />
+          <TutorEmergencyInfo
+            formData={emergencyInfo}
+            setFormData={setEmergencyInfo}
+          />
+          <TutorBankInfo formData={bankInfo} setFormData={setBankInfo} />
+          <TutorWWVPInfo
+            formData={wwvpInfo}
+            setFormData={setWwvpInfo}
+            wwvpFile={wwvpFile}
+            setWwvpFile={setWwvpFile}
+          />
+          <TutorFirstAidInfo
+            formData={firstAidInfo}
+            setFormData={setFirstAidInfo}
+            firstAidFile={firstAidFile}
+            setFirstAidFile={setFirstAidFile}
+          />
+          <TutorPoliceCheckInfo
+            formData={policeCheckInfo}
+            setFormData={setPoliceCheckInfo}
+            policeCheckFile={policeCheckFile}
+            setPoliceCheckFile={setPoliceCheckFile}
+          />
         </Stack>
       </Paper>
 
@@ -978,72 +386,6 @@ const NewTutor = () => {
 
       {/* Toast element */}
       <ToastContainer position="top-right" autoClose={3000} />
-
-      {/* WWVP Dialog */}
-      <Dialog
-        open={openWwvp}
-        onClose={handleCloseWwvpPDF}
-        maxWidth="md"
-        fullWidth
-      >
-        <DialogTitle>
-          <Typography variant="h3">Working With Vulnerable People</Typography>
-        </DialogTitle>
-        <DialogContent>
-          {wwvpUrl && (
-            <iframe
-              src={wwvpUrl}
-              width="100%"
-              height="500px"
-              title="Working With Vulnerable People"
-            />
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* First Aid Dialog */}
-      <Dialog
-        open={openFirstAid}
-        onClose={handleCloseFirstAidPDF}
-        maxWidth="md"
-        fullWidth
-      >
-        <DialogTitle>
-          <Typography variant="h3">First Aid</Typography>
-        </DialogTitle>
-        <DialogContent>
-          {firstAidUrl && (
-            <iframe
-              src={firstAidUrl}
-              width="100%"
-              height="500px"
-              title="First Aid"
-            />
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Police Check Dialog */}
-      <Dialog
-        open={openPoliceCheck}
-        onClose={handleClosePoliceCheckPDF}
-        maxWidth="md"
-        fullWidth
-      >
-        <DialogTitle>
-          <Typography variant="h3">Police Check</Typography>
-        </DialogTitle>
-        <DialogContent>
-          {policeCheckUrl && (
-            <iframe
-              src={policeCheckUrl}
-              width="100%"
-              height="500px"
-              title="Police Check"
-            />
-          )}
-        </DialogContent>
-      </Dialog>
     </LocalizationProvider>
   );
 };

@@ -1,6 +1,6 @@
 import React from "react";
 import { Box, Stack, Typography, useTheme } from "@mui/material";
-import { tokens } from "../theme";
+import { tokens } from "../../theme";
 import Popup from "reactjs-popup";
 import "reactjs-popup/dist/index.css";
 

@@ -1,8 +1,8 @@
 import { Box, Typography, useTheme, List, ListItem, ListItemText, Divider } from "@mui/material";
-import { tokens } from "../theme";
+import { tokens } from "../../theme";
 import { useEffect, useState } from "react";
 import { ref, query, limitToLast, onValue } from 'firebase/database';
-import { rtdb } from "../data/firebase";
+import { rtdb } from "../../data/firebase";
 
 const Noticeboard = () => {
     const theme = useTheme();
