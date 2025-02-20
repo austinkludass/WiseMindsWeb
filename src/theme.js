@@ -64,6 +64,9 @@ export const tokens = (mode) => ({
           400: "#F5C444",
           700: "#FCA61C",
         },
+        textColor: {
+          400: "#E0E0E0",
+        }
       }
     : {
         grey: {
@@ -82,7 +85,7 @@ export const tokens = (mode) => ({
           200: "#080b12",
           300: "#0c101b",
           400: "#f2f0f0",
-          500: "#141b2d",
+          500: "#fbfbfb",
           600: "#434957",
           700: "#727681",
           800: "#a1a4ab",
@@ -126,6 +129,9 @@ export const tokens = (mode) => ({
           700: "#3e4396",
           // Old orange: 400 -> ffb744, 700 -> fca61c
         },
+        textColor: {
+          400: "#141414",
+        }
       }),
 });
 
@@ -166,7 +172,7 @@ export const themeSettings = (mode) => {
               light: colors.grey[100],
             },
             background: {
-              default: "#fbfbfb",
+              default: colors.primary[500],
             },
           }),
     },
@@ -199,6 +205,27 @@ export const themeSettings = (mode) => {
       },
     },
     components: {
+      MuiInputLabel: {
+        styleOverrides: {
+          root: {
+            "&.Mui-focused": {
+              color: colors.orangeAccent[700],
+            },
+          },
+        },
+      },
+      MuiOutlinedInput: {
+        styleOverrides: {
+          root: {
+            "&:hover .MuiOutlinedInput-notchedOutline": {
+              borderColor: colors.orangeAccent[700],
+            },
+            "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+              borderColor: colors.orangeAccent[700],
+            },
+          },
+        },
+      },
       MuiPaper: {
         styleOverrides: {
           root: {
@@ -217,6 +244,10 @@ export const themeSettings = (mode) => {
           containedPrimary: {
             backgroundColor: colors.orangeAccent[700],
           },
+          outlinedPrimary: {
+            color: colors.orangeAccent[700],
+            borderColor: colors.orangeAccent[700],
+          }
         },
       },
       MuiIconButton: {
@@ -276,6 +307,16 @@ export const themeSettings = (mode) => {
           },
         },
       },
+      MuiLinearProgress: {
+        styleOverrides: {
+          root: {
+            backgroundColor: colors.grey[700],
+          },
+          bar: {
+            backgroundColor: colors.orangeAccent[700],
+          }
+        }
+      }
     },
   };
 };

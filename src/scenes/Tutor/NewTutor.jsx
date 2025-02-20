@@ -1,5 +1,12 @@
 import { React, useState, useMemo, useCallback } from "react";
-import { Paper, Typography, Stack, Button, Box } from "@mui/material";
+import {
+  Paper,
+  Typography,
+  Stack,
+  Button,
+  Box,
+  LinearProgress,
+} from "@mui/material";
 import { ToastContainer, toast } from "react-toastify";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
@@ -35,6 +42,7 @@ const NewTutor = () => {
   const [wwvpFile, setWwvpFile] = useState(null);
   const [firstAidFile, setFirstAidFile] = useState(null);
   const [policeCheckFile, setPoliceCheckFile] = useState(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   const [touched, setTouched] = useState({
     firstName: false,
@@ -188,6 +196,7 @@ const NewTutor = () => {
     }
 
     setLoading(true);
+    setUploadProgress(10);
 
     try {
       const userCredential = await createUserWithEmailAndPassword(
@@ -196,6 +205,7 @@ const NewTutor = () => {
         loginInfo.password
       );
       const user = userCredential.user;
+      setUploadProgress(30);
 
       const [avatarUrl, wwvpFileUrl, firstAidFileUrl, policeCheckFileUrl] =
         await Promise.all([
@@ -204,6 +214,7 @@ const NewTutor = () => {
           uploadFirstAidFile(user.uid),
           uploadPoliceCheckFile(user.uid),
         ]);
+      setUploadProgress(90);
 
       await setDoc(doc(db, "tutors", user.uid), {
         avatar: avatarUrl,
@@ -253,6 +264,7 @@ const NewTutor = () => {
         pcResult: policeCheckInfo.pcResult,
         pcAPPRef: policeCheckInfo.pcAPPRef,
       });
+      setUploadProgress(100);
 
       toast.success("Successfully added tutor!");
       navigate("/tutors");
@@ -371,20 +383,51 @@ const NewTutor = () => {
         <Typography variant="h4">Capabilities</Typography>
       </Paper>
 
-      <Paper sx={{ p: 3, maxWidth: 1000, minWidth: 600, m: 4 }}>
+      <Paper
+        sx={{
+          p: 3,
+          maxWidth: 1000,
+          minWidth: 600,
+          mb: 12,
+          mt: 4,
+          ml: 4,
+          mr: 4,
+        }}
+      >
         <Typography variant="h4">Blocked Students</Typography>
       </Paper>
 
-      <Grid container justifyContent="flex-end" sx={{ m: 4 }}>
-        <Button
-          loading={loading}
-          onClick={handleSubmit}
-          variant="contained"
-          color="primary"
-        >
-          <Typography variant="h4">Submit</Typography>
-        </Button>
-      </Grid>
+      {/* Remove Paper to revert */}
+      <Paper
+        sx={{
+          position: "fixed",
+          bottom: 0,
+          left: 0,
+          width: "99%",
+          maxWidth: "1111px",
+          zIndex: 1000,
+          p: 2,
+          boxShadow: "0 -2px 10px rgba(0, 0, 0, 0.1)",
+        }}
+      >
+        <Grid container justifyContent="flex-end" sx={{ alignItems: "center" }}>
+          {loading && (
+            <LinearProgress
+              variant="determinate"
+              value={uploadProgress}
+              sx={{ width: "50%", marginRight: 4 }}
+            />
+          )}
+          <Button
+            loading={loading}
+            onClick={handleSubmit}
+            variant="contained"
+            color="primary"
+          >
+            <Typography variant="h4">Submit</Typography>
+          </Button>
+        </Grid>
+      </Paper>
 
       <ToastContainer position="top-right" autoClose={3000} />
     </LocalizationProvider>

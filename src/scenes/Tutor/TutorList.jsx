@@ -25,8 +25,13 @@ const columns = [
       </Box>
     ),
   },
-  { field: "firstName", headerName: "First name", width: 130 },
-  { field: "lastName", headerName: "Last name", width: 130 },
+  {
+    field: "fullName",
+    headerName: "Name",
+    width: 200,
+    valueGetter: (value, row) => `${row.firstName || ""} ${row.lastName || ""}`,
+  },
+  { field: "wiseMindsEmail", headerName: "Email", width: 200 },
 ];
 
 const paginationModel = { page: 0, pageSize: 10 };
@@ -46,6 +51,7 @@ const TutorList = () => {
         //   avatar: doc.data().avatar,
         //   firstName: doc.data().firstName,
         //   lastName: doc.data().lastName,
+        //   wiseEmailsEmail: doc.data().wiseEmailsEmail,
         // }));
         // setRows(tutorData);
       } catch (error) {

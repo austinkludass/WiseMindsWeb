@@ -47,10 +47,13 @@ const Sidebar = () => {
           padding: "5px 35px 5px 20px !important",
         },
         "& .pro-inner-item:hover": {
-          color: "#868dfb !important",
+          color: `${colors.orangeAccent[400]} !important`,
         },
         "& .pro-menu-item.active": {
-          color: "#6870fa !important",
+          color: `${colors.orangeAccent[400]} !important`,
+        },
+        "& .pro-inner-item:focus": {
+          color: `${colors.textColor[400]} !important`,
         },
         "& .pro-arrow": {
           display: "none !important",
@@ -80,157 +83,158 @@ const Sidebar = () => {
           </MenuItem>
 
           {!isCollapsed && (
-            <Box mb="25px">
-              <Box display="flex" justifyContent="center" alignItems="center">
-                <OwlFacts />
-              </Box>
+            <>
+              <Box mb="25px">
+                <Box display="flex" justifyContent="center" alignItems="center">
+                  <OwlFacts />
+                </Box>
 
-              <Box textAlign="center">
-                <Typography
-                  variant="h2"
-                  color={colors.grey[100]}
-                  fontWeight="bold"
-                  sx={{ m: "10px 0 0 0" }}
+                <Box textAlign="center">
+                  <Typography
+                    variant="h2"
+                    color={colors.grey[100]}
+                    fontWeight="bold"
+                    sx={{ m: "10px 0 0 0" }}
+                  >
+                    Wise Minds
+                  </Typography>
+                  <Typography variant="h5" color={colors.orangeAccent[400]}>
+                    Admin
+                  </Typography>
+                </Box>
+              </Box>
+              <Box paddingLeft={"10%"}>
+                <Item
+                  title="Dashboard"
+                  to="/"
+                  icon={<HomeOutlinedIcon />}
+                  selected={selected}
+                  setSelected={setSelected}
+                />
+                <SubMenu
+                  title="Tutoring"
+                  icon={<CalendarMonthOutlinedIcon />}
+                  rootStyles={{ "pro-arrow": { display: "none" } }}
+                  style={{ color: colors.grey[100] }}
                 >
-                  Wise Minds
-                </Typography>
-                <Typography variant="h5" color={colors.orangeAccent[400]}>
-                  Belconnen
-                </Typography>
+                  <Item
+                    title="Calendar"
+                    to="/calendar"
+                    selected={selected}
+                    setSelected={setSelected}
+                  />
+                  <Item
+                    title="Lessons"
+                    to="/lessons"
+                    selected={selected}
+                    setSelected={setSelected}
+                  />
+                </SubMenu>
+                <SubMenu
+                  title="Administration"
+                  icon={<PeopleAltOutlinedIcon />}
+                  style={{ color: colors.grey[100] }}
+                >
+                  <Item
+                    title="Tutors"
+                    to="/tutors"
+                    selected={selected}
+                    setSelected={setSelected}
+                  />
+                  <Item
+                    title="Tutor Absences"
+                    to="/tutorabsences"
+                    selected={selected}
+                    setSelected={setSelected}
+                  />
+                  <Item
+                    title="Tutor Groups"
+                    to="/tutorgroups"
+                    selected={selected}
+                    setSelected={setSelected}
+                  />
+                  <Item
+                    title="Students"
+                    to="/students"
+                    selected={selected}
+                    setSelected={setSelected}
+                  />
+                  <Item
+                    title="Student Absences"
+                    to="/studentabsences"
+                    selected={selected}
+                    setSelected={setSelected}
+                  />
+                  <Item
+                    title="Invoices"
+                    to="/invoices"
+                    selected={selected}
+                    setSelected={setSelected}
+                  />
+                  <Item
+                    title="Payroll"
+                    to="/payroll"
+                    selected={selected}
+                    setSelected={setSelected}
+                  />
+                </SubMenu>
+                <SubMenu
+                  title="Teaching"
+                  icon={<MenuBookOutlinedIcon />}
+                  style={{ color: colors.grey[100] }}
+                >
+                  <Item
+                    title="Subjects"
+                    to="/subjects"
+                    selected={selected}
+                    setSelected={setSelected}
+                  />
+                  <Item
+                    title="Curricula"
+                    to="/curricula"
+                    selected={selected}
+                    setSelected={setSelected}
+                  />
+                  <Item
+                    title="Feedback"
+                    to="/feedback"
+                    selected={selected}
+                    setSelected={setSelected}
+                  />
+                  <Item
+                    title="Summer Courses"
+                    to="/summercourses"
+                    selected={selected}
+                    setSelected={setSelected}
+                  />
+                </SubMenu>
+                <SubMenu
+                  title="Belconnen"
+                  icon={<CorporateFareOutlinedIcon />}
+                  style={{ color: colors.grey[100] }}
+                >
+                  <Item
+                    title="Tutoring Bays"
+                    to="/tutoringbays"
+                    selected={selected}
+                    setSelected={setSelected}
+                  />
+                  <Item
+                    title="Settings"
+                    to="/settings"
+                    selected={selected}
+                    setSelected={setSelected}
+                  />
+                  <Item
+                    title="WWVP"
+                    to="/wwvp"
+                    selected={selected}
+                    setSelected={setSelected}
+                  />
+                </SubMenu>
               </Box>
-            </Box>
+            </>
           )}
-
-          <Box paddingLeft={isCollapsed ? undefined : "10%"}>
-            <Item
-              title="Dashboard"
-              to="/"
-              icon={<HomeOutlinedIcon />}
-              selected={selected}
-              setSelected={setSelected}
-            />
-            <SubMenu
-              title="Tutoring"
-              icon={<CalendarMonthOutlinedIcon />}
-              rootStyles={{ "pro-arrow": { display: "none" } }}
-              style={{ color: colors.grey[100] }}
-            >
-              <Item
-                title="Calendar"
-                to="/calendar"
-                selected={selected}
-                setSelected={setSelected}
-              />
-              <Item
-                title="Lessons"
-                to="/lessons"
-                selected={selected}
-                setSelected={setSelected}
-              />
-            </SubMenu>
-            <SubMenu
-              title="Administration"
-              icon={<PeopleAltOutlinedIcon />}
-              style={{ color: colors.grey[100] }}
-            >
-              <Item
-                title="Tutors"
-                to="/tutors"
-                selected={selected}
-                setSelected={setSelected}
-              />
-              <Item
-                title="Tutor Absences"
-                to="/tutorabsences"
-                selected={selected}
-                setSelected={setSelected}
-              />
-              <Item
-                title="Tutor Groups"
-                to="/tutorgroups"
-                selected={selected}
-                setSelected={setSelected}
-              />
-              <Item
-                title="Students"
-                to="/students"
-                selected={selected}
-                setSelected={setSelected}
-              />
-              <Item
-                title="Student Absences"
-                to="/studentabsences"
-                selected={selected}
-                setSelected={setSelected}
-              />
-              <Item
-                title="Invoices"
-                to="/invoices"
-                selected={selected}
-                setSelected={setSelected}
-              />
-              <Item
-                title="Payroll"
-                to="/payroll"
-                selected={selected}
-                setSelected={setSelected}
-              />
-            </SubMenu>
-            <SubMenu
-              title="Teaching"
-              icon={<MenuBookOutlinedIcon />}
-              style={{ color: colors.grey[100] }}
-            >
-              <Item
-                title="Subjects"
-                to="/subjects"
-                selected={selected}
-                setSelected={setSelected}
-              />
-              <Item
-                title="Curricula"
-                to="/curricula"
-                selected={selected}
-                setSelected={setSelected}
-              />
-              <Item
-                title="Feedback"
-                to="/feedback"
-                selected={selected}
-                setSelected={setSelected}
-              />
-              <Item
-                title="Summer Courses"
-                to="/summercourses"
-                selected={selected}
-                setSelected={setSelected}
-              />
-            </SubMenu>
-            <SubMenu
-              title="Belconnen"
-              icon={<CorporateFareOutlinedIcon />}
-              style={{ color: colors.grey[100] }}
-            >
-              <Item
-                title="Tutoring Bays"
-                to="/tutoringbays"
-                selected={selected}
-                setSelected={setSelected}
-              />
-              <Item
-                title="Settings"
-                to="/settings"
-                selected={selected}
-                setSelected={setSelected}
-              />
-              <Item
-                title="WWVP"
-                to="/wwvp"
-                selected={selected}
-                setSelected={setSelected}
-              />
-            </SubMenu>
-          </Box>
         </Menu>
       </ProSidebar>
     </Box>
