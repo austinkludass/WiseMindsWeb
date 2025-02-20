@@ -31,6 +31,7 @@ import TutorFirstAidInfo from "../../components/Tutor/TutorFirstAidInfo";
 import TutorPoliceCheckInfo from "../../components/Tutor/TutorPoliceCheckInfo";
 import "react-toastify/dist/ReactToastify.css";
 import "dayjs/locale/en-gb";
+import TutorBlockedStudents from "../../components/Tutor/TutorBlockedStudents";
 
 const NewTutor = () => {
   const navigate = useNavigate();
@@ -394,7 +395,10 @@ const NewTutor = () => {
           mr: 4,
         }}
       >
-        <Typography variant="h4">Blocked Students</Typography>
+        <Stack spacing={2}>
+          <Typography variant="h4">Blocked Students</Typography>
+          <TutorBlockedStudents />
+        </Stack>
       </Paper>
 
       {/* Remove Paper to revert */}
