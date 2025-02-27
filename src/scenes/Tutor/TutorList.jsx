@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { DataGrid } from "@mui/x-data-grid";
 import Paper from "@mui/material/Paper";
-import { Avatar, Box, useTheme } from "@mui/material";
+import { Avatar, Box, IconButton, useTheme } from "@mui/material";
 import Stack from "@mui/material/Stack";
 import Button from "@mui/material/Button";
 import { tokens } from "../../theme";
@@ -12,55 +12,77 @@ import { db } from "../../data/firebase";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import Header from "../../components/Global/Header";
+import { useQuery } from "@tanstack/react-query";
+import ArrowCircleRightIcon from '@mui/icons-material/ArrowCircleRight';
 
-const columns = [
-  {
-    field: "avatar",
-    headerName: "",
-    width: 80,
-    sortable: false,
-    renderCell: (params) => (
-      <Box sx={{ display: "flex", alignItems: "center", height: "100%" }}>
-        <Avatar src={params.value} sx={{ width: 40, height: 40 }} />
-      </Box>
-    ),
-  },
-  {
-    field: "fullName",
-    headerName: "Name",
-    width: 200,
-    valueGetter: (value, row) => `${row.firstName || ""} ${row.lastName || ""}`,
-  },
-  { field: "wiseMindsEmail", headerName: "Email", width: 200 },
-];
-
-const paginationModel = { page: 0, pageSize: 10 };
+const fetchTutors = async () => {
+  try {
+    const querySnapshot = await getDocs(collection(db, "tutors"));
+    return querySnapshot.docs.map((doc) => ({
+      id: doc.id,
+      avatar: doc.data().avatar,
+      firstName: doc.data().firstName,
+      lastName: doc.data().lastName,
+      wiseMindsEmail: doc.data().wiseMindsEmail,
+    }));
+  } catch (error) {
+    throw new Error("Failed to fetch tutors: " + error.message);
+  }
+};
 
 const TutorList = () => {
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
   const navigate = useNavigate();
-  const [rows, setRows] = useState([]);
+
+  const { data: rows = [], error } = useQuery({
+    queryKey: ["tutors"],
+    queryFn: fetchTutors,
+    staleTime: 5 * 60 * 1000,
+  });
 
   useEffect(() => {
-    const fetchTutors = async () => {
-      try {
-        // const querySnapshot = await getDocs(collection(db, "tutors"));
-        // const tutorData = querySnapshot.docs.map((doc) => ({
-        //   id: doc.id,
-        //   avatar: doc.data().avatar,
-        //   firstName: doc.data().firstName,
-        //   lastName: doc.data().lastName,
-        //   wiseEmailsEmail: doc.data().wiseEmailsEmail,
-        // }));
-        // setRows(tutorData);
-      } catch (error) {
-        toast.error("Error: " + error.message);
-      }
-    };
+    if (error) {
+      toast.error(error.message);
+    }
+  }, [error]);
 
-    fetchTutors();
-  }, []);
+  const columns = [
+    {
+      field: "avatar",
+      headerName: "",
+      width: 80,
+      sortable: false,
+      renderCell: (params) => (
+        <Box sx={{ display: "flex", alignItems: "center", height: "100%" }}>
+          <Avatar src={params.value} sx={{ width: 40, height: 40 }} />
+        </Box>
+      ),
+    },
+    {
+      field: "fullName",
+      headerName: "Name",
+      width: 200,
+      valueGetter: (value, row) =>
+        `${row.firstName || ""} ${row.lastName || ""}`,
+    },
+    { field: "wiseMindsEmail", headerName: "Email", width: 200 },
+    {
+      field: "edit",
+      headerName: "",
+      width: 150,
+      sortable: false,
+      disableColumnMenu: true,
+      renderCell: (params) => (
+        <IconButton
+          color="secondary"
+          onClick={() => navigate(`/tutor/${params.row.id}`)}
+        >
+          <ArrowCircleRightIcon sx={{ width: 25, height: 25 }} />
+        </IconButton>
+      ),
+    },
+  ];
 
   return (
     <Box display="flex" m="20px">
@@ -75,14 +97,16 @@ const TutorList = () => {
             fontSize: "1.3em",
           }}
         >
-          <Typography variant="h6">ADD</Typography>
+          <Typography variant="h6">NEW</Typography>
         </Button>
         <Paper sx={{ width: "100vh", backgroundColor: "transparent" }}>
           <DataGrid
             checkboxSelection={false}
             rows={rows}
             columns={columns}
-            initialState={{ pagination: { paginationModel } }}
+            initialState={{
+              pagination: { paginationModel: { page: 0, pageSize: 10 } },
+            }}
             pageSizeOptions={[10]}
             sx={{ border: 0 }}
           />

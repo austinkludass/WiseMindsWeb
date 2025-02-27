@@ -4,6 +4,9 @@ import Sidebar from "./scenes/global/Sidebar";
 import Dashboard from "./scenes/dashboard/Dashboard";
 import TutorList from "./scenes/Tutor/TutorList";
 import NewTutor from "./scenes/Tutor/NewTutor";
+import TutorProfile from "./scenes/Tutor/TutorProfile";
+import StudentList from "./scenes/Student/StudentList";
+import NewStudent from "./scenes/Student/NewStudent";
 import { ColorModeContext, useMode } from "./theme";
 import { CssBaseline, ThemeProvider } from "@mui/material";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
@@ -28,6 +31,9 @@ function App() {
                   <Route path="/" element={<Dashboard />} />
                   <Route path="/tutors" element={<TutorList />} />
                   <Route path="/newtutor" element={<NewTutor />} />
+                  <Route path="tutor/:tutorId" element={<TutorProfile />} />
+                  <Route path="/students" element={<StudentList />} />
+                  <Route path="/newstudent" element={<NewStudent />} />
                   <Route path="*" element={<Navigate to="/" />} />
                 </Routes>
               </main>
