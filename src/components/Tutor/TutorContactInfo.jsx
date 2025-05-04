@@ -9,7 +9,7 @@ import {
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 
-const TutorContactInfo = ( {formData, setFormData} ) => {
+const TutorContactInfo = ({ formData, setFormData, isEdit }) => {
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
@@ -21,24 +21,40 @@ const TutorContactInfo = ( {formData, setFormData} ) => {
       </AccordionSummary>
       <AccordionDetails>
         <Stack spacing={2}>
-          <TextField
-            name="personalEmail"
-            label="Personal Email"
-            value={formData.personalEmail}
-            onChange={handleChange}
-          />
-          <TextField
-            name="phone"
-            label="Phone Number"
-            value={formData.phone}
-            onChange={handleChange}
-          />
-          <TextField
-            name="address"
-            label="Address"
-            value={formData.address}
-            onChange={handleChange}
-          />
+          {isEdit ? (
+            <>
+              <TextField
+                name="personalEmail"
+                label="Personal Email"
+                value={formData.personalEmail}
+                onChange={handleChange}
+              />
+              <TextField
+                name="phone"
+                label="Phone Number"
+                value={formData.phone}
+                onChange={handleChange}
+              />
+              <TextField
+                name="address"
+                label="Address"
+                value={formData.address}
+                onChange={handleChange}
+              />
+            </>
+          ) : (
+            <>
+              <Typography variant="h6">
+                Personal Email: {formData.personalEmail}
+              </Typography>
+              <Typography variant="h6">
+                Phone Number: {formData.phone}
+              </Typography>
+              <Typography variant="h6">
+                Address: {formData.address}
+              </Typography>
+            </>
+          )}
         </Stack>
       </AccordionDetails>
     </Accordion>

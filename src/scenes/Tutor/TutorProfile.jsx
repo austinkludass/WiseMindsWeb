@@ -2,12 +2,29 @@ import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { db } from "../../data/firebase";
 import { doc, getDoc } from "firebase/firestore";
-import { Button, Typography, Box, Avatar } from "@mui/material";
+import { Typography, Box, Paper, Stack } from "@mui/material";
+import { LocalizationProvider } from "@mui/x-date-pickers";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import "dayjs/locale/en-gb";
+import Header from "../../components/Global/Header";
+import TutorProfileInfo from "../../components/Tutor/TutorProfileInfo";
+import { useColor } from "react-color-palette";
+import TutorContactInfo from "../../components/Tutor/TutorContactInfo";
+import TutorPersonalInfo from "../../components/Tutor/TutorPersonalInfo";
+import TutorEmergencyInfo from "../../components/Tutor/TutorEmergencyInfo";
+import TutorBankInfo from "../../components/Tutor/TutorBankInfo";
+import TutorWWVPInfo from "../../components/Tutor/TutorWWVPInfo";
+import TutorFirstAidInfo from "../../components/Tutor/TutorFirstAidInfo";
+import TutorPoliceCheckInfo from "../../components/Tutor/TutorPoliceCheckInfo";
+import AvailabilitySelector from "../../components/Tutor/AvailabilitySelector";
 
 const TutorProfile = () => {
-  const { tutorId } = useParams(); // Get tutorId from the URL
+  const { tutorId } = useParams();
   const [tutor, setTutor] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
+  const [tutorColor, setTutorColor] = useColor("hex", "#000000");
+  const [profilePic, setProfilePic] = useState(null);
+  const [availability, setAvailability] = useState({});
 
   useEffect(() => {
     // Get logged-in user from localStorage
@@ -21,6 +38,9 @@ const TutorProfile = () => {
 
       if (tutorSnap.exists()) {
         setTutor(tutorSnap.data());
+        setTutorColor({ hex: tutorSnap.data().tutorColor });
+        setProfilePic(tutorSnap.data().avatar);
+        setAvailability(tutorSnap.data().availability);
       }
     };
 
@@ -33,20 +53,104 @@ const TutorProfile = () => {
   const isAdmin = currentUser?.role === "admin";
 
   return (
-    <Box p={4}>
-      <Avatar src={tutor.avatar} sx={{ width: 100, height: 100 }} />
-      <Typography variant="h4">
-        {tutor.firstName} {tutor.lastName}
-      </Typography>
-      <Typography variant="body1">Email: {tutor.wiseMindsEmail}</Typography>
-      <Typography variant="body1">Role: {tutor.role}</Typography>
+    <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="en-gb">
+      <Box display="flex" m="20px">
+        <Header
+          title={`${tutor.firstName} ${tutor.lastName}`}
+          subtitle={tutor.role}
+        />
+      </Box>
 
-      {(isSelf || isAdmin) && (
-        <Button variant="contained" color="primary" sx={{ mt: 2 }}>
-          Edit Profile
-        </Button>
-      )}
-    </Box>
+      <Paper sx={{ p: 3, maxWidth: 1000, minWidth: 600, m: 4 }}>
+        <TutorProfileInfo
+          formData={{
+            firstName: tutor?.firstName || "",
+            middleName: tutor?.middleName || "",
+            lastName: tutor?.lastName || "",
+            dateOfBirth: tutor?.dateOfBirth || null,
+            wiseMindsEmail: tutor?.wiseMindsEmail || "",
+          }}
+          color={tutorColor}
+          profilePicFile={profilePic}
+        />
+      </Paper>
+      <Paper sx={{ p: 3, maxWidth: 1000, minWidth: 600, m: 4 }}>
+        <Stack spacing={4}>
+          <TutorContactInfo
+            formData={{
+              personalEmail: tutor?.personalEmail || "",
+              phone: tutor?.phone || "",
+              address: tutor?.address || "",
+            }}
+          />
+          <TutorPersonalInfo
+            formData={{
+              career: tutor?.career || "",
+              degree: tutor?.degree || "",
+              position: tutor?.position || "",
+              homeLocation: tutor?.homeLocation || "",
+              role: tutor?.role || "",
+              hours: tutor?.hours || [0, 0],
+            }}
+          />
+          <TutorEmergencyInfo
+            formData={{
+              emergencyName: tutor?.emergencyName || "",
+              emergencyRelationship: tutor?.emergencyRelationship || "",
+              emergencyPhone: tutor?.emergencyPhone || "",
+              emergencyEmail: tutor?.emergencyEmail || "",
+            }}
+          />
+          <TutorBankInfo
+            formData={{
+              bankName: tutor?.bankName || "",
+              accountName: tutor?.accountName || "",
+              bsb: tutor?.bsb || "",
+              accountNumber: tutor?.accountNumber || "",
+              tfn: tutor?.tfn || "",
+              superCompany: tutor?.superCompany || "",
+            }}
+          />
+          <TutorWWVPInfo
+            formData={{
+              wwvpName: tutor?.wwvpName || "",
+              wwvpRegNumber: tutor?.wwvpRegNumber || "",
+              wwvpCardNumber: tutor?.wwvpCardNumber || "",
+              wwvpExpiry: tutor?.wwvpExpiry || "",
+            }}
+            wwvpFile={tutor?.wwvpFilePath || null}
+          />
+          <TutorFirstAidInfo
+            formData={{
+              faCourseDate: tutor?.faCourseDate || "",
+              faProvider: tutor?.faProvider || "",
+              faNumber: tutor?.faNumber || "",
+              faCourseType: tutor?.faCourseType || "",
+              faCourseCode: tutor?.faCourseCode || "",
+              faExpiry: tutor?.faExpiry || "",
+            }}
+            firstAidFile={tutor?.firstAidFilePath || null}
+          />
+          <TutorPoliceCheckInfo
+            formData={{
+              pcName: tutor?.pcName || "",
+              pcIsNational: tutor?.pcIsNational || "",
+              pcAddress: tutor?.pcAddress || "",
+              pcResult: tutor?.pcResult || "",
+              pcAPPRef: tutor?.pcAPPRef || "",
+            }}
+            policeCheckFile={tutor?.policeCheckFilePath || null}
+          />
+        </Stack>
+      </Paper>
+
+      <Paper sx={{ p: 3, maxWidth: 1000, minWidth: 600, m: 4}}>
+        <Stack spacing={2}>
+          <Typography variant="h4">Availability</Typography>
+          <AvailabilitySelector onAvailabilityChange={availability} isEdit={false} />
+        </Stack>
+      </Paper>
+    </LocalizationProvider>
   );
 };
 

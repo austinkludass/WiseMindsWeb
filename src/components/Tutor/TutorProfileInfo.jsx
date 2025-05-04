@@ -1,9 +1,10 @@
 import { React, useState } from "react";
-import { Avatar, Stack, Box, IconButton, TextField } from "@mui/material";
+import { Avatar, Stack, Box, IconButton, TextField, Typography } from "@mui/material";
 import Grid from "@mui/material/Grid2";
 import EditIcon from "@mui/icons-material/Edit";
 import { Saturation, Hue } from "react-color-palette";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import dayjs from "dayjs";
 import "react-color-palette/css";
 
 const TutorProfileInfo = ({
@@ -15,6 +16,7 @@ const TutorProfileInfo = ({
   setProfilePicFile,
   touched,
   setTouched,
+  isEdit,
 }) => {
   const [profilePicUrl, setProfilePicUrl] = useState(null);
   const [hover, setHover] = useState(false);
@@ -63,7 +65,7 @@ const TutorProfileInfo = ({
             onMouseLeave={() => setHover(false)}
           >
             <Avatar
-              src={profilePicUrl}
+              src={isEdit ? profilePicUrl : profilePicFile}
               sx={{
                 width: 140,
                 height: 140,
@@ -72,7 +74,7 @@ const TutorProfileInfo = ({
                 border: `4px solid ${color.hex}`,
               }}
             />
-            {hover && (
+            {hover && isEdit && (
               <IconButton
                 onClick={handleAvatarClick}
                 sx={[
@@ -103,40 +105,67 @@ const TutorProfileInfo = ({
               onChange={handleProfilePicChange}
             />
           </Box>
-          <Stack spacing={1}>
-            <Saturation height={70} color={color} onChange={setColor} />
-            <Hue color={color} onChange={setColor} />
-          </Stack>
+          {isEdit && (
+            <Stack spacing={1}>
+              <Saturation height={70} color={color} onChange={setColor} />
+              <Hue color={color} onChange={setColor} />
+            </Stack>
+          )}
         </Stack>
       </Grid>
       <Grid item size={8}>
         <Stack spacing={2}>
-          <TextField
-            name="firstName"
-            value={formData.firstName}
-            onChange={handleChange}
-            onBlur={handleBlur}
-            required
-            label="First Name"
-            error={isInvalid("firstName")}
-          />
-          <TextField
-            name="middleName"
-            value={formData.middleName}
-            onChange={handleChange}
-            label="Middle Name"
-          />
-          <TextField
-            name="lastName"
-            value={formData.lastName}
-            onChange={handleChange}
-            label="Last Name"
-          />
-          <DatePicker
-            value={formData.dateOfBirth}
-            onChange={handleDateChange("dateOfBirth")}
-            label="Date of Birth"
-          />
+          {isEdit ? (
+            <>
+              <TextField
+                name="firstName"
+                value={formData.firstName}
+                onChange={handleChange}
+                onBlur={handleBlur}
+                required
+                label="First Name"
+                error={isInvalid("firstName")}
+              />
+              <TextField
+                name="middleName"
+                value={formData.middleName}
+                onChange={handleChange}
+                label="Middle Name"
+              />
+              <TextField
+                name="lastName"
+                value={formData.lastName}
+                onChange={handleChange}
+                label="Last Name"
+              />
+              <DatePicker
+                value={formData.dateOfBirth}
+                onChange={handleDateChange("dateOfBirth")}
+                label="Date of Birth"
+              />
+            </>
+          ) : (
+            <>
+              <Typography variant="h6">
+                First Name: {formData.firstName}
+              </Typography>
+              <Typography variant="h6">
+                Middle Name: {formData.middleName}
+              </Typography>
+              <Typography variant="h6">
+                Last Name: {formData.lastName}
+              </Typography>
+              <Typography variant="h6">
+                Date of Birth:{" "}
+                {formData.dateOfBirth
+                  ? dayjs(formData.dateOfBirth).format("MMMM D, YYYY")
+                  : "N/A"}
+              </Typography>
+              <Typography variant="h6">
+                Wise Minds Email: {formData.wiseMindsEmail}
+              </Typography>
+            </>
+          )}
         </Stack>
       </Grid>
     </Grid>

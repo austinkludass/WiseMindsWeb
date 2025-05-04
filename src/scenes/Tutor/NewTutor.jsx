@@ -310,6 +310,7 @@ const NewTutor = () => {
           setProfilePicFile={setProfilePic}
           touched={touched}
           setTouched={setTouched}
+          isEdit={true}
         />
       </Paper>
 
@@ -327,36 +328,43 @@ const NewTutor = () => {
           <TutorContactInfo
             formData={contactInfo}
             setFormData={setContactInfoCallback}
+            isEdit={true}
           />
           <TutorPersonalInfo
             formData={personalInfo}
             setFormData={setPersonalInfoCallback}
+            isEdit={true}
           />
           <TutorEmergencyInfo
             formData={emergencyInfo}
             setFormData={setEmergencyInfoCallback}
+            isEdit={true}
           />
           <TutorBankInfo
             formData={bankInfo}
             setFormData={setBankInfoCallback}
+            isEdit={true}
           />
           <TutorWWVPInfo
             formData={wwvpInfo}
             setFormData={setWWVPInfoCallback}
             wwvpFile={wwvpFile}
             setWwvpFile={setWwvpFile}
+            isEdit={true}
           />
           <TutorFirstAidInfo
             formData={firstAidInfo}
             setFormData={setFirstAidInfoCallback}
             firstAidFile={firstAidFile}
             setFirstAidFile={setFirstAidFile}
+            isEdit={true}
           />
           <TutorPoliceCheckInfo
             formData={policeCheckInfo}
             setFormData={setPoliceCheckInfoCallback}
             policeCheckFile={policeCheckFile}
             setPoliceCheckFile={setPoliceCheckFile}
+            isEdit={true}
           />
         </Stack>
       </Paper>
@@ -402,7 +410,7 @@ const NewTutor = () => {
       </Paper>
 
       {/* Remove Paper to revert */}
-      <Paper
+      {/* <Paper
         sx={{
           position: "fixed",
           bottom: 0,
@@ -413,8 +421,8 @@ const NewTutor = () => {
           p: 2,
           boxShadow: "0 -2px 10px rgba(0, 0, 0, 0.1)",
         }}
-      >
-        <Grid container justifyContent="flex-end" sx={{ alignItems: "center" }}>
+      > */}
+        <Grid container justifyContent="flex-end" sx={{ alignItems: "center", m: 5 }}>
           {loading && (
             <LinearProgress
               variant="determinate"
@@ -431,7 +439,7 @@ const NewTutor = () => {
             <Typography variant="h4">Submit</Typography>
           </Button>
         </Grid>
-      </Paper>
+      {/* </Paper> */}
 
       <ToastContainer position="top-right" autoClose={3000} />
     </LocalizationProvider>

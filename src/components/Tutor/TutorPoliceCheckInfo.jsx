@@ -15,7 +15,13 @@ import {
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 
-const TutorPoliceCheckInfo = ({ formData, setFormData, policeCheckFile, setPoliceCheckFile }) => {
+const TutorPoliceCheckInfo = ({
+  formData,
+  setFormData,
+  policeCheckFile,
+  setPoliceCheckFile,
+  isEdit,
+}) => {
   const [policeCheckUrl, setPoliceCheckUrl] = useState(null);
   const [openPoliceCheck, setOpenPoliceCheck] = useState(false);
 
@@ -51,56 +57,74 @@ const TutorPoliceCheckInfo = ({ formData, setFormData, policeCheckFile, setPolic
       </AccordionSummary>
       <AccordionDetails>
         <Stack spacing={2}>
-          <TextField
-            name="pcName"
-            label="Name"
-            value={formData.pcName}
-            onChange={handleChange}
-          />
-          <FormControlLabel
-            control={
-              <Switch
-                checked={formData.pcIsNational}
-                onChange={handleSwitchChange}
+          {isEdit ? (
+            <>
+              <TextField
+                name="pcName"
+                label="Name"
+                value={formData.pcName}
+                onChange={handleChange}
               />
-            }
-            label="National Police Check"
-          />
-          <TextField
-            name="pcAddress"
-            label="Address"
-            value={formData.pcAddress}
-            onChange={handleChange}
-          />
-          <TextField
-            name="pcResult"
-            label="Result"
-            value={formData.pcResult}
-            onChange={handleChange}
-          />
-          <TextField
-            name="pcAPPRef"
-            label="APP Reference"
-            value={formData.pcAPPRef}
-            onChange={handleChange}
-          />
-          <Button variant="contained" component="label">
-            UPLOAD POLICE CHECK DOCUMENT
-            <input
-              type="file"
-              id="policeCheckFileInput"
-              hidden
-              accept="application/pdf"
-              onChange={handlePoliceCheckFileChange}
-            />
-          </Button>
-          <Button
-            disabled={!policeCheckFile}
-            variant="outlined"
-            onClick={handleOpenPoliceCheckPDF}
-          >
-            VIEW
-          </Button>
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={formData.pcIsNational}
+                    onChange={handleSwitchChange}
+                  />
+                }
+                label="National Police Check"
+              />
+              <TextField
+                name="pcAddress"
+                label="Address"
+                value={formData.pcAddress}
+                onChange={handleChange}
+              />
+              <TextField
+                name="pcResult"
+                label="Result"
+                value={formData.pcResult}
+                onChange={handleChange}
+              />
+              <TextField
+                name="pcAPPRef"
+                label="APP Reference"
+                value={formData.pcAPPRef}
+                onChange={handleChange}
+              />
+              <Button variant="contained" component="label">
+                UPLOAD POLICE CHECK DOCUMENT
+                <input
+                  type="file"
+                  id="policeCheckFileInput"
+                  hidden
+                  accept="application/pdf"
+                  onChange={handlePoliceCheckFileChange}
+                />
+              </Button>
+              <Button
+                disabled={!policeCheckFile}
+                variant="outlined"
+                onClick={handleOpenPoliceCheckPDF}
+              >
+                VIEW
+              </Button>
+            </>
+          ) : (
+            <>
+              <Typography variant="h6">Name: {formData.pcName}</Typography>
+              <Typography variant="h6">
+                National: {formData.pcIsNational}
+              </Typography>
+              <Typography variant="h6">
+                Address: {formData.pcAddress}
+              </Typography>
+              <Typography variant="h6">Result: {formData.pcResult}</Typography>
+              <Typography variant="h6">
+                Reference: {formData.pcAPPRef}
+              </Typography>
+            </>
+          )}
         </Stack>
       </AccordionDetails>
       <Dialog

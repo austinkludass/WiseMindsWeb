@@ -14,7 +14,13 @@ import {
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 
-const TutorWWVPInfo = ({ formData, setFormData, wwvpFile, setWwvpFile }) => {
+const TutorWWVPInfo = ({
+  formData,
+  setFormData,
+  wwvpFile,
+  setWwvpFile,
+  isEdit,
+}) => {
   const [openWwvp, setOpenWwvp] = useState(false);
   const [wwvpUrl, setWwvpUrl] = useState(null);
 
@@ -50,46 +56,66 @@ const TutorWWVPInfo = ({ formData, setFormData, wwvpFile, setWwvpFile }) => {
       </AccordionSummary>
       <AccordionDetails>
         <Stack spacing={2}>
-          <TextField
-            name="wwvpName"
-            label="Name"
-            value={formData.wwvpName}
-            onChange={handleChange}
-          />
-          <TextField
-            name="wwvpRegNumber"
-            label="Registration Number"
-            value={formData.wwvpRegNumber}
-            onChange={handleChange}
-          />
-          <TextField
-            name="wwvpCardNumber"
-            label="Card Number"
-            value={formData.wwvpCardNumber}
-            onChange={handleChange}
-          />
-          <DatePicker
-            label="Expiry"
-            onChange={handleDateChange("wwvpExpiry")}
-            value={formData.wwvpExpiry}
-          />
-          <Button variant="contained" component="label">
-            UPLOAD WORKING WITH VULNERABLE PEOPLE DOCUMENT
-            <input
-              type="file"
-              id="wwvpFileInput"
-              hidden
-              accept="application/pdf"
-              onChange={handleWwvpFileChange}
-            />
-          </Button>
-          <Button
-            disabled={!wwvpFile}
-            variant="outlined"
-            onClick={handleOpenWwvpPDF}
-          >
-            VIEW
-          </Button>
+          {isEdit ? (
+            <>
+              <TextField
+                name="wwvpName"
+                label="Name"
+                value={formData.wwvpName}
+                onChange={handleChange}
+              />
+              <TextField
+                name="wwvpRegNumber"
+                label="Registration Number"
+                value={formData.wwvpRegNumber}
+                onChange={handleChange}
+              />
+              <TextField
+                name="wwvpCardNumber"
+                label="Card Number"
+                value={formData.wwvpCardNumber}
+                onChange={handleChange}
+              />
+              <DatePicker
+                label="Expiry"
+                onChange={handleDateChange("wwvpExpiry")}
+                value={formData.wwvpExpiry}
+              />
+              <Button variant="contained" component="label">
+                UPLOAD WORKING WITH VULNERABLE PEOPLE DOCUMENT
+                <input
+                  type="file"
+                  id="wwvpFileInput"
+                  hidden
+                  accept="application/pdf"
+                  onChange={handleWwvpFileChange}
+                />
+              </Button>
+              <Button
+                disabled={!wwvpFile}
+                variant="outlined"
+                onClick={handleOpenWwvpPDF}
+              >
+                VIEW
+              </Button>
+            </>
+          ) : (
+            <>
+              <Typography variant="h6">Name: {formData.wwvpName}</Typography>
+              <Typography variant="h6">
+                Registration Number: {formData.wwvpRegNumber}
+              </Typography>
+              <Typography variant="h6">
+                Card Number: {formData.wwvpCardNumber}
+              </Typography>
+              <Typography variant="h6">
+                Expiry: {formData.wwvpExpiry}
+              </Typography>
+              <Typography variant="h6">
+                File: {formData.wwvpFile}
+              </Typography>
+            </>
+          )}
         </Stack>
       </AccordionDetails>
       <Dialog

@@ -25,9 +25,10 @@ const daysOfWeek = [
   "Sunday",
 ];
 
-const AvailabilitySelector = ({ onAvailabilityChange }) => {
+const AvailabilitySelector = ({ onAvailabilityChange, isEdit }) => {
   const [availability, setAvailability] = useState({});
 
+  console.log("trigger availability change ->");
   const updateAvailability = (newAvailability) => {
     setAvailability(newAvailability);
     onAvailabilityChange(newAvailability);
@@ -116,13 +117,18 @@ const AvailabilitySelector = ({ onAvailabilityChange }) => {
                     </div>
                   ))}
                 </TableCell>
-                <TableCell sx={{ verticalAlign: "top" }}>
-                  <IconButton sx={{ width: 55, height: 55 }} color="secondary">
-                    <AddCircleIcon
-                      sx={{ width: 30, height: 30 }}
-                      onClick={() => addTimeSlot(day)}
-                    />
-                  </IconButton>
+                <TableCell sx={{ verticalAlign: "top", width: 55, height: 55 }}>
+                  {isEdit ?? (
+                    <IconButton
+                      sx={{ width: 55, height: 55 }}
+                      color="secondary"
+                    >
+                      <AddCircleIcon
+                        sx={{ width: 30, height: 30 }}
+                        onClick={() => addTimeSlot(day)}
+                      />
+                    </IconButton>
+                  )}
                 </TableCell>
               </TableRow>
             ))}
