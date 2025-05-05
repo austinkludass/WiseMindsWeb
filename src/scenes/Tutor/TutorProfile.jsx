@@ -17,6 +17,7 @@ import TutorWWVPInfo from "../../components/Tutor/TutorWWVPInfo";
 import TutorFirstAidInfo from "../../components/Tutor/TutorFirstAidInfo";
 import TutorPoliceCheckInfo from "../../components/Tutor/TutorPoliceCheckInfo";
 import AvailabilitySelector from "../../components/Tutor/AvailabilitySelector";
+import UnavailabilitySelector from "../../components/Tutor/UnavailabilitySelector";
 
 const TutorProfile = () => {
   const { tutorId } = useParams();
@@ -25,6 +26,7 @@ const TutorProfile = () => {
   const [tutorColor, setTutorColor] = useColor("hex", "#000000");
   const [profilePic, setProfilePic] = useState(null);
   const [availability, setAvailability] = useState({});
+  const [unavailability, setUnavailability] = useState({});
 
   useEffect(() => {
     // Get logged-in user from localStorage
@@ -37,10 +39,13 @@ const TutorProfile = () => {
       const tutorSnap = await getDoc(tutorRef);
 
       if (tutorSnap.exists()) {
-        setTutor(tutorSnap.data());
-        setTutorColor({ hex: tutorSnap.data().tutorColor });
-        setProfilePic(tutorSnap.data().avatar);
-        setAvailability(tutorSnap.data().availability);
+        const fetchedData = tutorSnap.data();
+        setTutor(fetchedData);
+        setTutorColor({ hex: fetchedData.tutorColor });
+        setProfilePic(fetchedData.avatar);
+        setAvailability(fetchedData.availability);
+        setUnavailability(fetchedData.unavailability);
+        console.log(fetchedData.unavailability);
       }
     };
 
@@ -147,7 +152,14 @@ const TutorProfile = () => {
       <Paper sx={{ p: 3, maxWidth: 1000, minWidth: 600, m: 4}}>
         <Stack spacing={2}>
           <Typography variant="h4">Availability</Typography>
-          <AvailabilitySelector onAvailabilityChange={availability} isEdit={false} />
+          <AvailabilitySelector onAvailabilityChange={() => {}} initialAvailability={availability} isEdit={false} />
+        </Stack>
+      </Paper>
+
+      <Paper sx={{ p: 3, maxWidth: 1000, minWidth: 600, m: 4 }}>
+        <Stack spacing={2}>
+          <Typography variant="h4">Unavailability</Typography>
+          <UnavailabilitySelector isEdit={false} unavailability={unavailability} />
         </Stack>
       </Paper>
     </LocalizationProvider>

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Table,
   TableBody,
@@ -25,13 +25,43 @@ const daysOfWeek = [
   "Sunday",
 ];
 
-const AvailabilitySelector = ({ onAvailabilityChange, isEdit }) => {
+function timeStringToDate(timeStr) {
+  const [hours, minutes] = timeStr.split(":").map(Number);
+  const date = new Date();
+  date.setHours(hours, minutes, 0, 0);
+  return date;
+}
+
+const AvailabilitySelector = ({
+  initialAvailability,
+  onAvailabilityChange,
+  isEdit,
+}) => {
   const [availability, setAvailability] = useState({});
 
-  console.log("trigger availability change ->");
+  useEffect(() => {
+    if (!initialAvailability) return;
+
+    const parsed = {};
+    for (const day in initialAvailability) {
+      parsed[day] = initialAvailability[day].map((slot) => ({
+        start:
+          typeof slot.start === "string"
+            ? timeStringToDate(slot.start)
+            : slot.start,
+        end:
+          typeof slot.start === "string"
+            ? timeStringToDate(slot.end)
+            : slot.end,
+      }));
+    }
+
+    setAvailability(parsed);
+  }, [initialAvailability]);
+
   const updateAvailability = (newAvailability) => {
     setAvailability(newAvailability);
-    onAvailabilityChange(newAvailability);
+    if (onAvailabilityChange) onAvailabilityChange(newAvailability);
   };
 
   // Add a new time slot for a day
@@ -94,6 +124,7 @@ const AvailabilitySelector = ({ onAvailabilityChange, isEdit }) => {
                     >
                       <DesktopTimePicker
                         label="Start Time"
+                        readOnly={!isEdit}
                         value={slot.start}
                         onChange={(newValue) =>
                           handleTimeChange(day, index, "start", newValue)
@@ -102,23 +133,26 @@ const AvailabilitySelector = ({ onAvailabilityChange, isEdit }) => {
                       />
                       <DesktopTimePicker
                         label="End Time"
+                        readOnly={!isEdit}
                         value={slot.end}
                         onChange={(newValue) =>
                           handleTimeChange(day, index, "end", newValue)
                         }
                         renderInput={(params) => <input {...params} />}
                       />
-                      <IconButton
-                        color="error"
-                        onClick={() => removeTimeSlot(day, index)}
-                      >
-                        <DeleteIcon />
-                      </IconButton>
+                      {isEdit && (
+                        <IconButton
+                          color="error"
+                          onClick={() => removeTimeSlot(day, index)}
+                        >
+                          <DeleteIcon />
+                        </IconButton>
+                      )}
                     </div>
                   ))}
                 </TableCell>
                 <TableCell sx={{ verticalAlign: "top", width: 55, height: 55 }}>
-                  {isEdit ?? (
+                  {isEdit && (
                     <IconButton
                       sx={{ width: 55, height: 55 }}
                       color="secondary"

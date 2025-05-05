@@ -374,6 +374,7 @@ const NewTutor = () => {
           <Typography variant="h4">Availability</Typography>
           <AvailabilitySelector
             onAvailabilityChange={handleAvailabilityChange}
+            isEdit={true}
           />
         </Stack>
       </Paper>
@@ -384,6 +385,7 @@ const NewTutor = () => {
           <UnavailabilitySelector
             unavailability={specificUnavailability}
             onChange={setSpecificUnavailability}
+            isEdit={true}
           />
         </Stack>
       </Paper>

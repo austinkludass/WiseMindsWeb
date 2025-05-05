@@ -21,7 +21,7 @@ const formatDate = (date) => {
   }).format(new Date(date));
 };
 
-const UnavailabilitySelector = ({ unavailability, onChange }) => {
+const UnavailabilitySelector = ({ unavailability, onChange, isEdit }) => {
   const [selectedDate, setSelectedDate] = useState(null);
   const [reason, setReason] = useState("");
 
@@ -45,48 +45,54 @@ const UnavailabilitySelector = ({ unavailability, onChange }) => {
 
   return (
     <Box>
-      <Box sx={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
-        <DesktopDatePicker
-          label="Select Date"
-          value={selectedDate}
-          onChange={(newDate) => setSelectedDate(newDate)}
-          renderInput={(params) => <TextField {...params} />}
-        />
-        <TextField
-          label="Reason"
-          value={reason}
-          onChange={(e) => setReason(e.target.value)}
-        />
-        <Button
-          variant="contained"
-          onClick={handleAdd}
-          disabled={!selectedDate || !reason}
-        >
-          Add
-        </Button>
-      </Box>
+      {isEdit && (
+        <Box sx={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
+          <DesktopDatePicker
+            label="Select Date"
+            value={selectedDate}
+            onChange={(newDate) => setSelectedDate(newDate)}
+            renderInput={(params) => <TextField {...params} />}
+          />
+          <TextField
+            label="Reason"
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+          />
+          <Button
+            variant="contained"
+            onClick={handleAdd}
+            disabled={!selectedDate || !reason}
+          >
+            Add
+          </Button>
+        </Box>
+      )}
 
       <List sx={{ overflow: "auto", maxHeight: "500px" }}>
-        {unavailability.map((entry, index) => (
-          <ListItem
-            key={index}
-            secondaryAction={
-              <IconButton
-                color="error"
-                edge="end"
-                onClick={() => handleRemove(index)}
-              >
-                <DeleteIcon />
-              </IconButton>
-            }
-          >
-            <ListItemText>
-              <Typography>
-                {formatDate(entry.date)}: {entry.reason}
-              </Typography>
-            </ListItemText>
-          </ListItem>
-        ))}
+        {[...unavailability]
+          .sort((a, b) => dayjs(a.date).unix() - dayjs(b.date).unix())
+          .map((entry, index) => (
+            <ListItem
+              key={index}
+              secondaryAction={
+                isEdit && (
+                  <IconButton
+                    color="error"
+                    edge="end"
+                    onClick={() => handleRemove(index)}
+                  >
+                    <DeleteIcon />
+                  </IconButton>
+                )
+              }
+            >
+              <ListItemText>
+                <Typography>
+                  {formatDate(entry.date)}: {entry.reason}
+                </Typography>
+              </ListItemText>
+            </ListItem>
+          ))}
       </List>
     </Box>
   );
