@@ -12,8 +12,10 @@ import {
   DialogTitle,
   FormControlLabel,
   Switch,
+  useTheme,
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import { tokens } from "../../theme";
 
 const TutorPoliceCheckInfo = ({
   formData,
@@ -22,6 +24,9 @@ const TutorPoliceCheckInfo = ({
   setPoliceCheckFile,
   isEdit,
 }) => {
+  const theme = useTheme();
+  const colors = tokens(theme.palette.mode);
+
   const [policeCheckUrl, setPoliceCheckUrl] = useState(null);
   const [openPoliceCheck, setOpenPoliceCheck] = useState(false);
 
@@ -112,17 +117,77 @@ const TutorPoliceCheckInfo = ({
             </>
           ) : (
             <>
-              <Typography variant="h6">Name: {formData.pcName}</Typography>
-              <Typography variant="h6">
-                National: {formData.pcIsNational}
-              </Typography>
-              <Typography variant="h6">
-                Address: {formData.pcAddress}
-              </Typography>
-              <Typography variant="h6">Result: {formData.pcResult}</Typography>
-              <Typography variant="h6">
-                Reference: {formData.pcAPPRef}
-              </Typography>
+              <div style={{ display: "flex", gap: "10px" }}>
+                <Typography
+                  variant="h5"
+                  color={colors.orangeAccent[400]}
+                  fontWeight="bold"
+                  sx={{ mb: "5px" }}
+                >
+                  Name
+                </Typography>
+                <Typography variant="h6" color={colors.grey[100]}>
+                  {formData.pcName}
+                </Typography>
+              </div>
+              <div style={{ display: "flex", gap: "10px" }}>
+                <Typography
+                  variant="h5"
+                  color={colors.orangeAccent[400]}
+                  fontWeight="bold"
+                  sx={{ mb: "5px" }}
+                >
+                  National
+                </Typography>
+                <Typography variant="h6" color={colors.grey[100]}>
+                  {formData.pcIsNational ? "Yes" : "No"}
+                </Typography>
+              </div>
+              <div style={{ display: "flex", gap: "10px" }}>
+                <Typography
+                  variant="h5"
+                  color={colors.orangeAccent[400]}
+                  fontWeight="bold"
+                  sx={{ mb: "5px" }}
+                >
+                  Address
+                </Typography>
+                <Typography variant="h6" color={colors.grey[100]}>
+                  {formData.pcAddress}
+                </Typography>
+              </div>
+              <div style={{ display: "flex", gap: "10px" }}>
+                <Typography
+                  variant="h5"
+                  color={colors.orangeAccent[400]}
+                  fontWeight="bold"
+                  sx={{ mb: "5px" }}
+                >
+                  Result
+                </Typography>
+                <Typography variant="h6" color={colors.grey[100]}>
+                  {formData.pcResult}
+                </Typography>
+              </div>
+              <div style={{ display: "flex", gap: "10px" }}>
+                <Typography
+                  variant="h5"
+                  color={colors.orangeAccent[400]}
+                  fontWeight="bold"
+                  sx={{ mb: "5px" }}
+                >
+                  Reference
+                </Typography>
+                <Typography variant="h6" color={colors.grey[100]}>
+                  {formData.pcAPPRef}
+                </Typography>
+              </div>
+              <iframe
+                src={formData.policeCheckFilePath}
+                width="100%"
+                height="500px"
+                title="Police Check"
+              />
             </>
           )}
         </Stack>

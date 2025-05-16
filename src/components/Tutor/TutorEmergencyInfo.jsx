@@ -10,10 +10,15 @@ import {
   InputLabel,
   FormControl,
   TextField,
+  useTheme,
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import { tokens } from "../../theme";
 
 const TutorEmergencyInfo = ({ formData, setFormData, isEdit }) => {
+  const theme = useTheme();
+  const colors = tokens(theme.palette.mode);
+
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
@@ -69,18 +74,58 @@ const TutorEmergencyInfo = ({ formData, setFormData, isEdit }) => {
             </>
           ) : (
             <>
-              <Typography variant="h6">
-                Full Name: {formData.emergencyName}
-              </Typography>
-              <Typography variant="h6">
-                Relationship: {formData.emergencyRelationship}
-              </Typography>
-              <Typography variant="h6">
-                Phone Number: {formData.emergencyPhone}
-              </Typography>
-              <Typography variant="h6">
-                Email: {formData.emergencyEmail}
-              </Typography>
+              <div style={{ display: "flex", gap: "10px" }}>
+                <Typography
+                  variant="h5"
+                  color={colors.orangeAccent[400]}
+                  fontWeight="bold"
+                  sx={{ mb: "5px" }}
+                >
+                  Full Name
+                </Typography>
+                <Typography variant="h6" color={colors.grey[100]}>
+                  {formData.emergencyName}
+                </Typography>
+              </div>
+              <div style={{ display: "flex", gap: "10px" }}>
+                <Typography
+                  variant="h5"
+                  color={colors.orangeAccent[400]}
+                  fontWeight="bold"
+                  sx={{ mb: "5px" }}
+                >
+                  Relationship
+                </Typography>
+                <Typography variant="h6" color={colors.grey[100]}>
+                  {formData.emergencyRelationship[0].toUpperCase() + formData.emergencyRelationship.slice(1)}
+                </Typography>
+              </div>
+              <div style={{ display: "flex", gap: "10px" }}>
+                <Typography
+                  variant="h5"
+                  color={colors.orangeAccent[400]}
+                  fontWeight="bold"
+                  sx={{ mb: "5px" }}
+                >
+                  Phone Number
+                </Typography>
+                <Typography variant="h6" color={colors.grey[100]}>
+                  {formData.emergencyPhone}
+                </Typography>
+              </div>
+              <div style={{ display: "flex", gap: "10px" }}>
+                <Typography
+                  variant="h5"
+                  color={colors.orangeAccent[400]}
+                  fontWeight="bold"
+                  sx={{ mb: "5px" }}
+                >
+                  Email
+                </Typography>
+                <Typography variant="h6" color={colors.grey[100]}>
+                  {formData.emergencyEmail}
+                </Typography>
+              </div>
             </>
           )}
         </Stack>

@@ -1,11 +1,20 @@
 import { React, useState } from "react";
-import { Avatar, Stack, Box, IconButton, TextField, Typography } from "@mui/material";
+import {
+  Avatar,
+  Stack,
+  Box,
+  IconButton,
+  TextField,
+  Typography,
+  useTheme,
+} from "@mui/material";
 import Grid from "@mui/material/Grid2";
 import EditIcon from "@mui/icons-material/Edit";
 import { Saturation, Hue } from "react-color-palette";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import dayjs from "dayjs";
 import "react-color-palette/css";
+import { tokens } from "../../theme";
 
 const TutorProfileInfo = ({
   formData,
@@ -18,6 +27,9 @@ const TutorProfileInfo = ({
   setTouched,
   isEdit,
 }) => {
+  const theme = useTheme();
+  const colors = tokens(theme.palette.mode);
+
   const [profilePicUrl, setProfilePicUrl] = useState(null);
   const [hover, setHover] = useState(false);
 
@@ -146,24 +158,73 @@ const TutorProfileInfo = ({
             </>
           ) : (
             <>
-              <Typography variant="h6">
-                First Name: {formData.firstName}
-              </Typography>
-              <Typography variant="h6">
-                Middle Name: {formData.middleName}
-              </Typography>
-              <Typography variant="h6">
-                Last Name: {formData.lastName}
-              </Typography>
-              <Typography variant="h6">
-                Date of Birth:{" "}
-                {formData.dateOfBirth
-                  ? dayjs(formData.dateOfBirth).format("MMMM D, YYYY")
-                  : "N/A"}
-              </Typography>
-              <Typography variant="h6">
-                Wise Minds Email: {formData.wiseMindsEmail}
-              </Typography>
+              <div style={{ display: "flex", gap: "10px" }}>
+                <Typography
+                  variant="h5"
+                  color={colors.orangeAccent[400]}
+                  fontWeight="bold"
+                  sx={{ mb: "5px" }}
+                >
+                  First Name
+                </Typography>
+                <Typography variant="h6" color={colors.grey[100]}>
+                  {formData.firstName}
+                </Typography>
+              </div>
+              <div style={{ display: "flex", gap: "10px" }}>
+                <Typography
+                  variant="h5"
+                  color={colors.orangeAccent[400]}
+                  fontWeight="bold"
+                  sx={{ mb: "5px" }}
+                >
+                  Middle Name
+                </Typography>
+                <Typography variant="h6" color={colors.grey[100]}>
+                  {formData.middleName}
+                </Typography>
+              </div>
+              <div style={{ display: "flex", gap: "10px" }}>
+                <Typography
+                  variant="h5"
+                  color={colors.orangeAccent[400]}
+                  fontWeight="bold"
+                  sx={{ mb: "5px" }}
+                >
+                  Last Name
+                </Typography>
+                <Typography variant="h6" color={colors.grey[100]}>
+                  {formData.lastName}
+                </Typography>
+              </div>
+              <div style={{ display: "flex", gap: "10px" }}>
+                <Typography
+                  variant="h5"
+                  color={colors.orangeAccent[400]}
+                  fontWeight="bold"
+                  sx={{ mb: "5px" }}
+                >
+                  Date of Birth
+                </Typography>
+                <Typography variant="h6" color={colors.grey[100]}>
+                  {formData.dateOfBirth
+                    ? dayjs(formData.dateOfBirth).format("MMMM D, YYYY")
+                    : "N/A"}
+                </Typography>
+              </div>
+              <div style={{ display: "flex", gap: "10px" }}>
+                <Typography
+                  variant="h5"
+                  color={colors.orangeAccent[400]}
+                  fontWeight="bold"
+                  sx={{ mb: "5px" }}
+                >
+                  Wise Minds Email
+                </Typography>
+                <Typography variant="h6" color={colors.grey[100]}>
+                  {formData.wiseMindsEmail}
+                </Typography>
+              </div>
             </>
           )}
         </Stack>

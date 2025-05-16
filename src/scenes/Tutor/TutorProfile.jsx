@@ -45,7 +45,6 @@ const TutorProfile = () => {
         setProfilePic(fetchedData.avatar);
         setAvailability(fetchedData.availability);
         setUnavailability(fetchedData.unavailability);
-        console.log(fetchedData.unavailability);
       }
     };
 
@@ -62,7 +61,7 @@ const TutorProfile = () => {
       <Box display="flex" m="20px">
         <Header
           title={`${tutor.firstName} ${tutor.lastName}`}
-          subtitle={tutor.role}
+          subtitle={tutor.role[0].toUpperCase() + tutor.role.slice(1)}
         />
       </Box>
 
@@ -122,8 +121,8 @@ const TutorProfile = () => {
               wwvpRegNumber: tutor?.wwvpRegNumber || "",
               wwvpCardNumber: tutor?.wwvpCardNumber || "",
               wwvpExpiry: tutor?.wwvpExpiry || "",
+              wwvpFilePath: tutor?.wwvpFilePath || "",
             }}
-            wwvpFile={tutor?.wwvpFilePath || null}
           />
           <TutorFirstAidInfo
             formData={{
@@ -133,8 +132,8 @@ const TutorProfile = () => {
               faCourseType: tutor?.faCourseType || "",
               faCourseCode: tutor?.faCourseCode || "",
               faExpiry: tutor?.faExpiry || "",
+              firstAidFilePath: tutor?.firstAidFilePath || "",
             }}
-            firstAidFile={tutor?.firstAidFilePath || null}
           />
           <TutorPoliceCheckInfo
             formData={{
@@ -143,8 +142,8 @@ const TutorProfile = () => {
               pcAddress: tutor?.pcAddress || "",
               pcResult: tutor?.pcResult || "",
               pcAPPRef: tutor?.pcAPPRef || "",
+              policeCheckFilePath: tutor?.policeCheckFilePath || "",
             }}
-            policeCheckFile={tutor?.policeCheckFilePath || null}
           />
         </Stack>
       </Paper>

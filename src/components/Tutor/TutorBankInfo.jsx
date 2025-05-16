@@ -6,10 +6,15 @@ import {
   AccordionSummary,
   AccordionDetails,
   TextField,
+  useTheme,
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import { tokens } from "../../theme";
 
 const TutorBankInfo = ({ formData, setFormData, isEdit }) => {
+  const theme = useTheme();
+  const colors = tokens(theme.palette.mode);
+
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
@@ -62,22 +67,84 @@ const TutorBankInfo = ({ formData, setFormData, isEdit }) => {
             </>
           ) : (
             <>
-              <Typography variant="h6">
-                Bank Name : {formData.bankName}
-              </Typography>
-              <Typography variant="h6">
-                Account Name: {formData.accountName}
-              </Typography>
-              <Typography variant="h6">BSB: {formData.bsb}</Typography>
-              <Typography variant="h6">
-                accountNumber: {formData.accountNumber}
-              </Typography>
-              <Typography variant="h6">
-                Tax File Number: {formData.tfn}
-              </Typography>
-              <Typography variant="h6">
-                Super Company: {formData.superCompany}
-              </Typography>
+              <div style={{ display: "flex", gap: "10px" }}>
+                <Typography
+                  variant="h5"
+                  color={colors.orangeAccent[400]}
+                  fontWeight="bold"
+                  sx={{ mb: "5px" }}
+                >
+                  Bank Name
+                </Typography>
+                <Typography variant="h6" color={colors.grey[100]}>
+                  {formData.bankName}
+                </Typography>
+              </div>
+              <div style={{ display: "flex", gap: "10px" }}>
+                <Typography
+                  variant="h5"
+                  color={colors.orangeAccent[400]}
+                  fontWeight="bold"
+                  sx={{ mb: "5px" }}
+                >
+                  Account Name
+                </Typography>
+                <Typography variant="h6" color={colors.grey[100]}>
+                  {formData.accountName}
+                </Typography>
+              </div>
+              <div style={{ display: "flex", gap: "10px" }}>
+                <Typography
+                  variant="h5"
+                  color={colors.orangeAccent[400]}
+                  fontWeight="bold"
+                  sx={{ mb: "5px" }}
+                >
+                  BSB
+                </Typography>
+                <Typography variant="h6" color={colors.grey[100]}>
+                  {formData.bsb}
+                </Typography>
+              </div>
+              <div style={{ display: "flex", gap: "10px" }}>
+                <Typography
+                  variant="h5"
+                  color={colors.orangeAccent[400]}
+                  fontWeight="bold"
+                  sx={{ mb: "5px" }}
+                >
+                  Account Number
+                </Typography>
+                <Typography variant="h6" color={colors.grey[100]}>
+                  {formData.accountNumber}
+                </Typography>
+              </div>
+              <div style={{ display: "flex", gap: "10px" }}>
+                <Typography
+                  variant="h5"
+                  color={colors.orangeAccent[400]}
+                  fontWeight="bold"
+                  sx={{ mb: "5px" }}
+                >
+                  Tax File Number
+                </Typography>
+                <Typography variant="h6" color={colors.grey[100]}>
+                  {formData.tfn}
+                </Typography>
+              </div>
+              <div style={{ display: "flex", gap: "10px" }}>
+                <Typography
+                  variant="h5"
+                  color={colors.orangeAccent[400]}
+                  fontWeight="bold"
+                  sx={{ mb: "5px" }}
+                >
+                  Super Company
+                </Typography>
+                <Typography variant="h6" color={colors.grey[100]}>
+                  {formData.superCompany}
+                </Typography>
+              </div>
             </>
           )}
         </Stack>

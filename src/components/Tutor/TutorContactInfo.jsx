@@ -6,10 +6,15 @@ import {
   AccordionSummary,
   AccordionDetails,
   TextField,
+  useTheme,
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import { tokens } from "../../theme";
 
 const TutorContactInfo = ({ formData, setFormData, isEdit }) => {
+  const theme = useTheme();
+  const colors = tokens(theme.palette.mode);
+
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
@@ -44,15 +49,45 @@ const TutorContactInfo = ({ formData, setFormData, isEdit }) => {
             </>
           ) : (
             <>
-              <Typography variant="h6">
-                Personal Email: {formData.personalEmail}
-              </Typography>
-              <Typography variant="h6">
-                Phone Number: {formData.phone}
-              </Typography>
-              <Typography variant="h6">
-                Address: {formData.address}
-              </Typography>
+              <div style={{ display: "flex", gap: "10px" }}>
+                <Typography
+                  variant="h5"
+                  color={colors.orangeAccent[400]}
+                  fontWeight="bold"
+                  sx={{ mb: "5px" }}
+                >
+                  Personal Email
+                </Typography>
+                <Typography variant="h6" color={colors.grey[100]}>
+                  {formData.personalEmail}
+                </Typography>
+              </div>
+              <div style={{ display: "flex", gap: "10px" }}>
+                <Typography
+                  variant="h5"
+                  color={colors.orangeAccent[400]}
+                  fontWeight="bold"
+                  sx={{ mb: "5px" }}
+                >
+                  Phone Number
+                </Typography>
+                <Typography variant="h6" color={colors.grey[100]}>
+                  {formData.phone}
+                </Typography>
+              </div>
+              <div style={{ display: "flex", gap: "10px" }}>
+                <Typography
+                  variant="h5"
+                  color={colors.orangeAccent[400]}
+                  fontWeight="bold"
+                  sx={{ mb: "5px" }}
+                >
+                  Address
+                </Typography>
+                <Typography variant="h6" color={colors.grey[100]}>
+                  {formData.address}
+                </Typography>
+              </div>
             </>
           )}
         </Stack>

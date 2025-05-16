@@ -10,9 +10,12 @@ import {
   Dialog,
   DialogContent,
   DialogTitle,
+  useTheme,
 } from "@mui/material";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import { tokens } from "../../theme";
+import dayjs from "dayjs";
 
 const TutorWWVPInfo = ({
   formData,
@@ -21,6 +24,9 @@ const TutorWWVPInfo = ({
   setWwvpFile,
   isEdit,
 }) => {
+  const theme = useTheme();
+  const colors = tokens(theme.palette.mode);
+
   const [openWwvp, setOpenWwvp] = useState(false);
   const [wwvpUrl, setWwvpUrl] = useState(null);
 
@@ -101,19 +107,66 @@ const TutorWWVPInfo = ({
             </>
           ) : (
             <>
-              <Typography variant="h6">Name: {formData.wwvpName}</Typography>
-              <Typography variant="h6">
-                Registration Number: {formData.wwvpRegNumber}
-              </Typography>
-              <Typography variant="h6">
-                Card Number: {formData.wwvpCardNumber}
-              </Typography>
-              <Typography variant="h6">
-                Expiry: {formData.wwvpExpiry}
-              </Typography>
-              <Typography variant="h6">
-                File: {formData.wwvpFile}
-              </Typography>
+              <div style={{ display: "flex", gap: "10px" }}>
+                <Typography
+                  variant="h5"
+                  color={colors.orangeAccent[400]}
+                  fontWeight="bold"
+                  sx={{ mb: "5px" }}
+                >
+                  Name
+                </Typography>
+                <Typography variant="h6" color={colors.grey[100]}>
+                  {formData.wwvpName}
+                </Typography>
+              </div>
+              <div style={{ display: "flex", gap: "10px" }}>
+                <Typography
+                  variant="h5"
+                  color={colors.orangeAccent[400]}
+                  fontWeight="bold"
+                  sx={{ mb: "5px" }}
+                >
+                  Registration Number
+                </Typography>
+                <Typography variant="h6" color={colors.grey[100]}>
+                  {formData.wwvpRegNumber}
+                </Typography>
+              </div>
+              <div style={{ display: "flex", gap: "10px" }}>
+                <Typography
+                  variant="h5"
+                  color={colors.orangeAccent[400]}
+                  fontWeight="bold"
+                  sx={{ mb: "5px" }}
+                >
+                  Card Number
+                </Typography>
+                <Typography variant="h6" color={colors.grey[100]}>
+                  {formData.wwvpCardNumber}
+                </Typography>
+              </div>
+              <div style={{ display: "flex", gap: "10px" }}>
+                <Typography
+                  variant="h5"
+                  color={colors.orangeAccent[400]}
+                  fontWeight="bold"
+                  sx={{ mb: "5px" }}
+                >
+                  Expiry
+                </Typography>
+                <Typography variant="h6" color={colors.grey[100]}>
+                  {formData.wwvpExpiry
+                    ? dayjs(formData.wwvpExpiry).format("MMMM D, YYYY")
+                    : "N/A"}
+                </Typography>
+              </div>
+              <iframe
+                src={formData.wwvpFilePath}
+                width="100%"
+                height="500px"
+                title="Working With Vulnerable People"
+              />
             </>
           )}
         </Stack>

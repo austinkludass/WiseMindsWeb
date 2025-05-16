@@ -10,9 +10,12 @@ import {
   Dialog,
   DialogContent,
   DialogTitle,
+  useTheme,
 } from "@mui/material";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import { tokens } from "../../theme";
+import dayjs from "dayjs";
 
 const TutorFirstAidInfo = ({
   formData,
@@ -21,6 +24,9 @@ const TutorFirstAidInfo = ({
   setFirstAidFile,
   isEdit,
 }) => {
+  const theme = useTheme();
+  const colors = tokens(theme.palette.mode);
+
   const [firstAidUrl, setFirstAidUrl] = useState(null);
   const [openFirstAid, setOpenFirstAid] = useState(false);
 
@@ -112,20 +118,94 @@ const TutorFirstAidInfo = ({
             </>
           ) : (
             <>
-              <Typography variant="h6">
-                Course Date: {formData.faCourseDate}
-              </Typography>
-              <Typography variant="h6">
-                Provider: {formData.faProvider}
-              </Typography>
-              <Typography variant="h6">Number: {formData.faNumber}</Typography>
-              <Typography variant="h6">
-                Course Type: {formData.faCourseType}
-              </Typography>
-              <Typography variant="h6">
-                Course Code: {formData.faCourseCode}
-              </Typography>
-              <Typography variant="h6">Expiry: {formData.faExpiry}</Typography>
+              <div style={{ display: "flex", gap: "10px" }}>
+                <Typography
+                  variant="h5"
+                  color={colors.orangeAccent[400]}
+                  fontWeight="bold"
+                  sx={{ mb: "5px" }}
+                >
+                  Course Date
+                </Typography>
+                <Typography variant="h6" color={colors.grey[100]}>
+                  {formData.faCourseDate
+                    ? dayjs(formData.faCourseDate).format("MMMM D, YYYY")
+                    : "N/A"}
+                </Typography>
+              </div>
+              <div style={{ display: "flex", gap: "10px" }}>
+                <Typography
+                  variant="h5"
+                  color={colors.orangeAccent[400]}
+                  fontWeight="bold"
+                  sx={{ mb: "5px" }}
+                >
+                  Provider
+                </Typography>
+                <Typography variant="h6" color={colors.grey[100]}>
+                  {formData.faProvider}
+                </Typography>
+              </div>
+              <div style={{ display: "flex", gap: "10px" }}>
+                <Typography
+                  variant="h5"
+                  color={colors.orangeAccent[400]}
+                  fontWeight="bold"
+                  sx={{ mb: "5px" }}
+                >
+                  Number
+                </Typography>
+                <Typography variant="h6" color={colors.grey[100]}>
+                  {formData.faNumber}
+                </Typography>
+              </div>
+              <div style={{ display: "flex", gap: "10px" }}>
+                <Typography
+                  variant="h5"
+                  color={colors.orangeAccent[400]}
+                  fontWeight="bold"
+                  sx={{ mb: "5px" }}
+                >
+                  Course Type
+                </Typography>
+                <Typography variant="h6" color={colors.grey[100]}>
+                  {formData.faCourseType}
+                </Typography>
+              </div>
+              <div style={{ display: "flex", gap: "10px" }}>
+                <Typography
+                  variant="h5"
+                  color={colors.orangeAccent[400]}
+                  fontWeight="bold"
+                  sx={{ mb: "5px" }}
+                >
+                  Course Code
+                </Typography>
+                <Typography variant="h6" color={colors.grey[100]}>
+                  {formData.faCourseCode}
+                </Typography>
+              </div>
+              <div style={{ display: "flex", gap: "10px" }}>
+                <Typography
+                  variant="h5"
+                  color={colors.orangeAccent[400]}
+                  fontWeight="bold"
+                  sx={{ mb: "5px" }}
+                >
+                  Expiry
+                </Typography>
+                <Typography variant="h6" color={colors.grey[100]}>
+                  {formData.faExpiry
+                    ? dayjs(formData.faExpiry).format("MMMM D, YYYY")
+                    : "N/A"}
+                </Typography>
+              </div>
+              <iframe
+                src={formData.firstAidFilePath}
+                width="100%"
+                height="500px"
+                title="First Aid"
+              />
             </>
           )}
         </Stack>

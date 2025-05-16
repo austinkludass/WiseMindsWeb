@@ -12,10 +12,15 @@ import {
   Box,
   Slider,
   TextField,
+  useTheme,
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import { tokens } from "../../theme";
 
 const TutorPersonalInfo = ({ formData, setFormData, isEdit }) => {
+  const theme = useTheme();
+  const colors = tokens(theme.palette.mode);
+
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
@@ -99,12 +104,84 @@ const TutorPersonalInfo = ({ formData, setFormData, isEdit }) => {
             </>
           ) : (
             <>
-              <Typography variant="h6">Career: {formData.career}</Typography>
-              <Typography variant="h6">Degree: {formData.degree}</Typography>
-              <Typography variant="h6">Position: {formData.position}</Typography>
-              <Typography variant="h6">Home Location: {formData.homeLocation}</Typography>
-              <Typography variant="h6">Role: {formData.role}</Typography>
-              <Typography variant="h6">Hours: {formData.hours[0]} - {formData.hours[1]}</Typography>
+              <div style={{ display: "flex", gap: "10px" }}>
+                <Typography
+                  variant="h5"
+                  color={colors.orangeAccent[400]}
+                  fontWeight="bold"
+                  sx={{ mb: "5px" }}
+                >
+                  Career
+                </Typography>
+                <Typography variant="h6" color={colors.grey[100]}>
+                  {formData.career}
+                </Typography>
+              </div>
+              <div style={{ display: "flex", gap: "10px" }}>
+                <Typography
+                  variant="h5"
+                  color={colors.orangeAccent[400]}
+                  fontWeight="bold"
+                  sx={{ mb: "5px" }}
+                >
+                  Degree
+                </Typography>
+                <Typography variant="h6" color={colors.grey[100]}>
+                  {formData.degree}
+                </Typography>
+              </div>
+              <div style={{ display: "flex", gap: "10px" }}>
+                <Typography
+                  variant="h5"
+                  color={colors.orangeAccent[400]}
+                  fontWeight="bold"
+                  sx={{ mb: "5px" }}
+                >
+                  Position
+                </Typography>
+                <Typography variant="h6" color={colors.grey[100]}>
+                  {formData.position}
+                </Typography>
+              </div>
+              <div style={{ display: "flex", gap: "10px" }}>
+                <Typography
+                  variant="h5"
+                  color={colors.orangeAccent[400]}
+                  fontWeight="bold"
+                  sx={{ mb: "5px" }}
+                >
+                  Home Location
+                </Typography>
+                <Typography variant="h6" color={colors.grey[100]}>
+                  {formData.homeLocation}
+                </Typography>
+              </div>
+              <div style={{ display: "flex", gap: "10px" }}>
+                <Typography
+                  variant="h5"
+                  color={colors.orangeAccent[400]}
+                  fontWeight="bold"
+                  sx={{ mb: "5px" }}
+                >
+                  Role
+                </Typography>
+                <Typography variant="h6" color={colors.grey[100]}>
+                  {formData.role}
+                </Typography>
+              </div>
+              <div style={{ display: "flex", gap: "10px" }}>
+                <Typography
+                  variant="h5"
+                  color={colors.orangeAccent[400]}
+                  fontWeight="bold"
+                  sx={{ mb: "5px" }}
+                >
+                  Hours (Min - Max)
+                </Typography>
+                <Typography variant="h6" color={colors.grey[100]}>
+                {formData.hours[0]} - {formData.hours[1]}
+                </Typography>
+              </div>
             </>
           )}
         </Stack>

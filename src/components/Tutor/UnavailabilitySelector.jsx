@@ -8,9 +8,11 @@ import {
   IconButton,
   Box,
   Typography,
+  useTheme,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { DesktopDatePicker } from "@mui/x-date-pickers/DesktopDatePicker";
+import { tokens } from "../../theme";
 import dayjs from "dayjs";
 
 const formatDate = (date) => {
@@ -22,6 +24,9 @@ const formatDate = (date) => {
 };
 
 const UnavailabilitySelector = ({ unavailability, onChange, isEdit }) => {
+  const theme = useTheme();
+  const colors = tokens(theme.palette.mode);
+
   const [selectedDate, setSelectedDate] = useState(null);
   const [reason, setReason] = useState("");
 
@@ -87,9 +92,19 @@ const UnavailabilitySelector = ({ unavailability, onChange, isEdit }) => {
               }
             >
               <ListItemText>
-                <Typography>
-                  {formatDate(entry.date)}: {entry.reason}
-                </Typography>
+                <div style={{ display: "flex", gap: "10px" }}>
+                  <Typography
+                    variant="h5"
+                    color={colors.orangeAccent[400]}
+                    fontWeight="bold"
+                    sx={{ mb: "5px" }}
+                  >
+                    {formatDate(entry.date)}
+                  </Typography>
+                  <Typography variant="h6" color={colors.grey[100]}>
+                    {entry.reason}
+                  </Typography>
+                </div>
               </ListItemText>
             </ListItem>
           ))}
