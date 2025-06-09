@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { db } from "../../data/firebase";
 import { doc, getDoc } from "firebase/firestore";
-import { Typography, Box, Paper, Stack } from "@mui/material";
+import { Typography, Box, Paper, Stack, Button } from "@mui/material";
 import { LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import "dayjs/locale/en-gb";
@@ -56,6 +56,12 @@ const TutorProfile = () => {
   const isSelf = currentUser?.uid === tutorId;
   const isAdmin = currentUser?.role === "admin";
 
+  const handleEdit = () => {
+    // Navigate to edit page
+    // Or change components to edit mode ?
+    console.log("Test");
+  }
+
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="en-gb">
       <Box display="flex" m="20px">
@@ -65,6 +71,28 @@ const TutorProfile = () => {
         />
       </Box>
 
+      {(isSelf || isAdmin) && (
+        <div
+          style={{
+            maxWidth: 1000,
+            minWidth: 600,
+            display: "flex",
+            justifyContent: "flex-end",
+            margin: "0 60px 0 0"
+          }}
+        >
+          <Button
+            onClick={() => handleEdit()}
+            variant="contained"
+            sx={{
+              width: "10%",
+              fontSize: "1.1em",
+            }}
+          >
+            EDIT
+          </Button>
+        </div>
+      )}
       <Paper sx={{ p: 3, maxWidth: 1000, minWidth: 600, m: 4 }}>
         <TutorProfileInfo
           formData={{
@@ -148,17 +176,24 @@ const TutorProfile = () => {
         </Stack>
       </Paper>
 
-      <Paper sx={{ p: 3, maxWidth: 1000, minWidth: 600, m: 4}}>
+      <Paper sx={{ p: 3, maxWidth: 1000, minWidth: 600, m: 4 }}>
         <Stack spacing={2}>
           <Typography variant="h4">Availability</Typography>
-          <AvailabilitySelector onAvailabilityChange={() => {}} initialAvailability={availability} isEdit={false} />
+          <AvailabilitySelector
+            onAvailabilityChange={() => {}}
+            initialAvailability={availability}
+            isEdit={false}
+          />
         </Stack>
       </Paper>
 
       <Paper sx={{ p: 3, maxWidth: 1000, minWidth: 600, m: 4 }}>
         <Stack spacing={2}>
           <Typography variant="h4">Unavailability</Typography>
-          <UnavailabilitySelector isEdit={false} unavailability={unavailability} />
+          <UnavailabilitySelector
+            isEdit={false}
+            unavailability={unavailability}
+          />
         </Stack>
       </Paper>
     </LocalizationProvider>
