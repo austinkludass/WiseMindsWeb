@@ -29,82 +29,78 @@ const StudentFamilyInfo = ({
   };
 
   return (
-    <Grid container spacing={2} alignItems="center">
-      <Grid item size={8}>
-        <Stack spacing={2}>
-          {isEdit ? (
-            <>
-              <TextField
-                name="familyPhone"
-                value={formData.familyPhone}
-                onChange={handleChange}
-                onBlur={handleBlur}
-                required
-                label="Phone"
-                error={isInvalid("familyPhone")}
-              />
-              <TextField
-                name="familyEmail"
-                value={formData.familyEmail}
-                onChange={handleChange}
-                onBlur={handleBlur}
-                required
-                label="Email"
-                error={isInvalid("familyEmail")}
-              />
-              <TextField
-                name="familyAddress"
-                value={formData.familyAddress}
-                onChange={handleChange}
-                label="Address"
-              />
-            </>
-          ) : (
-            <>
-              <div style={{ display: "flex", gap: "10px" }}>
-                <Typography
-                  variant="h5"
-                  color={colors.orangeAccent[400]}
-                  fontWeight="bold"
-                  sx={{ mb: "5px" }}
-                >
-                  Phone
-                </Typography>
-                <Typography variant="h6" color={colors.grey[100]}>
-                  {formData.familyPhone}
-                </Typography>
-              </div>
-              <div style={{ display: "flex", gap: "10px" }}>
-                <Typography
-                  variant="h5"
-                  color={colors.orangeAccent[400]}
-                  fontWeight="bold"
-                  sx={{ mb: "5px" }}
-                >
-                  Email
-                </Typography>
-                <Typography variant="h6" color={colors.grey[100]}>
-                  {formData.familyEmail}
-                </Typography>
-              </div>
-              <div style={{ display: "flex", gap: "10px" }}>
-                <Typography
-                  variant="h5"
-                  color={colors.orangeAccent[400]}
-                  fontWeight="bold"
-                  sx={{ mb: "5px" }}
-                >
-                  Address
-                </Typography>
-                <Typography variant="h6" color={colors.grey[100]}>
-                  {formData.familyAddress}
-                </Typography>
-              </div>
-            </>
-          )}
-        </Stack>
-      </Grid>
-    </Grid>
+    <Stack spacing={2}>
+      {isEdit ? (
+        <>
+          <TextField
+            name="familyPhone"
+            value={formData.familyPhone}
+            onChange={handleChange}
+            onBlur={handleBlur}
+            required
+            label="Phone"
+            error={isInvalid("familyPhone")}
+          />
+          <TextField
+            name="familyEmail"
+            value={formData.familyEmail}
+            onChange={handleChange}
+            onBlur={handleBlur}
+            required
+            label="Email"
+            error={isInvalid("familyEmail")}
+          />
+          <TextField
+            name="familyAddress"
+            value={formData.familyAddress}
+            onChange={handleChange}
+            label="Address"
+          />
+        </>
+      ) : (
+        <>
+          <div style={{ display: "flex", gap: "10px" }}>
+            <Typography
+              variant="h5"
+              color={colors.orangeAccent[400]}
+              fontWeight="bold"
+              sx={{ mb: "5px" }}
+            >
+              Phone
+            </Typography>
+            <Typography variant="h6" color={colors.grey[100]}>
+              {formData.familyPhone}
+            </Typography>
+          </div>
+          <div style={{ display: "flex", gap: "10px" }}>
+            <Typography
+              variant="h5"
+              color={colors.orangeAccent[400]}
+              fontWeight="bold"
+              sx={{ mb: "5px" }}
+            >
+              Email
+            </Typography>
+            <Typography variant="h6" color={colors.grey[100]}>
+              {formData.familyEmail}
+            </Typography>
+          </div>
+          <div style={{ display: "flex", gap: "10px" }}>
+            <Typography
+              variant="h5"
+              color={colors.orangeAccent[400]}
+              fontWeight="bold"
+              sx={{ mb: "5px" }}
+            >
+              Address
+            </Typography>
+            <Typography variant="h6" color={colors.grey[100]}>
+              {formData.familyAddress}
+            </Typography>
+          </div>
+        </>
+      )}
+    </Stack>
   );
 };
 

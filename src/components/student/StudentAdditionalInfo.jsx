@@ -1,17 +1,15 @@
 import {
-  Stack,
   Grid2 as Grid,
+  Stack,
   Typography,
   TextField,
+  Switch,
+  FormControlLabel,
   useTheme,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
 } from "@mui/material";
 import { tokens } from "../../theme";
 
-const StudentEmergencyInfo = ({ formData, isEdit, setFormData }) => {
+const StudentAdditionalInfo = ({ formData, setFormData, isEdit }) => {
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
 
@@ -19,46 +17,41 @@ const StudentEmergencyInfo = ({ formData, isEdit, setFormData }) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  const handleSwitchChange = (e) => {
+    setFormData({ ...formData, [e.target.id]: e.target.checked });
+  };
+
   return (
     <Stack spacing={2}>
       {isEdit ? (
         <>
-          <TextField
-            name="emergencyFirst"
-            value={formData.emergencyFirst}
-            onChange={handleChange}
-            label="First Name"
+          <FormControlLabel
+            control={
+              <Switch
+                id="canOfferFood"
+                checked={formData.canOfferFood}
+                onChange={handleSwitchChange}
+              />
+            }
+            label="Provide child with tea/coffee and/or snacks?"
           />
           <TextField
-            name="emergencyLast"
-            value={formData.emergencyLast}
+            name="avoidFoods"
+            value={formData.avoidFoods}
             onChange={handleChange}
-            label="Last Name"
+            label="Do not provide the child with the following food/drink"
           />
-          <FormControl fullWidth>
-            <InputLabel id="relationship-select-label">Relationship</InputLabel>
-            <Select
-              name="emergencyRelationship"
-              label="Relationship"
-              labelId="relationship-select-label"
-              value={formData.emergencyRelationship}
-              onChange={handleChange}
-            >
-              <MenuItem value={"daughter"}>Daughter</MenuItem>
-              <MenuItem value={"father"}>Father</MenuItem>
-              <MenuItem value={"friend"}>Friend</MenuItem>
-              <MenuItem value={"husband"}>Husband</MenuItem>
-              <MenuItem value={"mother"}>Mother</MenuItem>
-              <MenuItem value={"partner"}>Partner</MenuItem>
-              <MenuItem value={"son"}>Son</MenuItem>
-              <MenuItem value={"wife"}>Wife</MenuItem>
-            </Select>
-          </FormControl>
           <TextField
-            name="emergencyPhone"
-            value={formData.emergencyPhone}
+            name="questions"
+            value={formData.questions}
             onChange={handleChange}
-            label="Phone"
+            label="Questions regarding tutoring of this child"
+          />
+          <TextField
+            name="howUserHeard"
+            value={formData.howUserHeard}
+            onChange={handleChange}
+            label="How did the person hear about Wise Minds Canberra?"
           />
         </>
       ) : (
@@ -70,10 +63,10 @@ const StudentEmergencyInfo = ({ formData, isEdit, setFormData }) => {
               fontWeight="bold"
               sx={{ mb: "5px" }}
             >
-              Phone
+              Provide child with tea/coffee and/or snacks?
             </Typography>
             <Typography variant="h6" color={colors.grey[100]}>
-              {formData.familyPhone}
+              {formData.canOfferFood ? "Yes" : "No"}
             </Typography>
           </div>
           <div style={{ display: "flex", gap: "10px" }}>
@@ -83,10 +76,10 @@ const StudentEmergencyInfo = ({ formData, isEdit, setFormData }) => {
               fontWeight="bold"
               sx={{ mb: "5px" }}
             >
-              Email
+              Questions regarding tutoring of this child
             </Typography>
             <Typography variant="h6" color={colors.grey[100]}>
-              {formData.familyEmail}
+              {formData.questions}
             </Typography>
           </div>
           <div style={{ display: "flex", gap: "10px" }}>
@@ -96,10 +89,10 @@ const StudentEmergencyInfo = ({ formData, isEdit, setFormData }) => {
               fontWeight="bold"
               sx={{ mb: "5px" }}
             >
-              Address
+              How did the person hear about us?
             </Typography>
             <Typography variant="h6" color={colors.grey[100]}>
-              {formData.familyAddress}
+              {formData.howUserHeard}
             </Typography>
           </div>
         </>
@@ -108,4 +101,4 @@ const StudentEmergencyInfo = ({ formData, isEdit, setFormData }) => {
   );
 };
 
-export default StudentEmergencyInfo;
+export default StudentAdditionalInfo;
