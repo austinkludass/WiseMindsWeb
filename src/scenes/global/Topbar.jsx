@@ -1,9 +1,17 @@
-import { Box, IconButton, useTheme } from "@mui/material";
-import { useContext } from "react";
+import {
+  Box,
+  IconButton,
+  useTheme,
+  Menu,
+  MenuItem,
+  InputBase,
+  Typography,
+} from "@mui/material";
+import { useContext, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ColorModeContext, tokens } from "../../theme";
 import { AuthContext } from "../../context/AuthContext";
-import InputBase from "@mui/material/InputBase";
+import { HomeOutlined } from "@mui/icons-material";
 import LightModeOutlinedIcon from "@mui/icons-material/LightModeOutlined";
 import DarkModeOutlinedIcon from "@mui/icons-material/DarkModeOutlined";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
@@ -17,10 +25,31 @@ const Topbar = () => {
   const { dispatch } = useContext(AuthContext);
   const navigate = useNavigate();
 
+  const [anchorEl, setAnchorEl] = useState(null);
+  const open = Boolean(anchorEl);
+
+  const handleMenuClick = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+  };
+
   const handleLogout = () => {
     dispatch({ type: "LOGOUT" });
     localStorage.removeItem("user");
     navigate("/login");
+    handleMenuClose();
+  };
+
+  const { currentUser } = useContext(AuthContext);
+
+  const handleProfile = () => {
+    if (currentUser?.uid) {
+      navigate(`/tutor/${currentUser.uid}`);
+    }
+    handleMenuClose();
   };
 
   return (
@@ -45,6 +74,9 @@ const Topbar = () => {
       </Box>
 
       <Box display="flex">
+        <IconButton onClick={() => navigate("/")}>
+          <HomeOutlined />
+        </IconButton>
         <IconButton onClick={colorMode.toggleColorMode}>
           {theme.palette.mode === "dark" ? (
             <DarkModeOutlinedIcon />
@@ -55,9 +87,27 @@ const Topbar = () => {
         <IconButton>
           <SettingsOutlinedIcon />
         </IconButton>
-        <IconButton onClick={handleLogout}>
+        <IconButton onClick={handleMenuClick}>
           <PersonOutlinedIcon />
         </IconButton>
+        <Menu
+          anchorEl={anchorEl}
+          open={open}
+          onClose={handleMenuClose}
+          anchorOrigin={{
+            vertical: "bottom",
+            horizontal: "right",
+          }}
+          transformOrigin={{
+            vertical: "top",
+            horizontal: "right",
+          }}
+        >
+          <MenuItem onClick={handleProfile}>Profile</MenuItem>
+          <MenuItem onClick={handleLogout}>
+            <Typography color={colors.redAccent[400]}>Logout</Typography>
+          </MenuItem>
+        </Menu>
       </Box>
     </Box>
   );

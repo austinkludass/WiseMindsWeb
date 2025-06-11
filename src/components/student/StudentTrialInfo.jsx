@@ -40,7 +40,11 @@ const StudentTrialInfo = ({
       ) : (
         <>
           <div style={{ display: "flex", gap: "10px" }}>
-            {/* AvailabilitySelector */}
+            <AvailabilitySelector
+              onAvailabilityChange={() => {}}
+              initialAvailability={trialAvailability}
+              isEdit={false}
+            />
           </div>
           <div style={{ display: "flex", gap: "10px" }}>
             <Typography
@@ -52,7 +56,9 @@ const StudentTrialInfo = ({
               Preferred Start
             </Typography>
             <Typography variant="h6" color={colors.grey[100]}>
-              {formData.howUserHeard}
+              {formData.preferredStart
+                ? dayjs(formData.preferredStart).format("MMMM D, YYYY")
+                : "N/A"}
             </Typography>
           </div>
         </>

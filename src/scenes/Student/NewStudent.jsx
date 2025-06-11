@@ -1,4 +1,4 @@
-import { useCallback, useState, useMemo } from "react";
+import { useCallback, useState } from "react";
 import {
   Paper,
   Typography,
@@ -12,34 +12,95 @@ import {
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { tokens } from "../../theme";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
-import { ToastContainer } from "react-toastify";
+import { toast, ToastContainer } from "react-toastify";
+import { addDoc, collection } from "firebase/firestore";
+import { db } from "../../data/firebase";
+import { useNavigate } from "react-router-dom";
 import Header from "../../components/Global/Header";
 import StudentGeneralInfo from "../../components/student/StudentGeneralInfo";
 import StudentFamilyInfo from "../../components/student/StudentFamilyInfo";
 import StudentEmergencyInfo from "../../components/student/StudentEmergencyInfo";
 import StudentAcademicInfo from "../../components/student/StudentAcademicInfo";
 import StudentAdditionalInfo from "../../components/student/StudentAdditionalInfo";
-import "dayjs/locale/en-gb";
 import StudentTrialInfo from "../../components/student/StudentTrialInfo";
 import StudentAvailabilityInfo from "../../components/student/StudentAvailabilityInfo";
+import StudentAdminInformation from "../../components/student/StudentAdminInformation";
+import "dayjs/locale/en-gb";
 
 const NewStudent = () => {
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
+  
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [trialAvailability, setTrialAvailability] = useState({});
   const [availability, setAvailability] = useState({});
   const [subjects, setSubjects] = useState([]);
-  
-  const handleSubmit = (e) => {
+
+  const isFormValid = () => {
+    return (
+      generalInfo.firstName && familyInfo.familyPhone && familyInfo.familyEmail
+    );
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     // firebase api send to DB
+    if (!isFormValid()) {
+      setTouched({
+        firstName: true,
+        familyPhone: true,
+        familyEmail: true,
+      });
+      toast.error("Complete all required fields");
+      return;
+    }
 
-    // Get Trial > formatAvailability(trialAvailability)
-    // Get Availability > formatAvailability(availability)
-    // Get Subjects > subjects
+    setLoading(true);
+    setUploadProgress(30);
+
+    try {
+      await addDoc(collection(db, "students"), {
+        firstName: generalInfo.firstName,
+        middleName: generalInfo.middleName,
+        lastName: generalInfo.lastName,
+        dateOfBirth: generalInfo.dateOfBirth?.toISOString() || null,
+        allergiesAna: generalInfo.allergiesAna,
+        allergiesNonAna: generalInfo.allergiesNonAna,
+        doesCarryEpi: generalInfo.doesCarryEpi,
+        doesAdminEpi: generalInfo.doesAdminEpi,
+        familyPhone: familyInfo.familyPhone,
+        familyEmail: familyInfo.familyEmail,
+        familyAddress: familyInfo.familyAddress,
+        emergencyFirst: emergencyInfo.emergencyFirst,
+        emergencyLast: emergencyInfo.emergencyLast,
+        emergencyRelationship: emergencyInfo.emergencyRelationship,
+        emergencyPhone: emergencyInfo.emergencyPhone,
+        school: academicInfo.school,
+        yearLevel: academicInfo.yearLevel,
+        notes: academicInfo.notes,
+        canOfferFood: additionalInfo.canOfferFood,
+        avoidFoods: additionalInfo.avoidFoods,
+        questions: additionalInfo.questions,
+        howUserHeard: additionalInfo.howUserHeard,
+        preferredStart: trialInfo.preferredStart?.toISOString() || null,
+        isSameAsTrial: availabilityInfo.isSameAsTrial,
+        trialAvailability: formatAvailability(trialAvailability),
+        availability: formatAvailability(availability),
+        subjects: subjects,
+        homeLocation: adminInfo.homeLocation,
+      });
+      setUploadProgress(100);
+
+      toast.success("Successfully added student!");
+      navigate("/students");
+    } catch (error) {
+      toast.error("Error: " + error.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const [touched, setTouched] = useState({
@@ -93,6 +154,10 @@ const NewStudent = () => {
     isSameAsTrial: false,
   });
 
+  const [adminInfo, setAdminInfo] = useState({
+    homeLocation: "belconnen",
+  });
+
   const setGeneralInfoCallback = useCallback(
     (info) => setGeneralInfo(info),
     []
@@ -120,6 +185,8 @@ const NewStudent = () => {
     (info) => setAvailabilityInfo(info),
     []
   );
+
+  const setAdminInfoCallback = useCallback((info) => setAdminInfo(info), []);
 
   const formatAvailability = (availabilityObj) => {
     return Object.fromEntries(
@@ -239,6 +306,18 @@ const NewStudent = () => {
           <StudentAdditionalInfo
             formData={additionalInfo}
             setFormData={setAdditionalInfoCallback}
+            isEdit={true}
+          />
+        </Stack>
+      </Paper>
+
+      {/* Admin Info */}
+      <Paper sx={{ p: 3, maxWidth: 1000, minWidth: 600, m: 4 }}>
+        <Stack spacing={2}>
+          <Typography variant="h4">Admin Information</Typography>
+          <StudentAdminInformation
+            formData={adminInfo}
+            setFormData={setAdminInfoCallback}
             isEdit={true}
           />
         </Stack>

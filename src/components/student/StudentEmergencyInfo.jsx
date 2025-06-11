@@ -70,36 +70,50 @@ const StudentEmergencyInfo = ({ formData, isEdit, setFormData }) => {
               fontWeight="bold"
               sx={{ mb: "5px" }}
             >
+              First Name
+            </Typography>
+            <Typography variant="h6" color={colors.grey[100]}>
+              {formData.emergencyFirst}
+            </Typography>
+          </div>
+          <div style={{ display: "flex", gap: "10px" }}>
+            <Typography
+              variant="h5"
+              color={colors.orangeAccent[400]}
+              fontWeight="bold"
+              sx={{ mb: "5px" }}
+            >
+              Last Name
+            </Typography>
+            <Typography variant="h6" color={colors.grey[100]}>
+              {formData.emergencyLast}
+            </Typography>
+          </div>
+          <div style={{ display: "flex", gap: "10px" }}>
+            <Typography
+              variant="h5"
+              color={colors.orangeAccent[400]}
+              fontWeight="bold"
+              sx={{ mb: "5px" }}
+            >
+              Relationship
+            </Typography>
+            <Typography variant="h6" color={colors.grey[100]}>
+              {formData.emergencyRelationship[0].toUpperCase() +
+                formData.emergencyRelationship.slice(1)}
+            </Typography>
+          </div>
+          <div style={{ display: "flex", gap: "10px" }}>
+            <Typography
+              variant="h5"
+              color={colors.orangeAccent[400]}
+              fontWeight="bold"
+              sx={{ mb: "5px" }}
+            >
               Phone
             </Typography>
             <Typography variant="h6" color={colors.grey[100]}>
-              {formData.familyPhone}
-            </Typography>
-          </div>
-          <div style={{ display: "flex", gap: "10px" }}>
-            <Typography
-              variant="h5"
-              color={colors.orangeAccent[400]}
-              fontWeight="bold"
-              sx={{ mb: "5px" }}
-            >
-              Email
-            </Typography>
-            <Typography variant="h6" color={colors.grey[100]}>
-              {formData.familyEmail}
-            </Typography>
-          </div>
-          <div style={{ display: "flex", gap: "10px" }}>
-            <Typography
-              variant="h5"
-              color={colors.orangeAccent[400]}
-              fontWeight="bold"
-              sx={{ mb: "5px" }}
-            >
-              Address
-            </Typography>
-            <Typography variant="h6" color={colors.grey[100]}>
-              {formData.familyAddress}
+              {formData.emergencyPhone}
             </Typography>
           </div>
         </>

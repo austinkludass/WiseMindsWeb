@@ -13,7 +13,7 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import Header from "../../components/Global/Header";
 import { useQuery } from "@tanstack/react-query";
-import ArrowCircleRightIcon from '@mui/icons-material/ArrowCircleRight';
+import ArrowCircleRightIcon from "@mui/icons-material/ArrowCircleRight";
 
 const fetchTutors = async () => {
   try {
@@ -26,7 +26,7 @@ const fetchTutors = async () => {
       wiseMindsEmail: doc.data().wiseMindsEmail,
     }));
   } catch (error) {
-    throw new Error("Failed to fetch tutors: " + error.message);
+    toast.error("Failed to fetch tutors: " + error.message);
   }
 };
 
@@ -99,7 +99,7 @@ const TutorList = () => {
         >
           <Typography variant="h6">NEW</Typography>
         </Button>
-        <Paper sx={{ width: "100vh", backgroundColor: "transparent" }}>
+        <Paper sx={{ width: "100vh", backgroundColor: "transparent", marginTop: "4px" }}>
           <DataGrid
             checkboxSelection={false}
             rows={rows}

@@ -174,7 +174,7 @@ const StudentGeneralInfo = ({
               {formData.allergiesAna}
             </Typography>
           </div>
-          <div style={{ display: "flex", gap: "10px", marginLeft: "50px" }}>
+          <div style={{ display: "flex", gap: "10px" }}>
             <Typography
               variant="h5"
               color={colors.orangeAccent[400]}
@@ -187,7 +187,7 @@ const StudentGeneralInfo = ({
               {formData.doesCarryEpi ? "Yes" : "No"}
             </Typography>
           </div>
-          <div style={{ display: "flex", gap: "10px", marginLeft: "50px" }}>
+          <div style={{ display: "flex", gap: "10px" }}>
             <Typography
               variant="h5"
               color={colors.orangeAccent[400]}

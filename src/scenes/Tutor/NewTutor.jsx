@@ -29,9 +29,9 @@ import TutorBankInfo from "../../components/Tutor/TutorBankInfo";
 import TutorWWVPInfo from "../../components/Tutor/TutorWWVPInfo";
 import TutorFirstAidInfo from "../../components/Tutor/TutorFirstAidInfo";
 import TutorPoliceCheckInfo from "../../components/Tutor/TutorPoliceCheckInfo";
+import TutorBlockedStudents from "../../components/Tutor/TutorBlockedStudents";
 import "react-toastify/dist/ReactToastify.css";
 import "dayjs/locale/en-gb";
-import TutorBlockedStudents from "../../components/Tutor/TutorBlockedStudents";
 
 const NewTutor = () => {
   const navigate = useNavigate();

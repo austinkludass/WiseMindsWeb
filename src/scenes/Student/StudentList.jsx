@@ -1,48 +1,80 @@
-import { React, useState, useEffect } from "react";
-import { useTheme, Box, Stack, Button, Typography, Paper } from "@mui/material";
+import React, { useEffect } from "react";
+import { DataGrid } from "@mui/x-data-grid";
+import { Box, IconButton, useTheme } from "@mui/material";
 import { tokens } from "../../theme";
 import { useNavigate } from "react-router-dom";
-import Header from "../../components/Global/Header";
-import { DataGrid } from "@mui/x-data-grid";
+import { Typography } from "@mui/material";
+import { collection, getDocs } from "firebase/firestore";
+import { db } from "../../data/firebase";
 import { ToastContainer, toast } from "react-toastify";
+import { useQuery } from "@tanstack/react-query";
+import Header from "../../components/Global/Header";
+import ArrowCircleRightIcon from "@mui/icons-material/ArrowCircleRight";
+import Stack from "@mui/material/Stack";
+import Button from "@mui/material/Button";
+import Paper from "@mui/material/Paper";
 import "react-toastify/dist/ReactToastify.css";
 
-const columns = [
-  {
-    field: "fullName",
-    headerName: "Name",
-    width: 200,
-    valueGetter: (value, row) => `${row.firstName || ""} ${row.lastName || ""}`,
-  },
-];
-
-const paginationModel = { page: 0, pageSize: 10 };
+const fetchStudents = async () => {
+  try {
+    const querySnapshot = await getDocs(collection(db, "students"));
+    return querySnapshot.docs.map((doc) => ({
+      id: doc.id,
+      firstName: doc.data().firstName,
+      lastName: doc.data().lastName,
+      homeLocation: doc.data().homeLocation,
+    }));
+  } catch (error) {
+    toast.error("Failed to fetch students: " + error.message);
+  }
+};
 
 const StudentList = () => {
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
   const navigate = useNavigate();
-  const [rows, setRows] = useState([]);
+
+  const { data: rows = [], error } = useQuery({
+    queryKey: ["students"],
+    queryFn: fetchStudents,
+    staleTime: 5 * 60 * 1000,
+  });
 
   useEffect(() => {
-    const fetchStudents = async () => {
-      try {
-        // const querySnapshot = await getDocs(collection(db, "tutors"));
-        // const tutorData = querySnapshot.docs.map((doc) => ({
-        //   id: doc.id,
-        //   avatar: doc.data().avatar,
-        //   firstName: doc.data().firstName,
-        //   lastName: doc.data().lastName,
-        //   wiseEmailsEmail: doc.data().wiseEmailsEmail,
-        // }));
-        // setRows(tutorData);
-      } catch (error) {
-        toast.error("Error: " + error.message);
-      }
-    };
+    if (error) {
+      toast.error(error.message);
+    }
+  }, [error]);
 
-    fetchStudents();
-  }, []);
+  const columns = [
+    {
+      field: "fullName",
+      headerName: "Name",
+      width: 200,
+      valueGetter: (value, row) =>
+        `${row.firstName || ""} ${row.lastName || ""}`,
+    },
+    {
+      field: "homeLocation",
+      headerName: "Location",
+      width: 200,
+    },
+    {
+      field: "edit",
+      headerName: "",
+      width: 150,
+      sortable: false,
+      disableColumnMenu: true,
+      renderCell: (params) => (
+        <IconButton
+          color="secondary"
+          onClick={() => navigate(`/student/${params.row.id}`)}
+        >
+          <ArrowCircleRightIcon sx={{ width: 25, height: 25 }} />
+        </IconButton>
+      ),
+    },
+  ];
 
   return (
     <Box display="flex" m="20px">
@@ -57,14 +89,16 @@ const StudentList = () => {
             fontSize: "1.3em",
           }}
         >
-          <Typography variant="h6">ADD</Typography>
+          <Typography variant="h6">NEW</Typography>
         </Button>
-        <Paper sx={{ width: "100vh", backgroundColor: "transparent" }}>
+        <Paper sx={{ width: "100vh", backgroundColor: "transparent", marginTop: "4px" }}>
           <DataGrid
             checkboxSelection={false}
             rows={rows}
             columns={columns}
-            initialState={{ pagination: { paginationModel } }}
+            initialState={{
+              pagination: { paginationModel: { page: 0, pageSize: 10 } },
+            }}
             pageSizeOptions={[10]}
             sx={{ border: 0 }}
           />

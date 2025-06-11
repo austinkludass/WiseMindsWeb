@@ -1,5 +1,12 @@
 import { useState } from "react";
-import { Stack, FormControlLabel, Switch } from "@mui/material";
+import {
+  Stack,
+  FormControlLabel,
+  Switch,
+  Typography,
+  useTheme,
+} from "@mui/material";
+import { tokens } from "../../theme";
 import AvailabilitySelector from "../Tutor/AvailabilitySelector";
 
 const StudentAvailabilityInfo = ({
@@ -9,6 +16,9 @@ const StudentAvailabilityInfo = ({
   availability,
   setAvailability,
 }) => {
+  const theme = useTheme();
+  const colors = tokens(theme.palette.mode);
+
   const handleAvailabilityChange = (updatedAvailability) => {
     setAvailability(updatedAvailability);
   };
@@ -39,7 +49,28 @@ const StudentAvailabilityInfo = ({
           )}
         </>
       ) : (
-        <></>
+        <>
+          <div style={{ display: "flex", gap: "10px" }}>
+            <Typography
+              variant="h5"
+              color={colors.orangeAccent[400]}
+              fontWeight="bold"
+              sx={{ mb: "5px" }}
+            >
+              Same as above?
+            </Typography>
+            <Typography variant="h6" color={colors.grey[100]}>
+              {formData.isSameAsTrial ? "Yes" : "No"}
+            </Typography>
+          </div>
+          <div style={{ display: "flex", gap: "10px" }}>
+            <AvailabilitySelector
+              onAvailabilityChange={() => {}}
+              initialAvailability={availability}
+              isEdit={false}
+            />
+          </div>
+        </>
       )}
     </Stack>
   );
