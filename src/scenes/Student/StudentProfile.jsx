@@ -1,13 +1,13 @@
-// StudentProfile.jsx
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Box, Button, Typography, useTheme } from "@mui/material";
 import { LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
-import dayjs from "dayjs";
 import { db } from "../../data/firebase";
 import { tokens } from "../../theme";
+import { ToastContainer, toast } from "react-toastify";
+import dayjs from "dayjs";
 import Header from "../../components/Global/Header";
 import Section from "../../components/Global/Section";
 import StudentGeneralInfo from "../../components/student/StudentGeneralInfo";
@@ -27,51 +27,143 @@ const StudentProfile = () => {
   const [subjects, setSubjects] = useState([]);
   const [availability, setAvailability] = useState({});
   const [trialAvailability, setTrialAvailability] = useState({});
-
-  const [isEditingGeneralInfo, setIsEditingGeneralInfo] = useState(false);
+  const [forms, setForms] = useState({});
+  const [editState, setEditState] = useState({});
   const [touchedFields, setTouchedFields] = useState({});
-  const [generalInfoForm, setGeneralInfoForm] = useState({
-    firstName: "",
-    middleName: "",
-    lastName: "",
-    dateOfBirth: null,
-    allergiesAna: "",
-    doesCarryEpi: false,
-    doesAdminEpi: false,
-    allergiesNonAna: "",
-  });
+  const dateFields = ["dateOfBirth", "preferredStart"];
+
+  const setForm = (key, value) =>
+    setForms((prev) => ({ ...prev, [key]: value }));
+  const toggleEdit = (key, state) =>
+    setEditState((prev) => ({ ...prev, [key]: state }));
+
+  const formConfigs = {
+    general: {
+      title: "General Student Information",
+      component: StudentGeneralInfo,
+      fields: [
+        "firstName",
+        "middleName",
+        "lastName",
+        "dateOfBirth",
+        "allergiesAna",
+        "doesCarryEpi",
+        "doesAdminEpi",
+        "allergiesNonAna",
+      ],
+    },
+    family: {
+      title: "Family Information",
+      component: StudentFamilyInfo,
+      fields: ["familyPhone", "familyEmail", "familyAddress"],
+    },
+    emergency: {
+      title: "Emergency Contact",
+      component: StudentEmergencyInfo,
+      fields: [
+        "emergencyFirst",
+        "emergencyLast",
+        "emergencyRelationship",
+        "emergencyPhone",
+      ],
+    },
+    academic: {
+      title: "Academic Information",
+      component: StudentAcademicInfo,
+      fields: ["school", "yearLevel", "notes"],
+      extraProps: { subjects, setSubjects },
+    },
+    trial: {
+      title: "Trial Session",
+      component: StudentTrialInfo,
+      fields: ["preferredStart"],
+      extraProps: { trialAvailability, setTrialAvailability },
+    },
+    availability: {
+      title: "Regular Availability",
+      component: StudentAvailabilityInfo,
+      fields: ["isSameAsTrial"],
+      extraProps: { availability, setAvailability },
+    },
+    additional: {
+      title: "Additional Information",
+      component: StudentAdditionalInfo,
+      fields: ["canOfferFood", "avoidFoods", "questions", "howUserHeard"],
+    },
+    admin: {
+      title: "Admin Information",
+      component: StudentAdminInformation,
+      fields: ["homeLocation"],
+    },
+  };
 
   useEffect(() => {
     const fetchStudent = async () => {
       if (!studentId) return;
-
       const studentRef = doc(db, "students", studentId);
       const studentSnap = await getDoc(studentRef);
+      if (!studentSnap.exists()) return;
 
-      if (studentSnap.exists()) {
-        const fetchedData = studentSnap.data();
-        setStudent(fetchedData);
-        setSubjects(fetchedData.subjects);
-        setAvailability(fetchedData.availability);
-        setTrialAvailability(fetchedData.trialAvailability);
+      const data = studentSnap.data();
+      setStudent(data);
+      setSubjects(data.subjects || []);
+      setAvailability(data.availability || {});
+      setTrialAvailability(data.trialAvailability || {});
 
-        setGeneralInfoForm({
-          firstName: fetchedData.firstName || "",
-          middleName: fetchedData.middleName || "",
-          lastName: fetchedData.lastName || "",
-          dateOfBirth: fetchedData.dateOfBirth
-            ? dayjs(fetchedData.dateOfBirth)
-            : null,
-          allergiesAna: fetchedData.allergiesAna || "",
-          doesCarryEpi: fetchedData.doesCarryEpi || false,
-          doesAdminEpi: fetchedData.doesAdminEpi || false,
-          allergiesNonAna: fetchedData.allergiesNonAna || "",
+      const initialForms = {};
+      for (const key in formConfigs) {
+        initialForms[key] = {};
+        formConfigs[key].fields.forEach((f) => {
+          const value = data[f];
+          initialForms[key][f] =
+            f.toLowerCase().includes("date") && value
+              ? dayjs(value)
+              : value ?? "";
         });
       }
+      setForms(initialForms);
     };
 
     fetchStudent();
   }, [studentId]);
+
+  const handleSave = async (key) => {
+    const studentRef = doc(db, "students", studentId);
+    const payload = { ...forms[key] };
+
+    if (payload.dateOfBirth)
+      payload.dateOfBirth = payload.dateOfBirth.toISOString();
+    if (payload.preferredStart)
+      payload.preferredStart = payload.preferredStart.toISOString();
+
+    if (key === "academic") {
+      payload.subjects = subjects;
+    } else if (key === "trial") {
+      payload.trialAvailability = trialAvailability;
+    } else if (key === "availability") {
+      payload.availability = availability;
+    }
+
+    try {
+        await updateDoc(studentRef, payload);
+        toast.success("Successfully updated student");
+    } catch (error) {
+        toast.error("Error updating student: " + error.message);
+    }
+    setStudent((prev) => ({ ...prev, ...payload }));
+    toggleEdit(key, false);
+  };
+
+  const handleCancel = (key) => {
+    const resetData = {};
+    formConfigs[key].fields.forEach((f) => {
+      const value = student[f];
+      resetData[f] =
+        dateFields.includes(f) && value ? dayjs(value) : value ?? "";
+    });
+    setForm(key, resetData);
+    toggleEdit(key, false);
+  };
 
   if (!student) return <Typography>Loading...</Typography>;
 
@@ -84,130 +176,54 @@ const StudentProfile = () => {
         />
       </Box>
 
-      <Section title="General Student Information">
-        {isEditingGeneralInfo ? (
-          <Box display="flex" justifyContent="flex-end" gap={1}>
-            <Button
-              variant="contained"
-              onClick={async () => {
-                const studentRef = doc(db, "students", studentId);
-                await updateDoc(studentRef, {
-                  ...generalInfoForm,
-                  dateOfBirth:
-                    generalInfoForm.dateOfBirth?.toISOString() || null,
-                });
-                setStudent((prev) => ({ ...prev, ...generalInfoForm }));
-                setIsEditingGeneralInfo(false);
-              }}
-            >
-              Save
-            </Button>
-            <Button
-              variant="outlined"
-              color="error"
-              onClick={() => {
-                setGeneralInfoForm({
-                  firstName: student.firstName || "",
-                  middleName: student.middleName || "",
-                  lastName: student.lastName || "",
-                  dateOfBirth: student.dateOfBirth
-                    ? dayjs(student.dateOfBirth)
-                    : null,
-                  allergiesAna: student.allergiesAna || "",
-                  doesCarryEpi: student.doesCarryEpi || false,
-                  doesAdminEpi: student.doesAdminEpi || false,
-                  allergiesNonAna: student.allergiesNonAna || "",
-                });
-                setIsEditingGeneralInfo(false);
-              }}
-            >
-              Cancel
-            </Button>
-          </Box>
-        ) : (
-          <Box  display="flex" justifyContent="flex-end">
-            <Button
-              variant="outlined"
-              onClick={() => setIsEditingGeneralInfo(true)}
-            >
-              Edit
-            </Button>
-          </Box>
-        )}
-        <StudentGeneralInfo
-          formData={generalInfoForm}
-          isEdit={isEditingGeneralInfo}
-          setFormData={setGeneralInfoForm}
-          touched={touchedFields}
-          setTouched={setTouchedFields}
-        />
-      </Section>
-
-      <Section title="Family Information">
-        <StudentFamilyInfo
-          formData={{
-            familyPhone: student.familyPhone || "",
-            familyEmail: student.familyEmail || "",
-            familyAddress: student.familyAddress || "",
-          }}
-        />
-      </Section>
-
-      <Section title="Emergency Contact">
-        <StudentEmergencyInfo
-          formData={{
-            emergencyFirst: student.emergencyFirst || "",
-            emergencyLast: student.emergencyLast || "",
-            emergencyRelationship: student.emergencyRelationship || "",
-            emergencyPhone: student.emergencyPhone || "",
-          }}
-        />
-      </Section>
-
-      <Section title="Academic Information">
-        <StudentAcademicInfo
-          formData={{
-            school: student.school || "",
-            yearLevel: student.yearLevel || "",
-            notes: student.notes || "",
-          }}
-          subjects={subjects}
-        />
-      </Section>
-
-      <Section title="Trial Session">
-        <Typography variant="h6" color={colors.orangeAccent[400]}>
-          Available times for trial session
-        </Typography>
-        <StudentTrialInfo
-          formData={{ preferredStart: student.preferredStart || null }}
-          trialAvailability={trialAvailability}
-        />
-      </Section>
-
-      <Section title="Regular Availability">
-        <StudentAvailabilityInfo
-          formData={{ isSameAsTrial: student.isSameAsTrial }}
-          availability={availability}
-        />
-      </Section>
-
-      <Section title="Additional Information">
-        <StudentAdditionalInfo
-          formData={{
-            canOfferFood: student.canOfferFood || "",
-            avoidFoods: student.avoidFoods || "",
-            questions: student.questions || "",
-            howUserHeard: student.howUserHeard || "",
-          }}
-        />
-      </Section>
-
-      <Section title="Admin Information">
-        <StudentAdminInformation
-          formData={{ homeLocation: student.homeLocation || "" }}
-        />
-      </Section>
+      {Object.entries(formConfigs).map(([key, config]) => {
+        const Component = config.component;
+        const isEdit = editState[key];
+        return (
+          <Section
+            key={key}
+            title={config.title}
+            actions={
+              isEdit ? (
+                <Box display="flex" gap={1}>
+                  <Button variant="contained" onClick={() => handleSave(key)}>
+                    Save
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    color="error"
+                    onClick={() => handleCancel(key)}
+                  >
+                    Cancel
+                  </Button>
+                </Box>
+              ) : (
+                <Button
+                  variant="outlined"
+                  onClick={() => toggleEdit(key, true)}
+                >
+                  Edit
+                </Button>
+              )
+            }
+          >
+            {key === "trial" && (
+              <Typography variant="h6" color={colors.orangeAccent[400]}>
+                Available times for trial session
+              </Typography>
+            )}
+            <Component
+              formData={forms[key]}
+              setFormData={(v) => setForm(key, v)}
+              isEdit={!!isEdit}
+              touched={touchedFields}
+              setTouched={setTouchedFields}
+              {...(config.extraProps || {})}
+            />
+          </Section>
+        );
+      })}
+      <ToastContainer position="top-right" autoClose={3000} />
     </LocalizationProvider>
   );
 };

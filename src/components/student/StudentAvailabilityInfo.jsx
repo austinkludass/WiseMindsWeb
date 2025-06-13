@@ -44,6 +44,7 @@ const StudentAvailabilityInfo = ({
           {!formData.isSameAsTrial && (
             <AvailabilitySelector
               onAvailabilityChange={handleAvailabilityChange}
+              initialAvailability={availability}
               isEdit={true}
             />
           )}

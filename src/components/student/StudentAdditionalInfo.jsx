@@ -76,6 +76,19 @@ const StudentAdditionalInfo = ({ formData, setFormData, isEdit }) => {
               fontWeight="bold"
               sx={{ mb: "5px" }}
             >
+              Do not provide the child with the following food/drink
+            </Typography>
+            <Typography variant="h6" color={colors.grey[100]}>
+              {formData.avoidFoods}
+            </Typography>
+          </div>
+          <div style={{ display: "flex", gap: "10px" }}>
+            <Typography
+              variant="h5"
+              color={colors.orangeAccent[400]}
+              fontWeight="bold"
+              sx={{ mb: "5px" }}
+            >
               Questions regarding tutoring of this child
             </Typography>
             <Typography variant="h6" color={colors.grey[100]}>

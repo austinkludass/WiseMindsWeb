@@ -29,10 +29,11 @@ const StudentTrialInfo = ({
         <>
           <AvailabilitySelector
             onAvailabilityChange={handleTrialAvailabilityChange}
+            initialAvailability={trialAvailability}
             isEdit={true}
           />
           <DatePicker
-            value={formData.preferredStart}
+            value={formData.preferredStart ? dayjs(formData.preferredStart) : null}
             onChange={handleDateChange("preferredStart")}
             label="Preferred Start Date"
           />
