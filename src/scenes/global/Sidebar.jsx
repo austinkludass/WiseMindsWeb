@@ -148,12 +148,6 @@ const Sidebar = () => {
                     setSelected={setSelected}
                   />
                   <Item
-                    title="Tutor Groups"
-                    to="/tutorgroups"
-                    selected={selected}
-                    setSelected={setSelected}
-                  />
-                  <Item
                     title="Students"
                     to="/students"
                     selected={selected}
@@ -190,20 +184,14 @@ const Sidebar = () => {
                     setSelected={setSelected}
                   />
                   <Item
-                    title="Curricula"
-                    to="/curricula"
-                    selected={selected}
-                    setSelected={setSelected}
-                  />
-                  <Item
                     title="Feedback"
                     to="/feedback"
                     selected={selected}
                     setSelected={setSelected}
                   />
                   <Item
-                    title="Summer Courses"
-                    to="/summercourses"
+                    title="Wise Courses"
+                    to="/wisecourses"
                     selected={selected}
                     setSelected={setSelected}
                   />
@@ -222,12 +210,6 @@ const Sidebar = () => {
                   <Item
                     title="Settings"
                     to="/settings"
-                    selected={selected}
-                    setSelected={setSelected}
-                  />
-                  <Item
-                    title="WWVP"
-                    to="/wwvp"
                     selected={selected}
                     setSelected={setSelected}
                   />

@@ -8,6 +8,7 @@ import TutorProfile from "./scenes/Tutor/TutorProfile";
 import StudentList from "./scenes/Student/StudentList";
 import NewStudent from "./scenes/Student/NewStudent";
 import StudentProfile from "./scenes/Student/StudentProfile";
+import SubjectList from "./scenes/Subject/SubjectList";
 import { ColorModeContext, useMode } from "./theme";
 import { CssBaseline, ThemeProvider } from "@mui/material";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
@@ -36,6 +37,7 @@ function App() {
                   <Route path="/students" element={<StudentList />} />
                   <Route path="/student/:studentId" element={<StudentProfile />} />
                   <Route path="/newstudent" element={<NewStudent />} />
+                  <Route path="/subjects" element={<SubjectList />} />
                   <Route path="*" element={<Navigate to="/" />} />
                 </Routes>
               </main>

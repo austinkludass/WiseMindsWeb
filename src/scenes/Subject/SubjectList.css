@@ -1,0 +1,26 @@
+.create-card {
+    display: flex;
+    align-items: center;
+    padding: 16px;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  
+  .curriculum-card, .group-card {
+    width: 100%;
+    max-width: 480px;
+    padding: 16px;
+    border: 1px solid #e0e0e0;
+    border-radius: 12px;
+  }
+  
+  .subject-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #f7f7f7;
+    padding: 8px 12px;
+    margin-top: 8px;
+    border-radius: 8px;
+  }
+  
