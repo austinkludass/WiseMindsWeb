@@ -9,6 +9,8 @@
     "@fullcalendar/daygrid": "^6.1.15",
     "@fullcalendar/list": "^6.1.15",
     "@fullcalendar/timegrid": "^6.1.15",
+    "@googlemaps/js-api-loader": "^1.16.10",
+    "@hookform/resolvers": "^5.1.1",
     "@mui/icons-material": "^6.4.4",
     "@mui/lab": "^6.0.0-beta.27",
     "@mui/material": "^6.4.4",
@@ -30,6 +32,7 @@
     "react": "^18.3.1",
     "react-color-palette": "^7.3.0",
     "react-dom": "^18.3.1",
+    "react-hook-form": "^7.61.1",
     "react-pro-sidebar": "^0.7.1",
     "react-router-dom": "^6.27.0",
     "react-scripts": "5.0.1",
@@ -37,7 +40,8 @@
     "react-window": "^1.8.11",
     "reactjs-popup": "^2.0.6",
     "web-vitals": "^2.1.4",
-    "yup": "^1.4.0"
+    "yup": "^1.4.0",
+    "zod": "^4.0.10"
   },
   "scripts": {
     "start": "react-scripts start",

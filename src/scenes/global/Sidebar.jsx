@@ -11,6 +11,7 @@ import CalendarMonthOutlinedIcon from "@mui/icons-material/CalendarMonthOutlined
 import MenuBookOutlinedIcon from "@mui/icons-material/MenuBookOutlined";
 import MenuOutlinedIcon from "@mui/icons-material/MenuOutlined";
 import OwlFacts from "../../components/Global/OwlFacts";
+import { SettingsOutlined } from "@mui/icons-material";
 
 const Item = ({ title, to, icon, selected, setSelected }) => {
   const theme = useTheme();
@@ -207,13 +208,14 @@ const Sidebar = () => {
                     selected={selected}
                     setSelected={setSelected}
                   />
-                  <Item
-                    title="Settings"
-                    to="/settings"
-                    selected={selected}
-                    setSelected={setSelected}
-                  />
                 </SubMenu>
+                <Item
+                  title="Settings"
+                  to="/"
+                  icon={<SettingsOutlined />}
+                  selected={selected}
+                  setSelected={setSelected}
+                />
               </Box>
             </>
           )}

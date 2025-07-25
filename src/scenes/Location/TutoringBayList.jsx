@@ -1,0 +1,466 @@
+import {
+  Box,
+  Grid2 as Grid,
+  Typography,
+  Button,
+  Paper,
+  TextField,
+  IconButton,
+  Divider,
+  Badge,
+  Chip,
+  useTheme,
+} from "@mui/material";
+import {
+  Add as AddIcon,
+  Check as CheckIcon,
+  Close as CloseIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  LocationOn as LocationOnIcon,
+} from "@mui/icons-material";
+import { tokens } from "../../theme";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { GoogleMap } from "../../components/Global/GoogleMap";
+import Header from "../../components/Global/Header";
+
+const locationSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  address: z.string().min(1, "Address is required"),
+});
+
+const tutorBaySchema = z.object({
+  name: z.string().min(1, "Bay name is required"),
+});
+
+const TutoringBayList = () => {
+  const theme = useTheme();
+  const colors = tokens(theme.palette.mode);
+  const [locations, setLocations] = useState([]);
+  const [editingLocation, setEditingLocation] = useState(null);
+  const [showAddLocationForm, setShowAddLocationForm] = useState(false);
+  const [editingBay, setEditingBay] = useState({ locationId: "", bay: null });
+  const [showAddBayForm, setShowAddBayForm] = useState(null);
+
+  const locationForm = useForm({
+    resolver: zodResolver(locationSchema),
+    defaultValues: { name: "", address: "" },
+  });
+
+  const bayForm = useForm({
+    resolver: zodResolver(tutorBaySchema),
+    defaultValues: { name: "" },
+  });
+
+  const addLocation = (data) => {
+    const newLocation = {
+      id: crypto.randomUUID(),
+      name: data.name,
+      address: data.address,
+      tutorBays: [],
+    };
+
+    setLocations((prev) => [...prev, newLocation]);
+    locationForm.reset();
+    setShowAddLocationForm(false);
+  };
+
+  const updateLocation = (data) => {
+    if (!editingLocation) return;
+
+    setLocations((prev) =>
+      prev.map((loc) =>
+        loc.id === editingLocation.id
+          ? { ...loc, name: data.name, address: data.address }
+          : loc
+      )
+    );
+
+    setEditingLocation(null);
+    locationForm.reset();
+  };
+
+  const deleteLocation = (id) => {
+    setLocations((prev) => prev.filter((loc) => loc.id !== id));
+  };
+
+  const startEditingLocation = (location) => {
+    setEditingLocation(location);
+    locationForm.setValue("name", location.name);
+    locationForm.setValue("address", location.address);
+  };
+
+  const cancelEditingLocation = () => {
+    setEditingLocation(null);
+    locationForm.reset();
+  };
+
+  const addTutorBay = (locationId, data) => {
+    const newBay = {
+      id: crypto.randomUUID(),
+      name: data.name,
+    };
+
+    setLocations((prev) =>
+      prev.map((loc) =>
+        loc.id === locationId
+          ? { ...loc, tutorBays: [...loc.tutorBays, newBay] }
+          : loc
+      )
+    );
+
+    bayForm.reset();
+    setShowAddBayForm(null);
+  };
+
+  const updateTutorBay = (locationId, data) => {
+    if (!editingBay.bay) return;
+
+    setLocations((prev) =>
+      prev.map((loc) =>
+        loc.id === locationId
+          ? {
+              ...loc,
+              tutorBays: loc.tutorBays.map((bay) =>
+                bay.id === editingBay.bay.id ? { ...bay, name: data.name } : bay
+              ),
+            }
+          : loc
+      )
+    );
+
+    setEditingBay({ locationId: "", bay: null });
+    bayForm.reset();
+  };
+
+  const deleteTutorBay = (locationId, bayId) => {
+    setLocations((prev) =>
+      prev.map((loc) =>
+        loc.id === locationId
+          ? {
+              ...loc,
+              tutorBays: loc.tutorBays.filter((bay) => bay.id !== bayId),
+            }
+          : loc
+      )
+    );
+  };
+
+  const startEditingBay = (locationId, bay) => {
+    setEditingBay({ locationId, bay });
+    bayForm.setValue("name", bay.name);
+  };
+
+  const cancelEditingBay = () => {
+    setEditingBay({ locationId: "", bay: null });
+    bayForm.reset();
+  };
+
+  return (
+    <Box p={4}>
+      <Box
+        sx={{
+          mx: "auto",
+          display: "flex",
+          flexDirection: "column",
+          gap: 4,
+        }}
+      >
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <Header
+            title="LOCATIONS & TUTOR BAYS"
+            subtitle="Manage locations and tutor bays"
+          />
+          <Button
+            variant="contained"
+            onClick={() => setShowAddLocationForm(true)}
+          >
+            Add Location
+          </Button>
+        </Box>
+
+        {/* Add Location Form */}
+        {showAddLocationForm && (
+          <Paper elevation={2} sx={{ p: 3 }}>
+            <Typography variant="h6" gutterBottom>
+              Add New Location
+            </Typography>
+            <Typography variant="body2" color="text.secondary" gutterBottom>
+              Enter details for the new location
+            </Typography>
+            <form onSubmit={locationForm.handleSubmit(addLocation)}>
+              <Grid container spacing={2} sx={{ paddingTop: "10px" }}>
+                <Grid size={{ xs: 12, md: 6 }}>
+                  <TextField
+                    fullWidth
+                    label="Location Name"
+                    {...locationForm.register("name")}
+                  />
+                </Grid>
+                <Grid size={{ xs: 12, md: 6 }}>
+                  <TextField
+                    fullWidth
+                    label="Address"
+                    {...locationForm.register("address")}
+                  />
+                </Grid>
+              </Grid>
+              <Box sx={{ mt: 2, display: "flex", gap: 2 }}>
+                <Button type="submit" variant="contained">
+                  Add
+                </Button>
+                <Button
+                  variant="outlined"
+                  color="error"
+                  onClick={() => {
+                    setShowAddLocationForm(false);
+                    locationForm.reset();
+                  }}
+                >
+                  Cancel
+                </Button>
+              </Box>
+            </form>
+          </Paper>
+        )}
+
+        {/* Location Cards */}
+        {locations.map((location) => (
+          <Paper key={location.id} elevation={2} sx={{ p: 3 }}>
+            {editingLocation?.id === location.id ? (
+              <form onSubmit={locationForm.handleSubmit(updateLocation)}>
+                <Grid container spacing={2}>
+                  <Grid size={{ xs: 12, md: 6 }}>
+                    <TextField
+                      fullWidth
+                      label="Location Name"
+                      {...locationForm.register("name")}
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, md: 6 }}>
+                    <TextField
+                      fullWidth
+                      label="Address"
+                      {...locationForm.register("address")}
+                    />
+                  </Grid>
+                </Grid>
+                <Box sx={{ mt: 2, display: "flex", gap: 2 }}>
+                  <Button type="submit" variant="contained" size="small">
+                    Update
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    color="error"
+                    onClick={cancelEditingLocation}
+                    size="small"
+                  >
+                    Cancel
+                  </Button>
+                </Box>
+              </form>
+            ) : (
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "flex-start",
+                }}
+              >
+                <Box>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <LocationOnIcon fontSize="medium" />
+                    <Typography variant="h4">{location.name}</Typography>
+                  </Box>
+                  <Typography variant="body2" color="text.secondary">
+                    {location.address}
+                  </Typography>
+                </Box>
+                <Box sx={{ display: "flex", gap: 1 }}>
+                  <IconButton onClick={() => startEditingLocation(location)}>
+                    <EditIcon />
+                  </IconButton>
+                  <IconButton
+                    onClick={() => deleteLocation(location.id)}
+                    color="error"
+                  >
+                    <DeleteIcon />
+                  </IconButton>
+                </Box>
+              </Box>
+            )}
+
+            <Divider sx={{ my: 2 }} />
+
+            {/* Tutor Bays Section */}
+            <Grid container spacing={2}>
+              <Grid size={{ xs: 12, md: 6 }}>
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    mb: 2,
+                  }}
+                >
+                  <Typography variant="h5">Tutor Bays</Typography>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    onClick={() => setShowAddBayForm(location.id)}
+                  >
+                    Add Bay
+                  </Button>
+                </Box>
+
+                {showAddBayForm === location.id && (
+                  <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
+                    <form
+                      onSubmit={bayForm.handleSubmit((data) =>
+                        addTutorBay(location.id, data)
+                      )}
+                    >
+                      <TextField
+                        fullWidth
+                        label="Bay Name"
+                        sx={{ mb: 2 }}
+                        {...bayForm.register("name")}
+                      />
+                      <Box sx={{ display: "flex", gap: 1 }}>
+                        <Button type="submit" variant="contained" size="small">
+                          Add
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outlined"
+                          color="error"
+                          size="small"
+                          onClick={() => {
+                            setShowAddBayForm(null);
+                            bayForm.reset();
+                          }}
+                        >
+                          Cancel
+                        </Button>
+                      </Box>
+                    </form>
+                  </Paper>
+                )}
+
+                {location.tutorBays.length === 0 ? (
+                  <Typography variant="body2" color="text.secondary">
+                    No tutor bays added yet
+                  </Typography>
+                ) : (
+                  location.tutorBays.map((bay) => (
+                    <Paper key={bay.id} variant="outlined" sx={{ p: 1, mb: 1 }}>
+                      {editingBay.bay?.id === bay.id &&
+                      editingBay.locationId === location.id ? (
+                        <form
+                          onSubmit={bayForm.handleSubmit((data) =>
+                            updateTutorBay(location.id, data)
+                          )}
+                        >
+                          <TextField
+                            fullWidth
+                            label="Bay Name"
+                            sx={{ mb: 1 }}
+                            {...bayForm.register("name")}
+                          />
+                          <Box sx={{ display: "flex", gap: 1 }}>
+                            <Button
+                              type="submit"
+                              size="small"
+                              variant="contained"
+                            >
+                              <CheckIcon fontSize="small" />
+                            </Button>
+                            <Button
+                              onClick={cancelEditingBay}
+                              size="small"
+                              color="error"
+                              variant="outlined"
+                            >
+                              <CloseIcon fontSize="small" />
+                            </Button>
+                          </Box>
+                        </form>
+                      ) : (
+                        <Box
+                          sx={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                          }}
+                        >
+                          <Chip label={bay.name} />
+                          {/* <Badge badgeContent={bay.name} color="secondary" /> */}
+                          <Box sx={{ display: "flex", gap: 1 }}>
+                            <IconButton
+                              onClick={() => startEditingBay(location.id, bay)}
+                              size="small"
+                            >
+                              <EditIcon fontSize="small" />
+                            </IconButton>
+                            <IconButton
+                              onClick={() =>
+                                deleteTutorBay(location.id, bay.id)
+                              }
+                              size="small"
+                            >
+                              <DeleteIcon fontSize="small" />
+                            </IconButton>
+                          </Box>
+                        </Box>
+                      )}
+                    </Paper>
+                  ))
+                )}
+              </Grid>
+
+              <Grid size={{ xs: 12, md: 6 }}>
+                <Box sx={{ height: "256px" }}>
+                  <GoogleMap
+                    address={location.address}
+                    color={colors.orangeAccent[700]}
+                  />
+                </Box>
+              </Grid>
+            </Grid>
+          </Paper>
+        ))}
+
+        {locations.length === 0 && (
+          <Paper elevation={2} sx={{ textAlign: "center", py: 6 }}>
+            <LocationOnIcon
+              sx={{ fontSize: 48, color: "text.secondary", mb: 2 }}
+            />
+            <Typography variant="h6" gutterBottom>
+              No locations added yet
+            </Typography>
+            <Typography variant="body2" color="text.secondary" gutterBottom>
+              Start by adding your first location
+            </Typography>
+            <Button
+              variant="contained"
+              onClick={() => setShowAddLocationForm(true)}
+            >
+              Add Your First Location
+            </Button>
+          </Paper>
+        )}
+      </Box>
+    </Box>
+  );
+};
+
+export default TutoringBayList;
