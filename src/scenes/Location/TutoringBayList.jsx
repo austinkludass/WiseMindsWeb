@@ -25,12 +25,22 @@ import {
   LocationOn as LocationOnIcon,
 } from "@mui/icons-material";
 import { tokens } from "../../theme";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { GoogleMap } from "../../components/Global/GoogleMap";
 import Header from "../../components/Global/Header";
+import { db } from "../../data/firebase";
+import {
+  collection,
+  doc,
+  setDoc,
+  deleteDoc,
+  updateDoc,
+  getDoc,
+  getDocs,
+} from "firebase/firestore";
 
 const locationSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -51,6 +61,16 @@ const TutoringBayList = () => {
   const [showAddBayForm, setShowAddBayForm] = useState(null);
   const [locationToDelete, setLocationToDelete] = useState(null);
 
+  useEffect(() => {
+    const fetchLocations = async () => {
+      const snapshot = await getDocs(collection(db, "locations"));
+      const fetched = snapshot.docs.map((doc) => doc.data());
+      setLocations(fetched);
+    };
+
+    fetchLocations();
+  }, []);
+
   const locationForm = useForm({
     resolver: zodResolver(locationSchema),
     defaultValues: { name: "", address: "" },
@@ -61,35 +81,43 @@ const TutoringBayList = () => {
     defaultValues: { name: "" },
   });
 
-  const addLocation = (data) => {
+  const addLocation = async (data) => {
+    const id = crypto.randomUUID();
     const newLocation = {
-      id: crypto.randomUUID(),
+      id,
       name: data.name,
       address: data.address,
       tutorBays: [],
     };
+
+    await setDoc(doc(db, "locations", id), newLocation);
 
     setLocations((prev) => [...prev, newLocation]);
     locationForm.reset();
     setShowAddLocationForm(false);
   };
 
-  const updateLocation = (data) => {
+  const updateLocation = async (data) => {
     if (!editingLocation) return;
 
+    const updated = {
+      ...editingLocation,
+      name: data.name,
+      address: data.address,
+    };
+
+    await setDoc(doc(db, "locations", editingLocation.id), updated);
+
     setLocations((prev) =>
-      prev.map((loc) =>
-        loc.id === editingLocation.id
-          ? { ...loc, name: data.name, address: data.address }
-          : loc
-      )
+      prev.map((loc) => (loc.id === editingLocation.id ? updated : loc))
     );
 
     setEditingLocation(null);
     locationForm.reset();
   };
 
-  const deleteLocation = (id) => {
+  const deleteLocation = async (id) => {
+    await deleteDoc(doc(db, "locations", id));
     setLocations((prev) => prev.filter((loc) => loc.id !== id));
   };
 
@@ -104,11 +132,8 @@ const TutoringBayList = () => {
     locationForm.reset();
   };
 
-  const addTutorBay = (locationId, data) => {
-    const newBay = {
-      id: crypto.randomUUID(),
-      name: data.name,
-    };
+  const addTutorBay = async (locationId, data) => {
+    const newBay = { id: crypto.randomUUID(), name: data.name };
 
     setLocations((prev) =>
       prev.map((loc) =>
@@ -118,11 +143,18 @@ const TutoringBayList = () => {
       )
     );
 
+    const locationDoc = doc(db, "locations", locationId);
+    const locationSnap = await getDoc(locationDoc);
+    if (locationSnap.exists()) {
+      const updatedTutorBays = [...locationSnap.data().tutorBays, newBay];
+      await updateDoc(locationDoc, { tutorBays: updatedTutorBays });
+    }
+
     bayForm.reset();
     setShowAddBayForm(null);
   };
 
-  const updateTutorBay = (locationId, data) => {
+  const updateTutorBay = async (locationId, data) => {
     if (!editingBay.bay) return;
 
     setLocations((prev) =>
@@ -138,11 +170,22 @@ const TutoringBayList = () => {
       )
     );
 
+    const locationDoc = doc(db, "locations", locationId);
+    const locationSnap = await getDoc(locationDoc);
+    if (locationSnap.exists()) {
+      const updatedTutorBays = locationSnap
+        .data()
+        .tutorBays.map((bay) =>
+          bay.id === editingBay.bay.id ? { ...bay, name: data.name } : bay
+        );
+      await updateDoc(locationDoc, { tutorBays: updatedTutorBays });
+    }
+
     setEditingBay({ locationId: "", bay: null });
     bayForm.reset();
   };
 
-  const deleteTutorBay = (locationId, bayId) => {
+  const deleteTutorBay = async (locationId, bayId) => {
     setLocations((prev) =>
       prev.map((loc) =>
         loc.id === locationId
@@ -153,6 +196,15 @@ const TutoringBayList = () => {
           : loc
       )
     );
+
+    const locationDoc = doc(db, "locations", locationId);
+    const locationSnap = await getDoc(locationDoc);
+    if (locationSnap.exists()) {
+      const updatedTutorBays = locationSnap
+        .data()
+        .tutorBays.filter((bay) => bay.id !== bayId);
+      await updateDoc(locationDoc, { tutorBays: updatedTutorBays });
+    }
   };
 
   const startEditingBay = (locationId, bay) => {
@@ -496,7 +548,13 @@ const TutoringBayList = () => {
           </DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setLocationToDelete(null)}>Cancel</Button>
+          <Button
+            variant="text"
+            color="error"
+            onClick={() => setLocationToDelete(null)}
+          >
+            Cancel
+          </Button>
           <Button
             onClick={() => {
               deleteLocation(locationToDelete.id);

@@ -574,7 +574,13 @@ const SubjectList = () => {
           {deleteType === "curriculum" && " and all its subjects."}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDeleteTarget(null)}>Cancel</Button>
+          <Button
+            variant="text"
+            color="error"
+            onClick={() => setDeleteTarget(null)}
+          >
+            Cancel
+          </Button>
           <Button color="error" variant="contained" onClick={confirmDelete}>
             Delete
           </Button>
