@@ -34,7 +34,6 @@ import {
   updateDoc,
 } from "firebase/firestore";
 import { db } from "../../data/firebase";
-import "./SubjectList.css"; // create this CSS file for custom styles
 import Header from "../../components/Global/Header";
 
 const SubjectList = () => {
@@ -226,7 +225,15 @@ const SubjectList = () => {
 
       {tab === 0 && (
         <Box>
-          <Card className="create-card">
+          <Card
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              padding: "16px",
+              gap: "16px",
+              marginBottom: "16px",
+            }}
+          >
             <TextField
               label="Enter curriculum name..."
               value={newCurriculum}
@@ -235,13 +242,21 @@ const SubjectList = () => {
               sx={{ mr: 2 }}
             />
             <Button variant="contained" onClick={handleAddCurriculum}>
-              Add Curriculum
+              Add
             </Button>
           </Card>
 
           <Box display="flex" flexWrap="wrap" gap={2} mt={2}>
             {curriculums.map((cur) => (
-              <Card key={cur.id} className="curriculum-card">
+              <Card
+                key={cur.id}
+                sx={{
+                  width: "100%",
+                  maxWidth: "480px",
+                  padding: "16px",
+                  borderRadius: "12px",
+                }}
+              >
                 <Box display="flex" justifyContent="space-between">
                   <Box display="flex" alignItems="center" gap={1}>
                     <BookIcon />
@@ -259,7 +274,15 @@ const SubjectList = () => {
                       } subjects`}
                     />
                   </Box>
-                  <Box>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      flex: "0",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      marginLeft: "10px",
+                    }}
+                  >
                     {editCurriculumId === cur.id ? (
                       <IconButton
                         onClick={() => saveEdit(cur.id, "curriculum")}
@@ -283,7 +306,7 @@ const SubjectList = () => {
                   </Box>
                 </Box>
 
-                <Stack direction="row" mt={2}>
+                <Stack direction="row" mt={2} spacing={2}>
                   <TextField
                     fullWidth
                     placeholder="Add new subject..."
@@ -295,10 +318,28 @@ const SubjectList = () => {
                       }))
                     }
                   />
-                  <Button onClick={() => handleAddSubject(cur.id)}>Add</Button>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <Button
+                      variant="contained"
+                      onClick={() => handleAddSubject(cur.id)}
+                    >
+                      Add
+                    </Button>
+                  </Box>
                 </Stack>
 
-                <Button size="small" onClick={() => toggleShowSubjects(cur.id)}>
+                <Button
+                  size="small"
+                  sx={{ mt: "10px" }}
+                  variant="outlined"
+                  onClick={() => toggleShowSubjects(cur.id)}
+                >
                   {showSubjectsMap[cur.id] ? "Hide Subjects" : "Show Subjects"}
                 </Button>
 
@@ -320,7 +361,14 @@ const SubjectList = () => {
                       return (
                         <Box
                           key={subject.id}
-                          className="subject-item"
+                          sx={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            padding: "8px 12px",
+                            marginTop: "8px",
+                            borderRadius: "8px",
+                          }}
                           style={style}
                           display="flex"
                           justifyContent="space-between"
@@ -346,7 +394,15 @@ const SubjectList = () => {
 
       {tab === 1 && (
         <Box>
-          <Card className="create-card">
+          <Card
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              padding: "16px",
+              gap: "16px",
+              marginBottom: "16px",
+            }}
+          >
             <TextField
               label="Enter group name..."
               value={newGroup}
@@ -355,13 +411,21 @@ const SubjectList = () => {
               sx={{ mr: 2 }}
             />
             <Button variant="contained" onClick={handleAddGroup}>
-              Add Group
+              Add
             </Button>
           </Card>
 
-          <Stack spacing={2} mt={2}>
+          <Box display="flex" flexWrap="wrap" gap={2} mt={2}>
             {groups.map((g) => (
-              <Card key={g.id} className="group-card">
+              <Card
+                key={g.id}
+                sx={{
+                  width: "100%",
+                  maxWidth: "480px",
+                  padding: "16px",
+                  borderRadius: "12px",
+                }}
+              >
                 <Box display="flex" justifyContent="space-between">
                   <Box display="flex" alignItems="center" gap={1}>
                     <GroupIcon />
@@ -378,7 +442,15 @@ const SubjectList = () => {
                       color="success"
                     />
                   </Box>
-                  <Box>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      flex: "0",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      marginLeft: "10px",
+                    }}
+                  >
                     {editGroupId === g.id ? (
                       <IconButton onClick={() => saveEdit(g.id, "group")}>
                         <SaveIcon />
@@ -435,18 +507,27 @@ const SubjectList = () => {
                       },
                     }}
                   />
-                  <Button
-                    disabled={!groupSubjectSelect[g.id]}
-                    onClick={() => {
-                      handleAddSubjectToGroup(g.id);
-                      setGroupSubjectSelect((prev) => ({
-                        ...prev,
-                        [g.id]: "",
-                      }));
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
                     }}
                   >
-                    Add
-                  </Button>
+                    <Button
+                      disabled={!groupSubjectSelect[g.id]}
+                      variant="contained"
+                      onClick={() => {
+                        handleAddSubjectToGroup(g.id);
+                        setGroupSubjectSelect((prev) => ({
+                          ...prev,
+                          [g.id]: "",
+                        }));
+                      }}
+                    >
+                      Add
+                    </Button>
+                  </Box>
                 </Stack>
 
                 <Box mt={1}>
@@ -456,7 +537,17 @@ const SubjectList = () => {
                       (c) => c.id === sub?.curriculumId
                     );
                     return (
-                      <Box className="subject-item" key={id}>
+                      <Box
+                        sx={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          padding: "8px 12px",
+                          marginTop: "8px",
+                          borderRadius: "8px",
+                        }}
+                        key={id}
+                      >
                         <Typography>
                           {sub?.name} <Chip size="small" label={cur?.name} />
                         </Typography>
@@ -471,7 +562,7 @@ const SubjectList = () => {
                 </Box>
               </Card>
             ))}
-          </Stack>
+          </Box>
         </Box>
       )}
 

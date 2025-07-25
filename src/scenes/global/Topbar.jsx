@@ -77,16 +77,6 @@ const Topbar = () => {
         <IconButton onClick={() => navigate("/")}>
           <HomeOutlined />
         </IconButton>
-        <IconButton onClick={colorMode.toggleColorMode}>
-          {theme.palette.mode === "dark" ? (
-            <DarkModeOutlinedIcon />
-          ) : (
-            <LightModeOutlinedIcon />
-          )}
-        </IconButton>
-        <IconButton>
-          <SettingsOutlinedIcon />
-        </IconButton>
         <IconButton onClick={handleMenuClick}>
           <PersonOutlinedIcon />
         </IconButton>
@@ -108,6 +98,16 @@ const Topbar = () => {
             <Typography color={colors.redAccent[400]}>Logout</Typography>
           </MenuItem>
         </Menu>
+        <IconButton onClick={colorMode.toggleColorMode}>
+          {theme.palette.mode === "dark" ? (
+            <DarkModeOutlinedIcon />
+          ) : (
+            <LightModeOutlinedIcon />
+          )}
+        </IconButton>
+        <IconButton>
+          <SettingsOutlinedIcon />
+        </IconButton>
       </Box>
     </Box>
   );

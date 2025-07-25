@@ -66,7 +66,7 @@ export const tokens = (mode) => ({
         },
         textColor: {
           400: "#E0E0E0",
-        }
+        },
       }
     : {
         grey: {
@@ -131,7 +131,7 @@ export const tokens = (mode) => ({
         },
         textColor: {
           400: "#141414",
-        }
+        },
       }),
 });
 
@@ -247,7 +247,7 @@ export const themeSettings = (mode) => {
           outlinedPrimary: {
             color: colors.orangeAccent[700],
             borderColor: colors.orangeAccent[700],
-          }
+          },
         },
       },
       MuiIconButton: {
@@ -314,9 +314,31 @@ export const themeSettings = (mode) => {
           },
           bar: {
             backgroundColor: colors.orangeAccent[700],
-          }
-        }
-      }
+          },
+        },
+      },
+      MuiTabs: {
+        styleOverrides: {
+          indicator: {
+            backgroundColor: colors.orangeAccent[400],
+            Height: "3px",
+          },
+        },
+      },
+      MuiTab: {
+        styleOverrides: {
+          root: {
+            color: colors.textColor[400],
+            "&.Mui-selected": {
+              fontWeight: "600",
+              color: colors.orangeAccent[400],
+            },
+            "&.Mui-focusVisible": {
+              border: `1px solid ${colors.orangeAccent[400]}`,
+            },
+          },
+        },
+      },
     },
   };
 };
