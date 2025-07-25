@@ -10,6 +10,11 @@ import {
   Badge,
   Chip,
   useTheme,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
 } from "@mui/material";
 import {
   Add as AddIcon,
@@ -44,6 +49,7 @@ const TutoringBayList = () => {
   const [showAddLocationForm, setShowAddLocationForm] = useState(false);
   const [editingBay, setEditingBay] = useState({ locationId: "", bay: null });
   const [showAddBayForm, setShowAddBayForm] = useState(null);
+  const [locationToDelete, setLocationToDelete] = useState(null);
 
   const locationForm = useForm({
     resolver: zodResolver(locationSchema),
@@ -290,7 +296,7 @@ const TutoringBayList = () => {
                     <EditIcon />
                   </IconButton>
                   <IconButton
-                    onClick={() => deleteLocation(location.id)}
+                    onClick={() => setLocationToDelete(location)}
                     color="error"
                   >
                     <DeleteIcon />
@@ -402,9 +408,25 @@ const TutoringBayList = () => {
                             alignItems: "center",
                           }}
                         >
-                          <Chip label={bay.name} />
-                          {/* <Badge badgeContent={bay.name} color="secondary" /> */}
-                          <Box sx={{ display: "flex", gap: 1 }}>
+                          <Box
+                            sx={{
+                              flex: 1,
+                              minWidth: 0,
+                              overflow: "hidden",
+                              whiteSpace: "nowrap",
+                              textOverflow: "ellipsis",
+                            }}
+                          >
+                            <Chip label={bay.name} sx={{ maxWidth: "100%" }} />
+                          </Box>
+                          <Box
+                            sx={{
+                              display: "flex",
+                              ml: 1,
+                              gap: 1,
+                              flexShrink: 0,
+                            }}
+                          >
                             <IconButton
                               onClick={() => startEditingBay(location.id, bay)}
                               size="small"
@@ -459,6 +481,34 @@ const TutoringBayList = () => {
           </Paper>
         )}
       </Box>
+
+      {/* Dialog Box */}
+      <Dialog
+        open={Boolean(locationToDelete)}
+        onClose={() => setLocationToDelete(null)}
+      >
+        <DialogTitle>Are you sure?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            This will delete the location{" "}
+            <strong>{locationToDelete?.name}</strong>. This action cannot be
+            undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setLocationToDelete(null)}>Cancel</Button>
+          <Button
+            onClick={() => {
+              deleteLocation(locationToDelete.id);
+              setLocationToDelete(null);
+            }}
+            color="error"
+            variant="contained"
+          >
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

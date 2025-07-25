@@ -575,7 +575,7 @@ const SubjectList = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDeleteTarget(null)}>Cancel</Button>
-          <Button color="error" onClick={confirmDelete}>
+          <Button color="error" variant="contained" onClick={confirmDelete}>
             Delete
           </Button>
         </DialogActions>
