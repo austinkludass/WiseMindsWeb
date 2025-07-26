@@ -30,6 +30,7 @@ import TutorWWVPInfo from "../../components/Tutor/TutorWWVPInfo";
 import TutorFirstAidInfo from "../../components/Tutor/TutorFirstAidInfo";
 import TutorPoliceCheckInfo from "../../components/Tutor/TutorPoliceCheckInfo";
 import TutorBlockedStudents from "../../components/Tutor/TutorBlockedStudents";
+import TutorCapabilities from "../../components/Tutor/TutorCapabilities";
 import "react-toastify/dist/ReactToastify.css";
 import "dayjs/locale/en-gb";
 
@@ -44,6 +45,7 @@ const NewTutor = () => {
   const [firstAidFile, setFirstAidFile] = useState(null);
   const [policeCheckFile, setPoliceCheckFile] = useState(null);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [capabilityIds, setCapabilityIds] = useState([]);
 
   const [touched, setTouched] = useState({
     firstName: false,
@@ -225,6 +227,7 @@ const NewTutor = () => {
         tutorColor: tutorColor.hex,
         availability: formattedAvailability,
         unavailability: specificUnavailability,
+        capabilities: capabilityIds,
         firstName: profileInfo.firstName,
         middleName: profileInfo.middleName,
         lastName: profileInfo.lastName,
@@ -391,7 +394,13 @@ const NewTutor = () => {
       </Paper>
 
       <Paper sx={{ p: 3, maxWidth: 1000, minWidth: 600, m: 4 }}>
-        <Typography variant="h4">Capabilities</Typography>
+        <Stack spacing={2}>
+          <Typography variant="h4">Capabilities</Typography>
+          <TutorCapabilities
+            selectedGroupIds={capabilityIds}
+            onChange={setCapabilityIds}
+          />
+        </Stack>
       </Paper>
 
       <Paper
@@ -411,37 +420,27 @@ const NewTutor = () => {
         </Stack>
       </Paper>
 
-      {/* Remove Paper to revert */}
-      {/* <Paper
-        sx={{
-          position: "fixed",
-          bottom: 0,
-          left: 0,
-          width: "99%",
-          maxWidth: "1111px",
-          zIndex: 1000,
-          p: 2,
-          boxShadow: "0 -2px 10px rgba(0, 0, 0, 0.1)",
-        }}
-      > */}
-        <Grid container justifyContent="flex-end" sx={{ alignItems: "center", m: 5 }}>
-          {loading && (
-            <LinearProgress
-              variant="determinate"
-              value={uploadProgress}
-              sx={{ width: "50%", marginRight: 4 }}
-            />
-          )}
-          <Button
-            loading={loading}
-            onClick={handleSubmit}
-            variant="contained"
-            color="primary"
-          >
-            <Typography variant="h4">Submit</Typography>
-          </Button>
-        </Grid>
-      {/* </Paper> */}
+      <Grid
+        container
+        justifyContent="flex-end"
+        sx={{ alignItems: "center", m: 5 }}
+      >
+        {loading && (
+          <LinearProgress
+            variant="determinate"
+            value={uploadProgress}
+            sx={{ width: "50%", marginRight: 4 }}
+          />
+        )}
+        <Button
+          loading={loading}
+          onClick={handleSubmit}
+          variant="contained"
+          color="primary"
+        >
+          <Typography variant="h4">Submit</Typography>
+        </Button>
+      </Grid>
 
       <ToastContainer position="top-right" autoClose={3000} />
     </LocalizationProvider>
