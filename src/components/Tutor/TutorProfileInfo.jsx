@@ -1,4 +1,4 @@
-import { React, useState } from "react";
+import { React, useState, useRef } from "react";
 import {
   Avatar,
   Stack,
@@ -19,10 +19,12 @@ import { tokens } from "../../theme";
 const TutorProfileInfo = ({
   formData,
   setFormData,
-  color,
-  setColor,
-  profilePicFile,
-  setProfilePicFile,
+  tutorColor,
+  setTutorColor,
+  profilePic,
+  setProfilePic,
+  profilePicPreview,
+  setProfilePicPreview,
   touched,
   setTouched,
   isEdit,
@@ -30,7 +32,7 @@ const TutorProfileInfo = ({
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
 
-  const [profilePicUrl, setProfilePicUrl] = useState(null);
+  const fileInputRef = useRef();
   const [hover, setHover] = useState(false);
 
   const isInvalid = (field) => touched[field] && !formData[field].trim();
@@ -42,9 +44,12 @@ const TutorProfileInfo = ({
   const handleProfilePicChange = (event) => {
     const file = event.target.files[0];
     if (file) {
-      const imageUrl = URL.createObjectURL(file);
-      setProfilePicFile(file);
-      setProfilePicUrl(imageUrl);
+      setProfilePic(file);
+      setProfilePicPreview(URL.createObjectURL(file));
+    }
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
     }
   };
 
@@ -77,13 +82,13 @@ const TutorProfileInfo = ({
             onMouseLeave={() => setHover(false)}
           >
             <Avatar
-              src={isEdit ? profilePicUrl : profilePicFile}
+              src={isEdit ? (profilePicPreview ?? profilePic) : profilePic}
               sx={{
                 width: 140,
                 height: 140,
-                bgcolor: color.hex,
+                bgcolor: tutorColor.hex,
                 position: "absolute",
-                border: `4px solid ${color.hex}`,
+                border: `4px solid ${tutorColor.hex}`,
               }}
             />
             {hover && isEdit && (
@@ -114,13 +119,14 @@ const TutorProfileInfo = ({
               id="profilePicInput"
               hidden
               accept="image/*"
+              ref={fileInputRef}
               onChange={handleProfilePicChange}
             />
           </Box>
           {isEdit && (
             <Stack spacing={1}>
-              <Saturation height={70} color={color} onChange={setColor} />
-              <Hue color={color} onChange={setColor} />
+              <Saturation height={70} color={tutorColor} onChange={setTutorColor} />
+              <Hue color={tutorColor} onChange={setTutorColor} />
             </Stack>
           )}
         </Stack>

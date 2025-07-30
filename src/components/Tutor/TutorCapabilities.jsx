@@ -11,7 +11,11 @@ import {
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../../data/firebase";
 
-const TutorCapabilities = ({ selectedGroupIds, onChange }) => {
+const TutorCapabilities = ({
+  capabilityIds = [],
+  setCapabilityIds,
+  isEdit,
+}) => {
   const [subjectGroups, setSubjectGroups] = useState([]);
   const [autocompleteValue, setAutocompleteValue] = useState(null);
   const [inputValue, setInputValue] = useState("");
@@ -36,24 +40,22 @@ const TutorCapabilities = ({ selectedGroupIds, onChange }) => {
   }, []);
 
   const getGroupById = (id) => subjectGroups.find((g) => g.id === id);
+  const selectedGroups = capabilityIds.map(getGroupById).filter(Boolean);
+  const availableGroups = subjectGroups.filter(
+    (group) => !capabilityIds.includes(group.id)
+  );
 
   const handleAddGroup = (event, newValue) => {
-    if (newValue && !selectedGroupIds.includes(newValue.id)) {
-      onChange([...selectedGroupIds, newValue.id]);
+    if (newValue && !capabilityIds.includes(newValue.id)) {
+      setCapabilityIds([...capabilityIds, newValue.id]);
     }
     setAutocompleteValue(null);
     setInputValue("");
   };
 
   const handleRemoveGroup = (id) => {
-    onChange(selectedGroupIds.filter((groupId) => groupId !== id));
+    setCapabilityIds(capabilityIds.filter((groupId) => groupId !== id));
   };
-
-  const selectedGroups = selectedGroupIds.map(getGroupById).filter(Boolean);
-
-  const availableGroups = subjectGroups.filter(
-    (group) => !selectedGroupIds.includes(group.id)
-  );
 
   return (
     <Box sx={{ mb: 4 }}>
@@ -61,35 +63,40 @@ const TutorCapabilities = ({ selectedGroupIds, onChange }) => {
         <CircularProgress />
       ) : (
         <>
-          <Autocomplete
-            options={availableGroups}
-            getOptionLabel={(option) => option.name}
-            value={autocompleteValue}
-            inputValue={inputValue}
-            onChange={handleAddGroup}
-            onInputChange={(event, newInputValue) =>
-              setInputValue(newInputValue)
-            }
-            renderInput={(params) => (
-              <TextField
-                {...params}
-                label="Search Subject Groups"
-                placeholder="Type to search..."
-              />
-            )}
-            isOptionEqualToValue={(option, value) => option.id === value?.id}
-            clearOnBlur
-          />
+          {isEdit && (
+            <Autocomplete
+              options={availableGroups}
+              getOptionLabel={(option) => option.name}
+              value={autocompleteValue}
+              inputValue={inputValue}
+              onChange={handleAddGroup}
+              onInputChange={(event, newInputValue) =>
+                setInputValue(newInputValue)
+              }
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Search Subject Groups"
+                  placeholder="Type to search..."
+                />
+              )}
+              isOptionEqualToValue={(option, value) => option.id === value?.id}
+              clearOnBlur
+            />
+          )}
 
           {selectedGroups.length > 0 && (
-            <Box mt={2}>
-              <Typography variant="h6">Selected Groups</Typography>
+            <Box mt={isEdit ? 2 : 0}>
+              {isEdit && <Typography variant="h6">Selected Groups</Typography>}
               <Stack direction="row" spacing={1} flexWrap="wrap">
                 {selectedGroups.map((group) => (
                   <Chip
                     key={group.id}
                     label={group.name}
-                    onDelete={() => handleRemoveGroup(group.id)}
+                    onDelete={
+                      isEdit ? () => handleRemoveGroup(group.id) : undefined
+                    }
+                    variant={isEdit ? "filled" : "outlined"}
                   />
                 ))}
               </Stack>

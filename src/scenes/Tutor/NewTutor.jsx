@@ -46,6 +46,7 @@ const NewTutor = () => {
   const [policeCheckFile, setPoliceCheckFile] = useState(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [capabilityIds, setCapabilityIds] = useState([]);
+  const [blockedStudentIds, setBlockedStudentIds] = useState([]);
 
   const [touched, setTouched] = useState({
     firstName: false,
@@ -228,6 +229,7 @@ const NewTutor = () => {
         availability: formattedAvailability,
         unavailability: specificUnavailability,
         capabilities: capabilityIds,
+        blockedStudents: blockedStudentIds,
         firstName: profileInfo.firstName,
         middleName: profileInfo.middleName,
         lastName: profileInfo.lastName,
@@ -399,6 +401,7 @@ const NewTutor = () => {
           <TutorCapabilities
             selectedGroupIds={capabilityIds}
             onChange={setCapabilityIds}
+            isEdit={true}
           />
         </Stack>
       </Paper>
@@ -416,7 +419,11 @@ const NewTutor = () => {
       >
         <Stack spacing={2}>
           <Typography variant="h4">Blocked Students</Typography>
-          <TutorBlockedStudents />
+          <TutorBlockedStudents
+            selectedStudentIds={blockedStudentIds}
+            onChange={setBlockedStudentIds}
+            isEdit={true}
+          />
         </Stack>
       </Paper>
 
