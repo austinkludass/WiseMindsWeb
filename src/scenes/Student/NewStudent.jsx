@@ -25,13 +25,13 @@ import StudentAcademicInfo from "../../components/student/StudentAcademicInfo";
 import StudentAdditionalInfo from "../../components/student/StudentAdditionalInfo";
 import StudentTrialInfo from "../../components/student/StudentTrialInfo";
 import StudentAvailabilityInfo from "../../components/student/StudentAvailabilityInfo";
-import StudentAdminInformation from "../../components/student/StudentAdminInformation";
+import StudentAdminInfo from "../../components/student/StudentAdminInfo";
 import "dayjs/locale/en-gb";
 
 const NewStudent = () => {
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
-  
+
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -87,7 +87,6 @@ const NewStudent = () => {
         questions: additionalInfo.questions,
         howUserHeard: additionalInfo.howUserHeard,
         preferredStart: trialInfo.preferredStart?.toISOString() || null,
-        isSameAsTrial: availabilityInfo.isSameAsTrial,
         trialAvailability: AvailabilityFormatter(trialAvailability),
         availability: AvailabilityFormatter(availability),
         subjects: subjects,
@@ -151,10 +150,6 @@ const NewStudent = () => {
     preferredStart: null,
   });
 
-  const [availabilityInfo, setAvailabilityInfo] = useState({
-    isSameAsTrial: false,
-  });
-
   const [adminInfo, setAdminInfo] = useState({
     homeLocation: "belconnen",
   });
@@ -181,11 +176,6 @@ const NewStudent = () => {
   );
 
   const setTrialInfoCallback = useCallback((info) => setTrialInfo(info), []);
-
-  const setAvailabilityInfoCallback = useCallback(
-    (info) => setAvailabilityInfo(info),
-    []
-  );
 
   const setAdminInfoCallback = useCallback((info) => setAdminInfo(info), []);
 
@@ -273,8 +263,6 @@ const NewStudent = () => {
         <Stack spacing={2}>
           <Typography variant="h4">Regular Availability</Typography>
           <StudentAvailabilityInfo
-            formData={availabilityInfo}
-            setFormData={setAvailabilityInfoCallback}
             isEdit={true}
             availability={availability}
             setAvailability={setAvailability}
@@ -298,7 +286,7 @@ const NewStudent = () => {
       <Paper sx={{ p: 3, maxWidth: 1000, minWidth: 600, m: 4 }}>
         <Stack spacing={2}>
           <Typography variant="h4">Admin Information</Typography>
-          <StudentAdminInformation
+          <StudentAdminInfo
             formData={adminInfo}
             setFormData={setAdminInfoCallback}
             isEdit={true}

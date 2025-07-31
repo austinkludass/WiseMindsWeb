@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   Typography,
   Stack,
@@ -16,10 +16,32 @@ import {
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { tokens } from "../../theme";
+import { collection, getDocs } from "firebase/firestore";
+import { db } from "../../data/firebase";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const TutorPersonalInfo = ({ formData, setFormData, isEdit }) => {
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
+  const [locations, setLocations] = useState([]);
+
+  useEffect(() => {
+    const fetchLocations = async () => {
+      try {
+        const snapshot = await getDocs(collection(db, "locations"));
+        const locs = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setLocations(locs);
+      } catch (error) {
+        toast.error("Error fetching locations: ", error);
+      }
+    };
+
+    fetchLocations();
+  });
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -66,7 +88,7 @@ const TutorPersonalInfo = ({ formData, setFormData, isEdit }) => {
                 value={formData.position}
                 onChange={handleChange}
               />
-              <FormControl disabled fullWidth>
+              <FormControl fullWidth>
                 <InputLabel id="location-select-label">
                   Home Location
                 </InputLabel>
@@ -76,7 +98,13 @@ const TutorPersonalInfo = ({ formData, setFormData, isEdit }) => {
                   labelId="location-select-label"
                   value={formData.homeLocation}
                   onChange={handleChange}
-                ></Select>
+                >
+                  {locations.map((loc) => (
+                    <MenuItem key={loc.id} value={loc.id}>
+                      {loc.name}
+                    </MenuItem>
+                  ))}
+                </Select>
               </FormControl>
               <FormControl disabled fullWidth>
                 <InputLabel id="role-select-label">Role</InputLabel>
@@ -152,9 +180,16 @@ const TutorPersonalInfo = ({ formData, setFormData, isEdit }) => {
                 >
                   Home Location
                 </Typography>
-                <Typography variant="h6" color={colors.grey[100]}>
-                  {formData.homeLocation}
-                </Typography>
+                {locations.length === 0 ? (
+                  <Typography variant="h6" color={colors.grey[100]}>
+                    Loading ...
+                  </Typography>
+                ) : (
+                  <Typography variant="h6" color={colors.grey[100]}>
+                    {locations.find((loc) => loc.id === formData.homeLocation)
+                      ?.name || "Unknown Location"}
+                  </Typography>
+                )}
               </div>
               <div style={{ display: "flex", gap: "10px" }}>
                 <Typography
@@ -179,13 +214,14 @@ const TutorPersonalInfo = ({ formData, setFormData, isEdit }) => {
                   Hours (Min - Max)
                 </Typography>
                 <Typography variant="h6" color={colors.grey[100]}>
-                {formData.hours[0]} - {formData.hours[1]}
+                  {formData.hours[0]} - {formData.hours[1]}
                 </Typography>
               </div>
             </>
           )}
         </Stack>
       </AccordionDetails>
+      <ToastContainer position="top-right" autoClose={3000} />
     </Accordion>
   );
 };

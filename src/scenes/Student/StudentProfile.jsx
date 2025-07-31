@@ -17,7 +17,8 @@ import StudentAcademicInfo from "../../components/student/StudentAcademicInfo";
 import StudentTrialInfo from "../../components/student/StudentTrialInfo";
 import StudentAvailabilityInfo from "../../components/student/StudentAvailabilityInfo";
 import StudentAdditionalInfo from "../../components/student/StudentAdditionalInfo";
-import StudentAdminInformation from "../../components/student/StudentAdminInformation";
+import StudentAdminInfo from "../../components/student/StudentAdminInfo";
+import AvailabilityFormatter from "../../utils/AvailabilityFormatter";
 
 const StudentProfile = () => {
   const theme = useTheme();
@@ -82,7 +83,7 @@ const StudentProfile = () => {
     availability: {
       title: "Regular Availability",
       component: StudentAvailabilityInfo,
-      fields: ["isSameAsTrial"],
+      fields: [],
       extraProps: { availability, setAvailability },
     },
     additional: {
@@ -92,7 +93,7 @@ const StudentProfile = () => {
     },
     admin: {
       title: "Admin Information",
-      component: StudentAdminInformation,
+      component: StudentAdminInfo,
       fields: ["homeLocation"],
     },
   };
@@ -139,9 +140,9 @@ const StudentProfile = () => {
     if (key === "academic") {
       payload.subjects = subjects;
     } else if (key === "trial") {
-      payload.trialAvailability = trialAvailability;
+      payload.trialAvailability = AvailabilityFormatter(trialAvailability);
     } else if (key === "availability") {
-      payload.availability = availability;
+      payload.availability = AvailabilityFormatter(availability);
     }
 
     try {
@@ -163,6 +164,13 @@ const StudentProfile = () => {
     });
     setForm(key, resetData);
     toggleEdit(key, false);
+
+    if (key === "availability") {
+      setAvailability(student.availability);
+    }
+    if (key === "trial") {
+      setTrialAvailability(student.trialAvailability);
+    }
   };
 
   if (!student) return <Typography>Loading...</Typography>;

@@ -1,4 +1,4 @@
-import { React, useState, useMemo, useCallback } from "react";
+import { React, useState, useCallback } from "react";
 import {
   Paper,
   Typography,
@@ -33,6 +33,7 @@ import TutorBlockedStudents from "../../components/Tutor/TutorBlockedStudents";
 import TutorCapabilities from "../../components/Tutor/TutorCapabilities";
 import "react-toastify/dist/ReactToastify.css";
 import "dayjs/locale/en-gb";
+import AvailabilityFormatter from "../../utils/AvailabilityFormatter";
 
 const NewTutor = () => {
   const navigate = useNavigate();
@@ -40,7 +41,8 @@ const NewTutor = () => {
   const [specificUnavailability, setSpecificUnavailability] = useState([]);
   const [availability, setAvailability] = useState({});
   const [profilePic, setProfilePic] = useState(null);
-  const [tutorColor, setTutorColor] = useColor("#6e6e6e");
+  const [profilePicPreview, setProfilePicPreview] = useState(null);
+  const [tutorColor, setTutorColor] = useColor("#6E6E6E");
   const [wwvpFile, setWwvpFile] = useState(null);
   const [firstAidFile, setFirstAidFile] = useState(null);
   const [policeCheckFile, setPoliceCheckFile] = useState(null);
@@ -122,10 +124,6 @@ const NewTutor = () => {
     pcResult: "",
     pcAPPRef: "",
   });
-
-  const handleAvailabilityChange = (updatedAvailability) => {
-    setAvailability(updatedAvailability);
-  };
 
   const isFormValid = () => {
     return (
@@ -226,7 +224,7 @@ const NewTutor = () => {
         firstAidFilePath: firstAidFileUrl,
         policeCheckFilePath: policeCheckFileUrl,
         tutorColor: tutorColor.hex,
-        availability: formattedAvailability,
+        availability: AvailabilityFormatter(availability),
         unavailability: specificUnavailability,
         capabilities: capabilityIds,
         blockedStudents: blockedStudentIds,
@@ -281,24 +279,6 @@ const NewTutor = () => {
     }
   };
 
-  const formattedAvailability = useMemo(() => {
-    return Object.fromEntries(
-      Object.entries(availability).map(([day, slots]) => [
-        day,
-        slots.map((slot) => ({
-          start: new Date(slot.start).toLocaleTimeString("en-GB", {
-            hour: "2-digit",
-            minute: "2-digit",
-          }),
-          end: new Date(slot.end).toLocaleTimeString("en-GB", {
-            hour: "2-digit",
-            minute: "2-digit",
-          }),
-        })),
-      ])
-    );
-  }, [availability]);
-
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="en-gb">
       <Box display="flex" m="20px">
@@ -309,10 +289,12 @@ const NewTutor = () => {
         <TutorProfileInfo
           formData={profileInfo}
           setFormData={setProfileInfoCallback}
-          color={tutorColor}
-          setColor={setTutorColor}
-          profilePicFile={profilePic}
-          setProfilePicFile={setProfilePic}
+          tutorColor={tutorColor}
+          setTutorColor={setTutorColor}
+          profilePic={profilePic}
+          setProfilePic={setProfilePic}
+          profilePicPreview={profilePicPreview}
+          setProfilePicPreview={setProfilePicPreview}
           touched={touched}
           setTouched={setTouched}
           isEdit={true}
@@ -378,7 +360,7 @@ const NewTutor = () => {
         <Stack spacing={2}>
           <Typography variant="h4">Availability</Typography>
           <AvailabilitySelector
-            onAvailabilityChange={handleAvailabilityChange}
+            onAvailabilityChange={setAvailability}
             isEdit={true}
           />
         </Stack>
@@ -399,8 +381,8 @@ const NewTutor = () => {
         <Stack spacing={2}>
           <Typography variant="h4">Capabilities</Typography>
           <TutorCapabilities
-            selectedGroupIds={capabilityIds}
-            onChange={setCapabilityIds}
+            capabilityIds={capabilityIds}
+            setCapabilityIds={setCapabilityIds}
             isEdit={true}
           />
         </Stack>
@@ -420,8 +402,8 @@ const NewTutor = () => {
         <Stack spacing={2}>
           <Typography variant="h4">Blocked Students</Typography>
           <TutorBlockedStudents
-            selectedStudentIds={blockedStudentIds}
-            onChange={setBlockedStudentIds}
+            blockedStudentIds={blockedStudentIds}
+            setBlockedStudentIds={setBlockedStudentIds}
             isEdit={true}
           />
         </Stack>
