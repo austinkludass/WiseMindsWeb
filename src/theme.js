@@ -339,6 +339,13 @@ export const themeSettings = (mode) => {
           },
         },
       },
+      MuiCircularProgress: {
+        styleOverrides: {
+          root: {
+            color: colors.orangeAccent[400],
+          },
+        },
+      },
     },
   };
 };

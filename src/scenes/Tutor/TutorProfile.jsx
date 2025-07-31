@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { db } from "../../data/firebase";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
-import { Typography, Box, Button, CircularProgress } from "@mui/material";
+import { Box, Button, CircularProgress } from "@mui/material";
 import { LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { ToastContainer, toast } from "react-toastify";
@@ -338,7 +338,20 @@ const TutorProfile = () => {
     }
   };
 
-  if (!tutor) return <Typography>Loading...</Typography>;
+  if (!tutor) {
+    return (
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          height: "80vh",
+        }}
+      >
+        <CircularProgress size={60} thickness={2} />
+      </Box>
+    );
+  }
 
   // const isSelf = currentUser?.uid === tutorId;
   // const isAdmin = currentUser?.role === "admin";

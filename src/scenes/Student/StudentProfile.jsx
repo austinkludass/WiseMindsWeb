@@ -1,7 +1,13 @@
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { Box, Button, Typography, useTheme } from "@mui/material";
+import {
+  Box,
+  Button,
+  Typography,
+  useTheme,
+  CircularProgress,
+} from "@mui/material";
 import { LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { db } from "../../data/firebase";
@@ -146,10 +152,10 @@ const StudentProfile = () => {
     }
 
     try {
-        await updateDoc(studentRef, payload);
-        toast.success("Successfully updated student");
+      await updateDoc(studentRef, payload);
+      toast.success("Successfully updated student");
     } catch (error) {
-        toast.error("Error updating student: " + error.message);
+      toast.error("Error updating student: " + error.message);
     }
     setStudent((prev) => ({ ...prev, ...payload }));
     toggleEdit(key, false);
@@ -173,7 +179,20 @@ const StudentProfile = () => {
     }
   };
 
-  if (!student) return <Typography>Loading...</Typography>;
+  if (!student) {
+    return (
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          height: "80vh",
+        }}
+      >
+        <CircularProgress size={60} thickness={2} />
+      </Box>
+    );
+  }
 
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="en-gb">
