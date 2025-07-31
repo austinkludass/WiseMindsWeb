@@ -16,6 +16,7 @@ import { toast, ToastContainer } from "react-toastify";
 import { addDoc, collection } from "firebase/firestore";
 import { db } from "../../data/firebase";
 import { useNavigate } from "react-router-dom";
+import AvailabilityFormatter from "../../utils/AvailabilityFormatter";
 import Header from "../../components/Global/Header";
 import StudentGeneralInfo from "../../components/student/StudentGeneralInfo";
 import StudentFamilyInfo from "../../components/student/StudentFamilyInfo";
@@ -87,8 +88,8 @@ const NewStudent = () => {
         howUserHeard: additionalInfo.howUserHeard,
         preferredStart: trialInfo.preferredStart?.toISOString() || null,
         isSameAsTrial: availabilityInfo.isSameAsTrial,
-        trialAvailability: formatAvailability(trialAvailability),
-        availability: formatAvailability(availability),
+        trialAvailability: AvailabilityFormatter(trialAvailability),
+        availability: AvailabilityFormatter(availability),
         subjects: subjects,
         homeLocation: adminInfo.homeLocation,
       });
@@ -187,24 +188,6 @@ const NewStudent = () => {
   );
 
   const setAdminInfoCallback = useCallback((info) => setAdminInfo(info), []);
-
-  const formatAvailability = (availabilityObj) => {
-    return Object.fromEntries(
-      Object.entries(availabilityObj).map(([day, slots]) => [
-        day,
-        slots.map((slot) => ({
-          start: new Date(slot.start).toLocaleTimeString("en-GB", {
-            hour: "2-digit",
-            minute: "2-digit",
-          }),
-          end: new Date(slot.end).toLocaleTimeString("en-GB", {
-            hour: "2-digit",
-            minute: "2-digit",
-          }),
-        })),
-      ])
-    );
-  };
 
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="en-gb">

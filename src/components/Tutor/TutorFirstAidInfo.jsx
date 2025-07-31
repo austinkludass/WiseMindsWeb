@@ -47,10 +47,6 @@ const TutorFirstAidInfo = ({
     }
   };
 
-  const handleOpenFirstAidPDF = () => {
-    setOpenFirstAid(true);
-  };
-
   const handleCloseFirstAidPDF = () => {
     setOpenFirstAid(false);
   };
@@ -109,9 +105,17 @@ const TutorFirstAidInfo = ({
                 />
               </Button>
               <Button
-                disabled={!firstAidFile}
+                disabled={!firstAidFile && !formData.firstAidFilePath}
                 variant="outlined"
-                onClick={handleOpenFirstAidPDF}
+                onClick={() => {
+                  if (firstAidFile) {
+                    const fileUrl = URL.createObjectURL(firstAidFile);
+                    setFirstAidUrl(fileUrl);
+                  } else if (formData.firstAidFilePath) {
+                    setFirstAidUrl(formData.firstAidFilePath);
+                  }
+                  setOpenFirstAid(true);
+                }}
               >
                 VIEW
               </Button>

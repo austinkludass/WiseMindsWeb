@@ -47,10 +47,6 @@ const TutorWWVPInfo = ({
     }
   };
 
-  const handleOpenWwvpPDF = () => {
-    setOpenWwvp(true);
-  };
-
   const handleCloseWwvpPDF = () => {
     setOpenWwvp(false);
   };
@@ -85,7 +81,7 @@ const TutorWWVPInfo = ({
               <DatePicker
                 label="Expiry"
                 onChange={handleDateChange("wwvpExpiry")}
-                value={formData.wwvpExpiry ? dayjs(formData.wwvpExpiry) : null}
+                value={formData.wwvpExpiry}
               />
               <Button variant="contained" component="label">
                 UPLOAD WORKING WITH VULNERABLE PEOPLE DOCUMENT
@@ -98,9 +94,17 @@ const TutorWWVPInfo = ({
                 />
               </Button>
               <Button
-                disabled={!wwvpFile}
+                disabled={!wwvpFile && !formData.wwvpFilePath}
                 variant="outlined"
-                onClick={handleOpenWwvpPDF}
+                onClick={() => {
+                  if (wwvpFile) {
+                    const fileUrl = URL.createObjectURL(wwvpFile);
+                    setWwvpUrl(fileUrl);
+                  } else if (formData.wwvpFilePath) {
+                    setWwvpUrl(formData.wwvpFilePath);
+                  }
+                  setOpenWwvp(true);
+                }}
               >
                 VIEW
               </Button>

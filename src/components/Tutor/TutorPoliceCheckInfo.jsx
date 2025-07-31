@@ -47,10 +47,6 @@ const TutorPoliceCheckInfo = ({
     }
   };
 
-  const handleOpenPoliceCheckPDF = () => {
-    setOpenPoliceCheck(true);
-  };
-
   const handleClosePoliceCheckPDF = () => {
     setOpenPoliceCheck(false);
   };
@@ -108,9 +104,17 @@ const TutorPoliceCheckInfo = ({
                 />
               </Button>
               <Button
-                disabled={!policeCheckFile}
+                disabled={!policeCheckFile && !formData.policeCheckFilePath}
                 variant="outlined"
-                onClick={handleOpenPoliceCheckPDF}
+                onClick={() => {
+                  if (policeCheckFile) {
+                    const fileUrl = URL.createObjectURL(policeCheckFile);
+                    setPoliceCheckUrl(fileUrl);
+                  } else if (formData.policeCheckFilePath) {
+                    setPoliceCheckUrl(formData.policeCheckFilePath);
+                  }
+                  setOpenPoliceCheck(true);
+                }}
               >
                 VIEW
               </Button>

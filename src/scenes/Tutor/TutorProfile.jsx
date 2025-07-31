@@ -23,6 +23,7 @@ import AvailabilitySelector from "../../components/Tutor/AvailabilitySelector";
 import UnavailabilitySelector from "../../components/Tutor/UnavailabilitySelector";
 import TutorCapabilities from "../../components/Tutor/TutorCapabilities";
 import TutorBlockedStudents from "../../components/Tutor/TutorBlockedStudents";
+import AvailabilityFormatter from "../../utils/AvailabilityFormatter";
 import "dayjs/locale/en-gb";
 
 const TutorProfile = () => {
@@ -35,11 +36,14 @@ const TutorProfile = () => {
   const [tutorColor, setTutorColor] = useColor("hex", "#6E6E6E");
   const [profilePic, setProfilePic] = useState(null);
   const [profilePicPreview, setProfilePicPreview] = useState(null);
+  const [wwvpFile, setWwvpFile] = useState(null);
+  const [firstAidFile, setFirstAidFile] = useState(null);
+  const [policeCheckFile, setPoliceCheckFile] = useState(null);
   const [availability, setAvailability] = useState({});
   const [unavailability, setUnavailability] = useState({});
   const [capabilityIds, setCapabilityIds] = useState([]);
   const [blockedStudentIds, setBlockedStudentIds] = useState([]);
-  const dateFields = ["dateOfBirth", "wwvpExpiry"];
+  const dateFields = ["dateOfBirth", "wwvpExpiry", "faCourseDate", "faExpiry"];
   const [isSaving, setIsSaving] = useState(false);
 
   const setForm = (key, value) =>
@@ -109,6 +113,7 @@ const TutorProfile = () => {
         "wwvpExpiry",
         "wwvpFilePath",
       ],
+      extraProps: { wwvpFile, setWwvpFile },
     },
     firstaid: {
       title: "",
@@ -122,6 +127,7 @@ const TutorProfile = () => {
         "faExpiry",
         "firstAidFilePath",
       ],
+      extraProps: { firstAidFile, setFirstAidFile },
     },
     policecheck: {
       title: "",
@@ -134,18 +140,25 @@ const TutorProfile = () => {
         "pcAPPRef",
         "policeCheckFilePath",
       ],
+      extraProps: { policeCheckFile, setPoliceCheckFile },
     },
     availability: {
       title: "Availability",
       component: AvailabilitySelector,
       fields: [],
-      extraProps: { availability, setAvailability },
+      extraProps: {
+        initialAvailability: availability,
+        onAvailabilityChange: setAvailability,
+      },
     },
     unavailability: {
       title: "Unavailability",
       component: UnavailabilitySelector,
       fields: [],
-      extraProps: { unavailability, setUnavailability },
+      extraProps: {
+        unavailability,
+        onChange: setUnavailability,
+      },
     },
     capabilities: {
       title: "Capabilities",
@@ -177,7 +190,7 @@ const TutorProfile = () => {
       setTutor(data);
       setTutorColor(ColorService.convert("hex", data.tutorColor));
       setProfilePic(data.avatar);
-      setAvailability(data.availability);
+      setAvailability(data.availability || {});
       setUnavailability(data.unavailability);
       setCapabilityIds(data.capabilities);
       setBlockedStudentIds(data.blockedStudents);
@@ -188,7 +201,9 @@ const TutorProfile = () => {
         formConfigs[key].fields.forEach((f) => {
           const value = data[f];
           initialForms[key][f] =
-            f.toLowerCase().includes("date") && value
+            (f.toLowerCase().includes("date") ||
+              f.toLowerCase().includes("expiry")) &&
+            value
               ? dayjs(value)
               : value ?? "";
         });
@@ -209,6 +224,9 @@ const TutorProfile = () => {
       payload.dateOfBirth = payload.dateOfBirth.toISOString();
     if (payload.wwvpExpiry)
       payload.wwvpExpiry = payload.wwvpExpiry.toISOString();
+    if (payload.faCourseDate)
+      payload.faCourseDate = payload.faCourseDate.toISOString();
+    if (payload.faExpiry) payload.faExpiry = payload.faExpiry.toISOString();
 
     if (key === "profile") {
       payload.tutorColor = tutorColor.hex;
@@ -223,8 +241,41 @@ const TutorProfile = () => {
       } else {
         payload.avatar = profilePic;
       }
+    } else if (key === "wwvp") {
+      if (wwvpFile instanceof File) {
+        const storage = getStorage();
+        const storageRef = ref(storage, `wwvpFiles/${tutorId}`);
+        await uploadBytes(storageRef, wwvpFile);
+        const downloadURL = await getDownloadURL(storageRef);
+        payload.wwvpFilePath = downloadURL;
+        setWwvpFile(null);
+      } else {
+        payload.wwvpFilePath = tutor.wwvpFilePath;
+      }
+    } else if (key === "firstaid") {
+      if (firstAidFile instanceof File) {
+        const storage = getStorage();
+        const storageRef = ref(storage, `firstAidFiles/${tutorId}`);
+        await uploadBytes(storageRef, firstAidFile);
+        const downloadURL = await getDownloadURL(storageRef);
+        payload.firstAidFilePath = downloadURL;
+        setFirstAidFile(null);
+      } else {
+        payload.firstAidFilePath = tutor.firstAidFilePath;
+      }
+    } else if (key === "policecheck") {
+      if (policeCheckFile instanceof File) {
+        const storage = getStorage();
+        const storageRef = ref(storage, `policeCheckFiles/${tutorId}`);
+        await uploadBytes(storageRef, policeCheckFile);
+        const downloadURL = await getDownloadURL(storageRef);
+        payload.policeCheckFilePath = downloadURL;
+        setPoliceCheckFile(null);
+      } else {
+        payload.policeCheckFilePath = tutor.policeCheckFilePath;
+      }
     } else if (key === "availability") {
-      payload.availability = availability;
+      payload.availability = AvailabilityFormatter(availability);
     } else if (key === "unavailability") {
       payload.unavailability = unavailability;
     } else if (key === "capabilities") {
@@ -263,6 +314,27 @@ const TutorProfile = () => {
         setProfilePic(tutor.avatar);
         setProfilePicPreview(null);
       }
+    }
+    if (key === "wwvp") {
+      setWwvpFile(null);
+    }
+    if (key === "firstaid") {
+      setFirstAidFile(null);
+    }
+    if (key === "policecheck") {
+      setPoliceCheckFile(null);
+    }
+    if (key === "availability") {
+      setAvailability(tutor.availability);
+    }
+    if (key === "unavailability") {
+      setUnavailability(tutor.unavailability);
+    }
+    if (key === "capabilities") {
+      setCapabilityIds(tutor.capabilities);
+    }
+    if (key === "blockedstudents") {
+      setBlockedStudentIds(tutor.blockedStudents);
     }
   };
 
