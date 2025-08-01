@@ -26,6 +26,10 @@ const daysOfWeek = [
 ];
 
 function timeStringToDate(timeStr) {
+  if (typeof timeStr !== "string" || !timeStr.includes(":")) {
+    console.warn("Invalid time string: ", timeStr);
+    return new Date();
+  }
   const [hours, minutes] = timeStr.split(":").map(Number);
   const date = new Date();
   date.setHours(hours, minutes, 0, 0);
@@ -50,7 +54,7 @@ const AvailabilitySelector = ({
             ? timeStringToDate(slot.start)
             : slot.start,
         end:
-          typeof slot.start === "string"
+          typeof slot.end === "string"
             ? timeStringToDate(slot.end)
             : slot.end,
       }));

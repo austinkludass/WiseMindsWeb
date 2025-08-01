@@ -24,6 +24,7 @@ import {
   Save as SaveIcon,
   CollectionsBookmark as GroupIcon,
   LibraryBooks as BookIcon,
+  Add as AddIcon,
 } from "@mui/icons-material";
 import {
   collection,
@@ -32,9 +33,11 @@ import {
   deleteDoc,
   doc,
   updateDoc,
+  getDoc,
 } from "firebase/firestore";
 import { db } from "../../data/firebase";
 import Header from "../../components/Global/Header";
+import AddToGroupDialog from "../../components/subject/AddToGroupDialog";
 
 const SubjectList = () => {
   const [tab, setTab] = useState(0);
@@ -51,6 +54,8 @@ const SubjectList = () => {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleteType, setDeleteType] = useState("");
   const [showSubjectsMap, setShowSubjectsMap] = useState({});
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [selectedSubject, setSelectedSubject] = useState(null);
 
   const fetchData = async () => {
     const [curSnap, subSnap, grpSnap] = await Promise.all([
@@ -211,6 +216,35 @@ const SubjectList = () => {
     setDeleteType("");
   };
 
+  const groupedSubjectIds = new Set(groups.flatMap((g) => g.subjectIds || []));
+
+  const ungroupedSubjects = subjects
+    .filter((s) => !groupedSubjectIds.has(s.id))
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  const handleOpenAddDialog = (subject) => {
+    setSelectedSubject(subject);
+    setAddDialogOpen(true);
+  };
+
+  const handleAddToGroup = async (groupId) => {
+    const group = groups.find((g) => g.id === groupId);
+    const updated = [
+      ...new Set([...(group.subjectIds || []), selectedSubject.id]),
+    ];
+
+    await updateDoc(doc(db, "subjectGroups", groupId), {
+      subjectIds: updated,
+    });
+
+    setGroups((prev) =>
+      prev.map((g) => (g.id === groupId ? { ...g, subjectIds: updated } : g))
+    );
+
+    setAddDialogOpen(false);
+    setSelectedSubject(null);
+  };
+
   return (
     <Box p={4}>
       <Header
@@ -221,6 +255,7 @@ const SubjectList = () => {
       <Tabs value={tab} onChange={handleTabChange} sx={{ mb: 3 }}>
         <Tab label="Curriculums" />
         <Tab label="Subject Groups" />
+        <Tab label="Ungrouped Subjects" />
       </Tabs>
 
       {tab === 0 && (
@@ -566,6 +601,60 @@ const SubjectList = () => {
         </Box>
       )}
 
+      {tab === 2 && (
+        <Box>
+          <Typography variant="h6" gutterBottom>
+            Ungrouped Subjects
+          </Typography>
+          {ungroupedSubjects.length === 0 ? (
+            <Typography>All Subjects are grouped.</Typography>
+          ) : (
+            <List
+              height={400}
+              itemCount={ungroupedSubjects.length}
+              itemSize={50}
+              width="100%"
+            >
+              {({ index, style }) => {
+                const subject = ungroupedSubjects[index];
+                const curriculum = curriculums.find(
+                  (c) => c.id === subject.curriculumId
+                );
+
+                return (
+                  <Box
+                    key={subject.id}
+                    style={style}
+                    sx={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      px: 2,
+                      py: 1,
+                      borderBottom: "1px solid #eee",
+                    }}
+                  >
+                    <Typography>
+                      {subject.name}
+                      {curriculum && (
+                        <Chip
+                          size="small"
+                          label={curriculum.name}
+                          sx={{ ml: 1 }}
+                        />
+                      )}
+                    </Typography>
+                    <IconButton onClick={() => handleOpenAddDialog(subject)}>
+                      <AddIcon />
+                    </IconButton>
+                  </Box>
+                );
+              }}
+            </List>
+          )}
+        </Box>
+      )}
+
       {/* Delete Confirmation Dialog */}
       <Dialog open={!!deleteTarget} onClose={() => setDeleteTarget(null)}>
         <DialogTitle>Are you sure?</DialogTitle>
@@ -586,6 +675,14 @@ const SubjectList = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      <AddToGroupDialog
+        open={addDialogOpen}
+        onClose={() => setAddDialogOpen(false)}
+        subject={selectedSubject}
+        groups={groups}
+        onSelectGroup={handleAddToGroup}
+      />
     </Box>
   );
 };
