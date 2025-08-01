@@ -157,7 +157,7 @@ const TutorProfileInfo = ({
                 label="Last Name"
               />
               <DatePicker
-                value={formData.dateOfBirth}
+                value={formData.dateOfBirth ? dayjs(formData.dateOfBirth) : null}
                 onChange={handleDateChange("dateOfBirth")}
                 label="Date of Birth"
               />

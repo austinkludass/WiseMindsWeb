@@ -81,7 +81,7 @@ const TutorWWVPInfo = ({
               <DatePicker
                 label="Expiry"
                 onChange={handleDateChange("wwvpExpiry")}
-                value={formData.wwvpExpiry}
+                value={formData.wwvpExpiry ? dayjs(formData.wwvpExpiry) : null}
               />
               <Button variant="contained" component="label">
                 UPLOAD WORKING WITH VULNERABLE PEOPLE DOCUMENT

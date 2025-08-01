@@ -1,3 +1,4 @@
+import React, { useEffect, useState } from "react";
 import {
   TextField,
   Typography,
@@ -7,10 +8,55 @@ import {
   Button,
   Stack,
   useTheme,
+  CircularProgress,
+  Autocomplete,
 } from "@mui/material";
+import { tokens } from "../../theme";
+import { FixedSizeList } from "react-window";
+import { db } from "../../data/firebase";
+import { collection, getDocs, doc, getDoc } from "firebase/firestore";
 import DeleteIcon from "@mui/icons-material/Delete";
 import AddIcon from "@mui/icons-material/Add";
-import { tokens } from "../../theme";
+
+const renderRow = (props) => {
+  const { data, index, style } = props;
+  const item = data[index];
+
+  return React.cloneElement(item, {
+    style: {
+      ...style,
+      top: style.top + 8,
+    },
+  });
+};
+
+const ListboxComponent = React.forwardRef(function ListboxComponent(
+  props,
+  ref
+) {
+  const { children, ...other } = props;
+  const itemData = React.Children.toArray(children);
+  const itemCount = itemData.length;
+  const itemSize = 46;
+  const height = Math.min(8, itemCount) * itemSize + 2 * 8;
+
+  return (
+    <div ref={ref} {...other}>
+      <FixedSizeList
+        height={height}
+        itemCount={itemCount}
+        itemSize={itemSize}
+        itemData={itemData}
+        overscanCount={5}
+        outerElementType={React.forwardRef((props, ref) => (
+          <ul {...props} ref={ref} style={{ margin: 0, padding: 0 }} />
+        ))}
+      >
+        {renderRow}
+      </FixedSizeList>
+    </div>
+  );
+});
 
 const StudentAcademicInfo = ({
   formData,
@@ -21,6 +67,34 @@ const StudentAcademicInfo = ({
 }) => {
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
+
+  const [subjectOptions, setSubjectOptions] = useState([]);
+  const [loadingSubjects, setLoadingSubjects] = useState(true);
+
+  useEffect(() => {
+    const fetchSubjectsWithCurriculums = async () => {
+      const curriculumSnap = await getDocs(collection(db, "curriculums"));
+      const curriculumMap = {};
+      curriculumSnap.forEach((doc) => {
+        curriculumMap[doc.id] = doc.data().name;
+      });
+
+      const subjectSnap = await getDocs(collection(db, "subjects"));
+      const allSubjects = subjectSnap.docs.map((docSnap) => {
+        const data = docSnap.data();
+        return {
+          id: docSnap.id,
+          name: data.name,
+          curriculumName: curriculumMap[data.curriculumId] || "Unknown",
+        };
+      });
+
+      setSubjectOptions(allSubjects);
+      setLoadingSubjects(false);
+    };
+
+    fetchSubjectsWithCurriculums();
+  }, []);
 
   const handleInputChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -39,6 +113,13 @@ const StudentAcademicInfo = ({
   const removeSubject = (index) => {
     const newSubjects = subjects.filter((_, i) => i !== index);
     setSubjects(newSubjects);
+  };
+
+  const getSubjectDisplay = (subjectId) => {
+    const match = subjectOptions.find((s) => s.id === subjectId);
+    return match
+      ? `${match.name} (${match.curriculumName})`
+      : "Unknown Subject";
   };
 
   return (
@@ -94,14 +175,46 @@ const StudentAcademicInfo = ({
                   gap: 2,
                 }}
               >
-                <TextField
-                  size="small"
-                  label="Subject name"
-                  value={subject.name}
-                  onChange={(e) =>
-                    handleSubjectChange(index, "name", e.target.value)
-                  }
+                <Autocomplete
+                  loading={loadingSubjects}
                   sx={{ flex: 2 }}
+                  disableListWrap
+                  ListboxComponent={ListboxComponent}
+                  options={subjectOptions}
+                  getOptionLabel={(option) =>
+                    `${option.name} (${option.curriculumName})`
+                  }
+                  isOptionEqualToValue={(option, value) => option.id === value.id}
+                  value={
+                    subjectOptions.find((s) => s.id === subject.id) || null
+                  }
+                  onChange={(_, newValue) => {
+                    const updatedSubjects = [...subjects];
+                    updatedSubjects[index] = {
+                      id: newValue?.id || "",
+                      hours: subjects[index].hours || "",
+                    };
+                    setSubjects(updatedSubjects);
+                  }}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      size="small"
+                      label="Subject name"
+                      sx={{ flex: 2 }}
+                      InputProps={{
+                        ...params.InputProps,
+                        endAdornment: (
+                          <>
+                            {loadingSubjects ? (
+                              <CircularProgress color="inherit" size={16} />
+                            ) : null}
+                            {params.InputProps.endAdornment}
+                          </>
+                        ),
+                      }}
+                    />
+                  )}
                 />
                 <TextField
                   size="small"
@@ -187,7 +300,9 @@ const StudentAcademicInfo = ({
                     gap: 2,
                   }}
                 >
-                  <Typography sx={{ flex: 2 }}>{subject.name}</Typography>
+                  <Typography sx={{ flex: 2 }}>
+                    {getSubjectDisplay(subject.id)}
+                  </Typography>
                   <Typography sx={{ width: 120 }}>{subject.hours}</Typography>
                 </Paper>
               );

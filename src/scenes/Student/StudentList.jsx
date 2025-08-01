@@ -15,6 +15,15 @@ import Button from "@mui/material/Button";
 import Paper from "@mui/material/Paper";
 import "react-toastify/dist/ReactToastify.css";
 
+const fetchLocations = async () => {
+  const snapshot = await getDocs(collection(db, "locations"));
+  const locations = {};
+  snapshot.forEach((doc) => {
+    locations[doc.id] = doc.data().name;
+  });
+  return locations;
+};
+
 const fetchStudents = async () => {
   try {
     const querySnapshot = await getDocs(collection(db, "students"));
@@ -33,6 +42,12 @@ const StudentList = () => {
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
   const navigate = useNavigate();
+
+  const { data: locationMap = {}, isLoading: loadingLocations } = useQuery({
+    queryKey: ["locations"],
+    queryFn: fetchLocations,
+    staleTime: 60 * 60 * 1000,
+  });
 
   const { data: rows = [], error } = useQuery({
     queryKey: ["students"],
@@ -58,6 +73,7 @@ const StudentList = () => {
       field: "homeLocation",
       headerName: "Location",
       width: 200,
+      valueGetter: (_, row) => locationMap[row.homeLocation] || "Unknown",
     },
     {
       field: "edit",
@@ -91,7 +107,13 @@ const StudentList = () => {
         >
           <Typography variant="h6">NEW</Typography>
         </Button>
-        <Paper sx={{ width: "100vh", backgroundColor: "transparent", marginTop: "4px" }}>
+        <Paper
+          sx={{
+            width: "100vh",
+            backgroundColor: "transparent",
+            marginTop: "4px",
+          }}
+        >
           <DataGrid
             checkboxSelection={false}
             rows={rows}

@@ -99,8 +99,9 @@ const StudentEmergencyInfo = ({ formData, isEdit, setFormData }) => {
               Relationship
             </Typography>
             <Typography variant="h6" color={colors.grey[100]}>
-              {formData.emergencyRelationship[0].toUpperCase() +
-                formData.emergencyRelationship.slice(1)}
+              {formData.emergencyRelationship ??
+                formData.emergencyRelationship[0].toUpperCase() +
+                  formData.emergencyRelationship.slice(1)}
             </Typography>
           </div>
           <div style={{ display: "flex", gap: "10px" }}>

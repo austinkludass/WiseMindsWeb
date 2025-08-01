@@ -171,6 +171,9 @@ const StudentProfile = () => {
     setForm(key, resetData);
     toggleEdit(key, false);
 
+    if (key === "academic") {
+      setSubjects(student.subjects);
+    }
     if (key === "availability") {
       setAvailability(student.availability);
     }

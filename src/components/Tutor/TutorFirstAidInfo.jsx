@@ -63,7 +63,7 @@ const TutorFirstAidInfo = ({
               <DatePicker
                 label="Course Date"
                 onChange={handleDateChange("faCourseDate")}
-                value={formData.faCourseDate}
+                value={formData.faCourseDate ? dayjs(formData.faCourseDate) : null}
               />
               <TextField
                 name="faProvider"
@@ -92,7 +92,7 @@ const TutorFirstAidInfo = ({
               <DatePicker
                 label="Expiry"
                 onChange={handleDateChange("faExpiry")}
-                value={formData.faExpiry}
+                value={formData.faExpiry ? dayjs(formData.faExpiry) : null}
               />
               <Button variant="contained" component="label">
                 UPLOAD FIRST AID DOCUMENT
