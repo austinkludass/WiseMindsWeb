@@ -9,12 +9,13 @@ import StudentList from "./scenes/Student/StudentList";
 import NewStudent from "./scenes/Student/NewStudent";
 import StudentProfile from "./scenes/Student/StudentProfile";
 import SubjectList from "./scenes/Subject/SubjectList";
+import TutoringBayList from "./scenes/Location/TutoringBayList";
+import LessonList from "./scenes/Lesson/LessonList";
 import { ColorModeContext, useMode } from "./theme";
 import { CssBaseline, ThemeProvider } from "@mui/material";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useContext } from "react";
 import { AuthContext } from "./context/AuthContext";
-import TutoringBayList from "./scenes/Location/TutoringBayList";
 
 function App() {
   const [theme, colorMode] = useMode();
@@ -40,6 +41,7 @@ function App() {
                   <Route path="/newstudent" element={<NewStudent />} />
                   <Route path="/subjects" element={<SubjectList />} />
                   <Route path="/tutoringbays" element={<TutoringBayList />} />
+                  <Route path="/lessons" element={<LessonList />} />
                   <Route path="*" element={<Navigate to="/" />} />
                 </Routes>
               </main>

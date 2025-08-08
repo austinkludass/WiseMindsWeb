@@ -603,9 +603,6 @@ const SubjectList = () => {
 
       {tab === 2 && (
         <Box>
-          <Typography variant="h6" gutterBottom>
-            Ungrouped Subjects
-          </Typography>
           {ungroupedSubjects.length === 0 ? (
             <Typography>All Subjects are grouped.</Typography>
           ) : (
@@ -631,7 +628,6 @@ const SubjectList = () => {
                       alignItems: "center",
                       px: 2,
                       py: 1,
-                      borderBottom: "1px solid #eee",
                     }}
                   >
                     <Typography>

@@ -115,7 +115,7 @@ const Sidebar = () => {
                 <SubMenu
                   title="Tutoring"
                   icon={<CalendarMonthOutlinedIcon />}
-                  rootStyles={{ "pro-arrow": { display: "none" } }}
+                  rootstyles={{ "pro-arrow": { display: "none" } }}
                   style={{ color: colors.grey[100] }}
                 >
                   <Item
