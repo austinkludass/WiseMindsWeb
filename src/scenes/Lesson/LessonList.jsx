@@ -26,16 +26,11 @@ import { db } from "../../data/firebase";
 import dayjs from "dayjs";
 import Header from "../../components/Global/Header";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import { collection, getDocs } from "firebase/firestore";
+import { addDoc, collection, getDocs } from "firebase/firestore";
 import { toast, ToastContainer } from "react-toastify";
 
-// Hardcoded lists
-const tutors = ["Brian Smith", "Jane Doe", "Michael Brown"];
-const subjects = ["English", "Math", "Science", "History"];
-const locations = ["Room 101", "Room 102", "Library", "Online"];
 const lessonTypes = ["Normal", "Postpone", "Cancelled", "Trial", "Unconfirmed"];
 
-// Helper for initial state
 const initialState = {
   date: dayjs(),
   tutor: null,
@@ -86,26 +81,56 @@ const LessonList = () => {
     return newErrors;
   };
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     const newErrors = validate();
     setErrors(newErrors);
 
     if (Object.keys(newErrors).length > 0) return;
 
-    const newLesson = {
-      date: date.format("YYYY-MM-DD"),
-      tutor,
-      students: selectedStudents,
-      subject,
-      location,
+    const lessonData = {
+      tutorId: tutor,
+      studentIds: selectedStudents,
+      subjectId: subject,
+      locationId: location,
       type,
-      repeat,
-      frequency: repeat ? frequency : null,
       notes,
       startTime: startTime.format("HH:mm"),
       endTime: endTime.format("HH:mm"),
+      date: date.format("YYYY-MM-DD"),
     };
-    console.log("Lesson Created:", newLesson);
+
+    try {
+      if (repeat) {
+        await addDoc(collection(db, "lessonTemplates"), {
+          ...lessonData,
+          frequency,
+          startDate: date.format("YYYY-MM-DD"),
+        });
+
+        toast.success("Lesson created");
+      } else {
+        const lessonRef = await addDoc(collection(db, "lessonInstances"), {
+          ...lessonData,
+          templateId: null,
+        });
+
+        for (let studentId of selectedStudents) {
+          await addDoc(collection(db, "lessonReports"), {
+            lessonInstanceId: lessonRef.id,
+            studentId,
+            present: null,
+            satisfaction: null,
+            notes: "",
+          });
+        }
+
+        toast.success("Lesson created");
+      }
+
+      handleReset();
+    } catch (error) {
+      toast.error("Error creating lesson: " + error.message);
+    }
   };
 
   const handleReset = () => {
@@ -181,7 +206,7 @@ const LessonList = () => {
         }));
 
         subjectData.sort((a, b) => a.name.localeCompare(b.name));
-        
+
         setSubjectsList(subjectData);
       } catch (error) {
         toast.error("Error fetching subjects: ", error.message);
