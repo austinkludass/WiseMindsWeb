@@ -135,7 +135,7 @@ const Noticeboard = () => {
               {msg.senderName}{" "}
               <span style={{ fontWeight: "normal", fontSize: "0.8em" }}>
                 {msg.timestamp?.toDate
-                  ? format(msg.timestamp.toDate(), "dd MMM yyyy, HH:mm")
+                  ? format(msg.timestamp.toDate(), "dd MMM yyyy, h:mm a")
                   : "Sending..."}
               </span>
             </Typography>

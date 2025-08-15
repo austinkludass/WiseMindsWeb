@@ -1,7 +1,7 @@
 import { Box, Typography, useTheme } from "@mui/material";
 import { tokens } from "../../theme";
 
-const Summaryboard = () => {
+const UpcomingLessons = () => {
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
 
@@ -14,11 +14,11 @@ const Summaryboard = () => {
       borderRadius="8px"
       overflow="auto"
     >
-        <Typography variant="h3" mb="16px" color={colors.orangeAccent[400]}>
-            Summary
-        </Typography>
+      <Typography variant="h3" mb="16px" color={colors.orangeAccent[400]}>
+        Upcoming Lessons
+      </Typography>
     </Box>
   );
 };
 
-export default Summaryboard;
+export default UpcomingLessons;
