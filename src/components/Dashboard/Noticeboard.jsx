@@ -1,62 +1,171 @@
-import { Box, Typography, useTheme, List, ListItem, ListItemText, Divider } from "@mui/material";
+import { useEffect, useRef, useState } from "react";
+import { Box, Typography, TextField, Button, useTheme } from "@mui/material";
 import { tokens } from "../../theme";
-import { useEffect, useState } from "react";
-import { ref, query, limitToLast, onValue } from 'firebase/database';
-import { rtdb } from "../../data/firebase";
+import {
+  collection,
+  addDoc,
+  query,
+  orderBy,
+  limit,
+  onSnapshot,
+  serverTimestamp,
+  doc,
+  getDoc,
+} from "firebase/firestore";
+import { db, auth } from "../../data/firebase";
+import { format } from "date-fns";
 
 const Noticeboard = () => {
-    const theme = useTheme();
-    const colors = tokens(theme.palette.mode);
+  const theme = useTheme();
+  const colors = tokens(theme.palette.mode);
 
-    const [comments, setComments] = useState([]);
+  const [messages, setMessages] = useState([]);
+  const [newMessage, setNewMessage] = useState("");
+  const [senderName, setSenderName] = useState("");
+  const messagesEndRef = useRef(null);
 
-    useEffect(() => {
-        const commentsRef = ref(rtdb, "Comments");
-        const last10 = query(commentsRef, limitToLast(10));
+  useEffect(() => {
+    const fetchTutorName = async () => {
+      const user = auth.currentUser;
+      if (!user) return;
 
-        const unsub = onValue(last10, (snapshot) => {
-            if (snapshot.exists()) {
-                const data = snapshot.val();
-                const commentsArray = Object.values(data).sort(
-                    (a, b) => new Date(b.TimeStamp).getTime() - new Date(a.TimeStamp).getTime()
-                );
-                setComments(commentsArray);
-            } else {
-                setComments([]);
-            }
-        });
+      const tutorRef = doc(db, "tutors", user.uid);
+      const tutorSnap = await getDoc(tutorRef);
 
-        return () => unsub();
-    }, []);
+      if (tutorSnap.exists()) {
+        const t = tutorSnap.data();
+        setSenderName(`${t.firstName} ${t.lastName}`);
+      } else {
+        setSenderName(user.email);
+      }
+    };
 
-    return (
-        <Box
-            width="100%"
-            height="100%"
-            m="0 30px"
-            p="20px"
-            bgcolor={colors.primary[400]}
-            borderRadius="8px"
-            overflow="auto"
-        >
-            <Typography variant="h3" mb="16px" color={colors.orangeAccent[400]}>
-                Noticeboard
-            </Typography>
-            <List>
-                {comments.map((comment, index) => (
-                    <div key={index}>
-                        <ListItem>
-                            <ListItemText
-                                primary={`${comment.TutorName} (${new Date(comment.TimeStamp).toLocaleString()})`}
-                                secondary={comment.Comment}
-                            />
-                        </ListItem>
-                        {index < comments.length - 1 && <Divider />}
-                    </div>
-                ))}
-            </List>
-        </Box>
+    fetchTutorName();
+  }, []);
+
+  useEffect(() => {
+    const q = query(
+      collection(db, "chatMessages"),
+      orderBy("timestamp", "asc"),
+      limit(20)
     );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const msgs = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setMessages(msgs);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages]);
+
+  const handleSend = async () => {
+    if (!newMessage.trim()) return;
+
+    const user = auth.currentUser;
+    if (!user) return;
+
+    let nameToUse = senderName;
+    if (!nameToUse) {
+      const tutorRef = doc(db, "tutors", user.uid);
+      const tutorSnap = await getDoc(tutorRef);
+
+      if (tutorSnap.exists()) {
+        const t = tutorSnap.data();
+        nameToUse = `${t.firstName} ${t.lastName}`;
+        setSenderName(nameToUse);
+      } else {
+        nameToUse = user.email;
+        setSenderName(nameToUse);
+      }
+    }
+
+    await addDoc(collection(db, "chatMessages"), {
+      senderId: user.uid,
+      senderName: nameToUse,
+      message: newMessage.trim(),
+      timestamp: serverTimestamp(),
+    });
+
+    setNewMessage("");
+  };
+
+  return (
+    <Box
+      width="100%"
+      height="100%"
+      display="flex"
+      flexDirection="column"
+      p="20px"
+      bgcolor={colors.primary[400]}
+      borderRadius="8px"
+      overflow="hidden"
+    >
+      <Typography variant="h3" mb="16px" color={colors.orangeAccent[400]}>
+        Message Board
+      </Typography>
+
+      <Box
+        flex="1"
+        overflow="auto"
+        mb={2}
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          gap: "12px",
+          paddingRight: "8px",
+        }}
+      >
+        {messages.map((msg) => (
+          <Box
+            key={msg.id}
+            p="10px"
+            bgcolor={colors.primary[500]}
+            borderRadius="6px"
+          >
+            <Typography variant="body2" color={colors.orangeAccent[400]} sx={{ fontWeight: "bold" }}>
+              {msg.senderName}{" "}
+              <span style={{ fontWeight: "normal", fontSize: "0.8em" }}>
+                {msg.timestamp?.toDate
+                  ? format(msg.timestamp.toDate(), "dd MMM yyyy, HH:mm")
+                  : "Sending..."}
+              </span>
+            </Typography>
+            <Typography variant="body1">{msg.message}</Typography>
+          </Box>
+        ))}
+        <div ref={messagesEndRef} />
+      </Box>
+
+      <Box display="flex" gap="8px">
+        <TextField
+          variant="outlined"
+          size="small"
+          fullWidth
+          placeholder="Type a message..."
+          value={newMessage}
+          onChange={(e) => setNewMessage(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              handleSend();
+            }
+          }}
+        />
+        <Button variant="contained" onClick={handleSend}>
+          Send
+        </Button>
+      </Box>
+    </Box>
+  );
 };
 
 export default Noticeboard;
