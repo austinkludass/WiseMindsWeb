@@ -16,6 +16,8 @@ import { CssBaseline, ThemeProvider } from "@mui/material";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useContext } from "react";
 import { AuthContext } from "./context/AuthContext";
+import Settings from "./scenes/Settings/Settings";
+import ReportBug from "./scenes/Other/ReportBug";
 
 function App() {
   const [theme, colorMode] = useMode();
@@ -42,6 +44,8 @@ function App() {
                   <Route path="/subjects" element={<SubjectList />} />
                   <Route path="/tutoringbays" element={<TutoringBayList />} />
                   <Route path="/lessons" element={<LessonList />} />
+                  <Route path="/settings" element={<Settings />} />
+                  <Route path="/reportbug" element={<ReportBug />} />
                   <Route path="*" element={<Navigate to="/" />} />
                 </Routes>
               </main>

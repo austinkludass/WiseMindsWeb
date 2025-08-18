@@ -44,10 +44,14 @@ const Notifications = () => {
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
   const [items, setItems] = useState([]);
+  const [tutorId, setTutorId] = useState(null);
 
-  // Get tutorId from localStorage
-  const storedUser = JSON.parse(localStorage.getItem("user"));
-  const tutorId = storedUser.uid;
+  useEffect(() => {
+    const storedUser = JSON.parse(localStorage.getItem("user"));
+    if (storedUser?.uid) {
+      setTutorId(storedUser.uid);
+    }
+  }, []);
 
   useEffect(() => {
     if (!tutorId) return;
@@ -84,10 +88,13 @@ const Notifications = () => {
       <Typography variant="h3" mb="16px" color={colors.orangeAccent[400]}>
         Notifications
       </Typography>
-
-      {items.length === 0 ? (
+      {!tutorId ? (
         <Typography variant="body2" color="text.secondary">
-          No notifications 🎉
+          Please log in to see notifications.
+        </Typography>
+      ) : items.length === 0 ? (
+        <Typography variant="body2" color="text.secondary">
+          No notifications
         </Typography>
       ) : (
         <List dense>

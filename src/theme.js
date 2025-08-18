@@ -346,6 +346,16 @@ export const themeSettings = (mode) => {
           },
         },
       },
+      MuiRadio: {
+        styleOverrides: {
+          root: {
+            color: colors.orangeAccent[400],
+            "&.Mui-checked": {
+              color: colors.orangeAccent[400],
+            },
+          },
+        },
+      },
     },
   };
 };

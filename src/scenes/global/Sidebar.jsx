@@ -211,7 +211,7 @@ const Sidebar = () => {
                 </SubMenu>
                 <Item
                   title="Settings"
-                  to="/"
+                  to="/settings"
                   icon={<SettingsOutlined />}
                   selected={selected}
                   setSelected={setSelected}

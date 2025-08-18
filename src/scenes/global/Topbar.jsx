@@ -4,7 +4,8 @@ import {
   useTheme,
   Menu,
   MenuItem,
-  InputBase,
+  Autocomplete,
+  TextField,
   Typography,
 } from "@mui/material";
 import { useContext, useState } from "react";
@@ -16,7 +17,23 @@ import LightModeOutlinedIcon from "@mui/icons-material/LightModeOutlined";
 import DarkModeOutlinedIcon from "@mui/icons-material/DarkModeOutlined";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import PersonOutlinedIcon from "@mui/icons-material/PersonOutlined";
+import ArrowForwardIosOutlinedIcon from "@mui/icons-material/ArrowForwardIosOutlined";
 import SearchIcon from "@mui/icons-material/Search";
+
+const searchOptions = [
+  { label: "Home", task: "", path: "/home" },
+  { label: "Lessons", task: "", path: "/lessons" },
+  { label: "Locations", task: "", path: "/tutoringbays" },
+  { label: "Settings", task: "", path: "/settings" },
+  { label: "Students", task: "", path: "/students" },
+  { label: "Students", task: "Add New", path: "/newstudent" },
+  { label: "Subjects", task: "Curriculums", path: "/subjects" },
+  { label: "Subjects", task: "Subject Groups", path: "/subjects" },
+  { label: "Subjects", task: "Ungrouped Subjects", path: "/subjects" },
+  { label: "Tutors", task: "", path: "/tutors" },
+  { label: "Tutors", task: "Add New", path: "/newtutor" },
+  { label: "Report Bug", task: "", path: "/reportbug" },
+];
 
 const Topbar = () => {
   const theme = useTheme();
@@ -25,22 +42,32 @@ const Topbar = () => {
   const { dispatch } = useContext(AuthContext);
   const navigate = useNavigate();
 
-  const [anchorEl, setAnchorEl] = useState(null);
-  const open = Boolean(anchorEl);
+  const [profileAnchorEl, setProfileAnchorEl] = useState(null);
+  const [settingsAnchorEl, setSettingsAnchorEl] = useState(null);
+  const profileOpen = Boolean(profileAnchorEl);
+  const settingsOpen = Boolean(settingsAnchorEl);
 
-  const handleMenuClick = (event) => {
-    setAnchorEl(event.currentTarget);
+  const handleProfileClick = (event) => {
+    setProfileAnchorEl(event.currentTarget);
   };
 
-  const handleMenuClose = () => {
-    setAnchorEl(null);
+  const handleSettingsClick = (event) => {
+    setSettingsAnchorEl(event.currentTarget);
+  };
+
+  const handleProfileClose = () => {
+    setProfileAnchorEl(null);
+  };
+
+  const handleSettingsClose = () => {
+    setSettingsAnchorEl(null);
   };
 
   const handleLogout = () => {
     dispatch({ type: "LOGOUT" });
     localStorage.removeItem("user");
     navigate("/login");
-    handleMenuClose();
+    handleProfileClose();
   };
 
   const { currentUser } = useContext(AuthContext);
@@ -49,7 +76,17 @@ const Topbar = () => {
     if (currentUser?.uid) {
       navigate(`/tutor/${currentUser.uid}`);
     }
-    handleMenuClose();
+    handleProfileClose();
+  };
+
+  const handleReport = () => {
+    navigate("/reportbug");
+    handleSettingsClose();
+  };
+
+  const handleSettings = () => {
+    navigate("/settings");
+    handleSettingsClose();
   };
 
   return (
@@ -64,26 +101,93 @@ const Topbar = () => {
     >
       <Box
         display="flex"
+        alignItems="center"
+        flexGrow="0"
+        width="200px"
         backgroundColor={colors.primary[400]}
         borderRadius="3px"
+        padding="6px"
       >
-        <InputBase sx={{ ml: 2, flex: 1 }} placeholder="Search" />
-        <IconButton type="button" sx={{ p: 1 }}>
-          <SearchIcon />
-        </IconButton>
+        <Autocomplete
+          freeSolo
+          openOnFocus={false}
+          sx={{ flex: "1" }}
+          options={searchOptions}
+          getOptionLabel={(option) =>
+            option.task && option.task.trim() !== ""
+              ? `${option.label}: ${option.task}`
+              : option.label
+          }
+          filterOptions={(options, state) =>
+            state.inputValue.length === 0
+              ? []
+              : options.filter(
+                  (o) =>
+                    o.label
+                      .toLowerCase()
+                      .includes(state.inputValue.toLowerCase()) ||
+                    (o.task &&
+                      o.task
+                        .toLowerCase()
+                        .includes(state.inputValue.toLowerCase()))
+                )
+          }
+          onChange={(event, newValue) => {
+            if (newValue?.path) {
+              navigate(newValue.path);
+            }
+          }}
+          renderOption={(props, option) => (
+            <li {...props} key={`${option.label}-${option.task || "none"}`}>
+              <Box display="flex" alignItems="center">
+                <Typography component="span" fontWeight="bold">
+                  {option.label}
+                </Typography>
+
+                {option.task && option.task.trim() !== "" && (
+                  <Box
+                    display="flex"
+                    alignItems="center"
+                    ml={0.5}
+                    color="text.secondary"
+                  >
+                    <ArrowForwardIosOutlinedIcon
+                      sx={{ fontSize: 12, mr: 0.3 }}
+                    />
+                    <Typography component="span">{option.task}</Typography>
+                  </Box>
+                )}
+              </Box>
+            </li>
+          )}
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              variant="standard"
+              placeholder="Search..."
+              slotProps={{
+                input: {
+                  ...params.InputProps,
+                  disableUnderline: true,
+                  startAdornment: <SearchIcon sx={{ mr: 1 }} />,
+                },
+              }}
+            />
+          )}
+        />
       </Box>
 
       <Box display="flex">
         <IconButton onClick={() => navigate("/")}>
           <HomeOutlined />
         </IconButton>
-        <IconButton onClick={handleMenuClick}>
+        <IconButton onClick={handleProfileClick}>
           <PersonOutlinedIcon />
         </IconButton>
         <Menu
-          anchorEl={anchorEl}
-          open={open}
-          onClose={handleMenuClose}
+          anchorEl={profileAnchorEl}
+          open={profileOpen}
+          onClose={handleProfileClose}
           anchorOrigin={{
             vertical: "bottom",
             horizontal: "right",
@@ -105,9 +209,25 @@ const Topbar = () => {
             <LightModeOutlinedIcon />
           )}
         </IconButton>
-        <IconButton>
+        <IconButton onClick={handleSettingsClick}>
           <SettingsOutlinedIcon />
         </IconButton>
+        <Menu
+          anchorEl={settingsAnchorEl}
+          open={settingsOpen}
+          onClose={handleSettingsClose}
+          anchorOrigin={{
+            vertical: "bottom",
+            horizontal: "right",
+          }}
+          transformOrigin={{
+            vertical: "top",
+            horizontal: "right",
+          }}
+        >
+          <MenuItem onClick={handleReport}>Report Bug</MenuItem>
+          <MenuItem onClick={handleSettings}>Settings</MenuItem>
+        </Menu>
       </Box>
     </Box>
   );
