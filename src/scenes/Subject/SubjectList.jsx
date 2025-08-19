@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { FixedSizeList as List } from "react-window";
 import { VirtualizedAutoComplete } from "../../components/Global/VirtualizedAutoComplete";
 import {
@@ -33,7 +34,6 @@ import {
   deleteDoc,
   doc,
   updateDoc,
-  getDoc,
 } from "firebase/firestore";
 import { db } from "../../data/firebase";
 import Header from "../../components/Global/Header";
@@ -56,6 +56,26 @@ const SubjectList = () => {
   const [showSubjectsMap, setShowSubjectsMap] = useState({});
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [selectedSubject, setSelectedSubject] = useState(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const tabMap = {
+    0: "curriculums",
+    1: "groups",
+    2: "ungrouped",
+  };
+
+  const reverseTabMap = {
+    curriculums: 0,
+    groups: 1,
+    ungrouped: 2,
+  };
+
+  useEffect(() => {
+    const tabKey = searchParams.get("tab");
+    if (tabKey && reverseTabMap[tabKey] !== undefined) {
+      setTab(reverseTabMap[tabKey]);
+    }
+  }, [searchParams]);
 
   const fetchData = async () => {
     const [curSnap, subSnap, grpSnap] = await Promise.all([
@@ -79,7 +99,10 @@ const SubjectList = () => {
     }));
   };
 
-  const handleTabChange = (_, val) => setTab(val);
+  const handleTabChange = (_, val) => {
+    setTab(val);
+    setSearchParams({ tab: tabMap[val] });
+  };
 
   const handleAddCurriculum = async () => {
     if (!newCurriculum.trim()) return;

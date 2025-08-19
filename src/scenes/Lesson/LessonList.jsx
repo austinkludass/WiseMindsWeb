@@ -15,6 +15,7 @@ import {
   AccordionSummary,
   AccordionDetails,
   Accordion,
+  Chip
 } from "@mui/material";
 import {
   DatePicker,
@@ -35,7 +36,7 @@ const initialState = {
   date: dayjs(),
   tutor: null,
   selectedStudents: [],
-  subject: null,
+  subjectGroup: null,
   location: null,
   type: "Normal",
   repeat: false,
@@ -55,6 +56,8 @@ const LessonList = () => {
   );
   const [curriculums, setCurriculums] = useState([]);
   const [subjectsList, setSubjectsList] = useState([]);
+  const [subjectGroups, setSubjectGroups] = useState([]);
+  const [subjectGroup, setSubjectGroup] = useState(null);
   const [subject, setSubject] = useState(initialState.subject);
   const [locationList, setLocationList] = useState([]);
   const [location, setLocation] = useState(initialState.location);
@@ -73,7 +76,7 @@ const LessonList = () => {
     if (!tutor) newErrors.tutor = "Tutor is required";
     if (selectedStudents.length === 0)
       newErrors.selectedStudents = "At least 1 student is required";
-    if (!subject) newErrors.subject = "Subject is required";
+    if (!subjectGroup) newErrors.subject = "Subject Group is required";
     if (!location) newErrors.location = "Location is required";
     if (!type) newErrors.type = "Type is required";
     if (!startTime) newErrors.startTime = "Start time is required";
@@ -90,7 +93,7 @@ const LessonList = () => {
     const lessonData = {
       tutorId: tutor,
       studentIds: selectedStudents,
-      subjectId: subject,
+      subjectGroupId: subjectGroup,
       locationId: location,
       type,
       notes,
@@ -137,7 +140,7 @@ const LessonList = () => {
     setDate(initialState.date);
     setTutor(initialState.tutor);
     setSelectedStudents(initialState.selectedStudents);
-    setSubject(initialState.subject);
+    setSubjectGroup(initialState.subjectGroup);
     setLocation(initialState.location);
     setType(initialState.type);
     setRepeat(initialState.repeat);
@@ -242,12 +245,38 @@ const LessonList = () => {
     fetchLocations();
   }, []);
 
+  useEffect(() => {
+    const fetchSubjectGroups = async () => {
+      try {
+        const snapshot = await getDocs(collection(db, "subjectGroups"));
+        const groups = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          name: doc.data().name,
+          subjectIds: doc.data().subjectIds || [],
+        }));
+        setSubjectGroups(groups);
+      } catch (error) {
+        toast.error("Error fetching subject groups: ", error.message);
+      }
+    };
+
+    fetchSubjectGroups();
+  }, []);
+
   const getSubjectLabel = (subject) => {
     if (!subject) return "";
 
     const curriculum = curriculums.find((c) => c.id === subject.curriculumId);
     const curriculumName = curriculum ? curriculum.name : "Unknown Curriculum";
     return `${subject.name} (${curriculumName})`;
+  };
+
+  const getSubjectGroupLabel = (group) => {
+    if (!group) return "";
+    const subjectNames = group.subjectIds
+      .map((id) => subjectsList.find((s) => s.id === id)?.name)
+      .filter(Boolean);
+    return `${group.name}${subjectNames.length !== 0 ? ` (${subjectNames.join(", ")})` : ""}`;
   };
 
   return (
@@ -350,14 +379,45 @@ const LessonList = () => {
 
               <Stack direction="row" spacing={2}>
                 <Autocomplete
-                  options={subjectsList}
-                  getOptionLabel={getSubjectLabel}
-                  value={subjectsList.find((s) => s.id === subject) || null}
-                  onChange={(e, val) => setSubject(val ? val.id : null)}
+                  options={subjectGroups}
+                  getOptionLabel={getSubjectGroupLabel}
+                  value={
+                    subjectGroups.find((g) => g.id === subjectGroup) || null
+                  }
+                  onChange={(e, val) => setSubjectGroup(val ? val.id : null)}
+                  renderOption={(props, option) => {
+                    const subjectNames = option.subjectIds
+                      .map((id) => subjectsList.find((s) => s.id === id)?.name)
+                      .filter(Boolean);
+
+                    return (
+                      <li {...props}>
+                        <Box>
+                          <Typography variant="body1" fontWeight="bold">
+                            {option.name}
+                          </Typography>
+                          <Box
+                            sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}
+                          >
+                            {subjectNames.slice(0, 4).map((name) => (
+                              <Chip key={name} label={name} size="small" />
+                            ))}
+                            {subjectNames.length > 4 && (
+                              <Chip
+                                label={`+${subjectNames.length - 4} more`}
+                                size="small"
+                                variant="outlined"
+                              />
+                            )}
+                          </Box>
+                        </Box>
+                      </li>
+                    );
+                  }}
                   renderInput={(params) => (
                     <TextField
                       {...params}
-                      label="Subject"
+                      label="Subject Group"
                       error={!!errors.subject}
                       helperText={errors.subject}
                     />
