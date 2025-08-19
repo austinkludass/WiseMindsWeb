@@ -100,7 +100,7 @@ const StudentProfile = () => {
     admin: {
       title: "Admin Information",
       component: StudentAdminInfo,
-      fields: ["homeLocation"],
+      fields: ["homeLocation", "baseRate"],
     },
   };
 

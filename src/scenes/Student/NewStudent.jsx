@@ -91,6 +91,7 @@ const NewStudent = () => {
         availability: AvailabilityFormatter(availability),
         subjects: subjects,
         homeLocation: adminInfo.homeLocation,
+        baseRate: adminInfo.baseRate,
       });
       setUploadProgress(100);
 
@@ -152,6 +153,7 @@ const NewStudent = () => {
 
   const [adminInfo, setAdminInfo] = useState({
     homeLocation: "belconnen",
+    baseRate: null,
   });
 
   const setGeneralInfoCallback = useCallback(

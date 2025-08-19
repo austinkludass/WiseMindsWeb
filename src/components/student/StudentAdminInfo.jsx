@@ -6,6 +6,7 @@ import {
   Select,
   MenuItem,
   Typography,
+  TextField,
   useTheme,
 } from "@mui/material";
 import { tokens } from "../../theme";
@@ -34,11 +35,12 @@ const StudentAdminInfo = ({ formData, setFormData, isEdit }) => {
     };
 
     fetchLocations();
-  });
+  }, []);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
+
   return (
     <Stack spacing={2}>
       {isEdit ? (
@@ -51,7 +53,7 @@ const StudentAdminInfo = ({ formData, setFormData, isEdit }) => {
               name="homeLocation"
               label="Home Location"
               labelId="homelocation-select-label"
-              value={formData.homeLocation}
+              value={formData.homeLocation || ""}
               onChange={handleChange}
             >
               {locations.map((loc) => (
@@ -61,6 +63,16 @@ const StudentAdminInfo = ({ formData, setFormData, isEdit }) => {
               ))}
             </Select>
           </FormControl>
+
+          <TextField
+            fullWidth
+            type="number"
+            label="Base Rate ($)"
+            name="baseRate"
+            value={formData.baseRate || ""}
+            onChange={handleChange}
+            InputProps={{ inputProps: { min: 0 } }}
+          />
         </>
       ) : (
         <>
@@ -83,6 +95,20 @@ const StudentAdminInfo = ({ formData, setFormData, isEdit }) => {
                   ?.name || "Unknown Location"}
               </Typography>
             )}
+          </div>
+
+          <div style={{ display: "flex", gap: "10px" }}>
+            <Typography
+              variant="h5"
+              color={colors.orangeAccent[400]}
+              fontWeight="bold"
+              sx={{ mb: "5px" }}
+            >
+              Base Rate
+            </Typography>
+            <Typography variant="h6" color={colors.grey[100]}>
+              {formData.baseRate ? `$${formData.baseRate}` : "Not Set"}
+            </Typography>
           </div>
         </>
       )}
