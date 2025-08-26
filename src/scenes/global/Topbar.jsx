@@ -103,7 +103,7 @@ const Topbar = () => {
         display="flex"
         alignItems="center"
         flexGrow="0"
-        width="200px"
+        width="300px"
         backgroundColor={colors.primary[400]}
         borderRadius="3px"
         padding="6px"

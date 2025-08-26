@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Box,
   Typography,
@@ -15,8 +15,9 @@ import {
   AccordionSummary,
   AccordionDetails,
   Accordion,
-  Chip
+  Chip,
 } from "@mui/material";
+import { DataGrid } from "@mui/x-data-grid";
 import {
   DatePicker,
   TimePicker,
@@ -27,8 +28,15 @@ import { db } from "../../data/firebase";
 import dayjs from "dayjs";
 import Header from "../../components/Global/Header";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import { addDoc, collection, getDocs } from "firebase/firestore";
+import {
+  addDoc,
+  collection,
+  getDocs,
+  onSnapshot,
+  orderBy,
+} from "firebase/firestore";
 import { toast, ToastContainer } from "react-toastify";
+import { query } from "firebase/database";
 
 const lessonTypes = ["Normal", "Postpone", "Cancelled", "Trial", "Unconfirmed"];
 
@@ -46,6 +54,14 @@ const initialState = {
   endTime: dayjs().hour(13).minute(0),
 };
 
+const typeColors = {
+  Normal: "success",
+  Trial: "primary",
+  Postpone: "warning",
+  Unconfirmed: "info",
+  Cancelled: "error",
+};
+
 const LessonList = () => {
   const [date, setDate] = useState(initialState.date);
   const [tutor, setTutor] = useState(initialState.tutor);
@@ -58,7 +74,6 @@ const LessonList = () => {
   const [subjectsList, setSubjectsList] = useState([]);
   const [subjectGroups, setSubjectGroups] = useState([]);
   const [subjectGroup, setSubjectGroup] = useState(null);
-  const [subject, setSubject] = useState(initialState.subject);
   const [locationList, setLocationList] = useState([]);
   const [location, setLocation] = useState(initialState.location);
   const [type, setType] = useState(initialState.type);
@@ -67,8 +82,8 @@ const LessonList = () => {
   const [notes, setNotes] = useState(initialState.notes);
   const [startTime, setStartTime] = useState(initialState.startTime);
   const [endTime, setEndTime] = useState(initialState.endTime);
-
   const [errors, setErrors] = useState({});
+  const [lessons, setLessons] = useState([]);
 
   const validate = () => {
     const newErrors = {};
@@ -90,16 +105,29 @@ const LessonList = () => {
 
     if (Object.keys(newErrors).length > 0) return;
 
+    const tutorObj = tutorsList.find((t) => t.id === tutor);
+    const studentObjs = studentOptions.filter((s) =>
+      selectedStudents.includes(s.id)
+    );
+    const subjectGroupObj = subjectGroups.find((g) => g.id === subjectGroup);
+    const locationObj = locationList.find((l) => l.id === location);
+
     const lessonData = {
+      date: date.format("YYYY-MM-DD"),
+      startTime: startTime.format("HH:mm"),
+      endTime: endTime.format("HH:mm"),
+      type,
+      notes,
       tutorId: tutor,
       studentIds: selectedStudents,
       subjectGroupId: subjectGroup,
       locationId: location,
-      type,
-      notes,
-      startTime: startTime.format("HH:mm"),
-      endTime: endTime.format("HH:mm"),
-      date: date.format("YYYY-MM-DD"),
+      tutorName: tutorObj ? tutorObj.name : "",
+      tutorColor:
+        tutorObj && tutorObj.tutorColor ? tutorObj.tutorColor : "#888888",
+      studentNames: studentObjs.map((s) => s.name),
+      subjectGroupName: subjectGroupObj ? subjectGroupObj.name : "",
+      locationName: locationObj ? locationObj.name : "",
     };
 
     try {
@@ -175,6 +203,7 @@ const LessonList = () => {
         const tutorsData = snapshot.docs.map((doc) => ({
           id: doc.id,
           name: `${doc.data().firstName} ${doc.data().lastName}`,
+          tutorColor: doc.data().tutorColor,
         }));
         setTutorsList(tutorsData);
       } catch (error) {
@@ -231,7 +260,7 @@ const LessonList = () => {
             loc.tutorBays.forEach((bay) => {
               bays.push({
                 id: bay.id,
-                name: `${bay.name} (${loc.name})`,
+                name: bay.name,
               });
             });
           }
@@ -263,21 +292,65 @@ const LessonList = () => {
     fetchSubjectGroups();
   }, []);
 
-  const getSubjectLabel = (subject) => {
-    if (!subject) return "";
+  useEffect(() => {
+    const q = query(collection(db, "lessonTemplates"), orderBy("date", "desc"));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const fetched = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setLessons(fetched);
+    });
 
-    const curriculum = curriculums.find((c) => c.id === subject.curriculumId);
-    const curriculumName = curriculum ? curriculum.name : "Unknown Curriculum";
-    return `${subject.name} (${curriculumName})`;
-  };
+    return () => unsubscribe();
+  }, []);
 
   const getSubjectGroupLabel = (group) => {
     if (!group) return "";
     const subjectNames = group.subjectIds
       .map((id) => subjectsList.find((s) => s.id === id)?.name)
       .filter(Boolean);
-    return `${group.name}${subjectNames.length !== 0 ? ` (${subjectNames.join(", ")})` : ""}`;
+    return `${group.name}${
+      subjectNames.length !== 0 ? ` (${subjectNames.join(", ")})` : ""
+    }`;
   };
+
+  const columns = [
+    {
+      field: "date",
+      headerName: "Date",
+      flex: 1,
+      renderCell: (params) => {
+        if (!params.value) return "";
+        return dayjs(params.value).format("DD MMM YY");
+      },
+    },
+    { field: "startTime", headerName: "Start", flex: 0.5 },
+    { field: "endTime", headerName: "End", flex: 0.5 },
+    { field: "tutorName", headerName: "Tutor", flex: 1 },
+    {
+      field: "studentNames",
+      headerName: "Students",
+      flex: 1.5,
+      renderCell: (params) => {
+        const students = params.value;
+        if (!Array.isArray(students)) return "";
+        return students.join(", ");
+      },
+    },
+    { field: "subjectGroupName", headerName: "Subject Group", flex: 1 },
+    { field: "locationName", headerName: "Location", flex: 1 },
+    {
+      field: "type",
+      headerName: "Type",
+      flex: 1,
+      renderCell: (params) => {
+        const type = params.value;
+        const color = typeColors[type] || "default";
+        return <Chip label={type} color={color} size="small" />;
+      },
+    },
+  ];
 
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="en-gb">
@@ -513,6 +586,15 @@ const LessonList = () => {
         <Typography variant="h5" gutterBottom>
           Lessons
         </Typography>
+        <DataGrid
+          rows={lessons}
+          columns={columns}
+          pageSizeOptions={[5, 10, 25]}
+          initialState={{
+            pagination: { paginationModel: { pageSize: 10 } },
+          }}
+          filterMode="client"
+        />
       </Paper>
       <ToastContainer position="top-right" autoClose={3000} />
     </LocalizationProvider>

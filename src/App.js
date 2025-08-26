@@ -11,13 +11,14 @@ import StudentProfile from "./scenes/Student/StudentProfile";
 import SubjectList from "./scenes/Subject/SubjectList";
 import TutoringBayList from "./scenes/Location/TutoringBayList";
 import LessonList from "./scenes/Lesson/LessonList";
+import Settings from "./scenes/Settings/Settings";
+import ReportBug from "./scenes/Other/ReportBug";
+import CalendarPage from "./scenes/Lesson/CalendarPage";
 import { ColorModeContext, useMode } from "./theme";
 import { CssBaseline, ThemeProvider } from "@mui/material";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useContext } from "react";
 import { AuthContext } from "./context/AuthContext";
-import Settings from "./scenes/Settings/Settings";
-import ReportBug from "./scenes/Other/ReportBug";
 
 function App() {
   const [theme, colorMode] = useMode();
@@ -46,6 +47,7 @@ function App() {
                   <Route path="/lessons" element={<LessonList />} />
                   <Route path="/settings" element={<Settings />} />
                   <Route path="/reportbug" element={<ReportBug />} />
+                  <Route path="calendar" element={<CalendarPage />} />
                   <Route path="*" element={<Navigate to="/" />} />
                 </Routes>
               </main>
