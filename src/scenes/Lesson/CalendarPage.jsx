@@ -1,7 +1,8 @@
-import { Box, Typography } from "@mui/material";
+import { Box, Paper } from "@mui/material";
 import { LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import Header from "../../components/Global/Header";
+import BigCalendar from "../../components/Calendar/Calendar";
 
 const CalendarPage = () => {
   return (
@@ -10,7 +11,9 @@ const CalendarPage = () => {
         <Header title="Calendar" subtitle="Lessons Calendar" />
       </Box>
 
-      
+      <Paper sx={{ p: 3, minWidth: 600, m: 4 }}>
+        <BigCalendar />
+      </Paper>
     </LocalizationProvider>
   );
 };
