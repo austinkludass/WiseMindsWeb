@@ -11,13 +11,20 @@ function EventCard({ event }) {
   const handleClose = () => setAnchorEl(null);
 
   return (
-    <Box onContextMenu={handleContextMenu} height="100%" sx={{ bgcolor: event.color ?? event.color, padding: "8px"}}>
+    <Box
+      onContextMenu={handleContextMenu}
+      height="100%"
+      sx={{ bgcolor: event.color ?? event.color, padding: "8px" }}
+    >
       <Typography variant="subtitle2" noWrap>
-        {event.title}
+        {event.subject}
+      </Typography>
+      <Typography variant="subtitle2" noWrap>
+        {event.tutor}
       </Typography>
       {event.students &&
         event.students.map((student) => (
-          <Typography variant="caption" display="block" noWrap>
+          <Typography key={student} variant="caption" display="block" noWrap>
             {student}
           </Typography>
         ))}

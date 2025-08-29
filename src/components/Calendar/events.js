@@ -5,7 +5,7 @@ const events = [
   {
     start: dayjs("2025-08-23 10:00").toDate(),
     end: dayjs("2025-08-23 10:00").add(1, "hours").toDate(),
-    title: "English",
+    subject: "English",
     students: ["Annabella He"],
     tutor: "Lachlan Stevenson",
     color: "#202020",
@@ -13,7 +13,7 @@ const events = [
   {
     start: dayjs("2025-08-23 10:00").toDate(),
     end: dayjs("2025-08-23 10:00").add(1, "hours").toDate(),
-    title: "English",
+    subject: "English",
     students: ["Chloe Kong"],
     tutor: "Lachlan Stevenson",
     color: "#202020",
@@ -21,7 +21,7 @@ const events = [
   {
     start: dayjs("2025-08-23 10:00").toDate(),
     end: dayjs("2025-08-23 10:00").add(1, "hours").toDate(),
-    title: "English",
+    subject: "English",
     students: ["Madeleine Brown"],
     tutor: "Akshita Bhatia",
     color: "#BB8FCE",
@@ -29,7 +29,7 @@ const events = [
   {
     start: dayjs("2025-08-23 10:00").toDate(),
     end: dayjs("2025-08-23 10:00").add(1, "hours").toDate(),
-    title: "Mathematics",
+    subject: "Mathematics",
     students: ["Ailey McGillion"],
     tutor: "Oscar Lipscombe",
     color: "#4D8962",
@@ -37,7 +37,7 @@ const events = [
   {
     start: dayjs("2025-08-23 10:00").toDate(),
     end: dayjs("2025-08-23 10:00").add(1, "hours").toDate(),
-    title: "Mathematics",
+    subject: "Mathematics",
     students: ["Georgie McGillion"],
     tutor: "Fiona Martin",
     color: "#FFA07A",
@@ -45,7 +45,7 @@ const events = [
   {
     start: dayjs("2025-08-23 11:00").toDate(),
     end: dayjs("2025-08-23 11:00").add(1, "hours").toDate(),
-    title: "English",
+    subject: "English",
     students: ["Krish Mohan"],
     tutor: "Fiona Martin",
     color: "#202020",
@@ -53,7 +53,7 @@ const events = [
   {
     start: dayjs("2025-08-23 11:00").toDate(),
     end: dayjs("2025-08-23 11:00").add(1, "hours").toDate(),
-    title: "Physics",
+    subject: "Physics",
     students: ["Chloe Kong"],
     tutor: "Lachlan Stevenson",
     color: "#202020",
@@ -61,7 +61,7 @@ const events = [
   {
     start: dayjs("2025-08-23 11:00").toDate(),
     end: dayjs("2025-08-23 11:00").add(1, "hours").toDate(),
-    title: "Mathematics Methods",
+    subject: "Mathematics Methods",
     students: ["Aabrit Gyawali"],
     tutor: "Oscar Lipscombe",
     color: "#202020",
@@ -69,7 +69,7 @@ const events = [
   {
     start: dayjs("2025-08-23 11:00").toDate(),
     end: dayjs("2025-08-23 11:00").add(1, "hours").toDate(),
-    title: "Mathematics",
+    subject: "Mathematics",
     students: ["Max Murphy"],
     tutor: "Akshita Bhatia",
     color: "#BB8FCE",
@@ -77,7 +77,7 @@ const events = [
   {
     start: dayjs("2025-08-23 11:00").toDate(),
     end: dayjs("2025-08-23 11:00").add(1, "hours").toDate(),
-    title: "Physics/Specialist Methods",
+    subject: "Physics/Specialist Methods",
     students: ["Rory Nielsen", "Zachary Johns"],
     tutor: "Lachlan Stevenson",
     color: "#273627",
@@ -85,7 +85,7 @@ const events = [
   {
     start: dayjs("2025-08-23 11:00").toDate(),
     end: dayjs("2025-08-23 11:00").add(1, "hours").toDate(),
-    title: "English",
+    subject: "English",
     students: ["Abigail Law"],
     tutor: "Fiona Martin",
     color: "#FFA07A",
@@ -93,7 +93,7 @@ const events = [
   {
     start: dayjs("2025-08-23 11:00").toDate(),
     end: dayjs("2025-08-23 11:00").add(1, "hours").toDate(),
-    title: "Mathematics Methods",
+    subject: "Mathematics Methods",
     students: ["hannah Laucher"],
     tutor: "Oscar Lipscombe",
     color: "#202020",
@@ -101,7 +101,7 @@ const events = [
   {
     start: dayjs("2025-08-23 12:00").toDate(),
     end: dayjs("2025-08-23 12:00").add(1, "hours").toDate(),
-    title: "Study Skills",
+    subject: "Study Skills",
     students: ["Rory Nielsen"],
     tutor: "Fiona Martin",
     color: "#FFA07A",
@@ -109,7 +109,7 @@ const events = [
   {
     start: dayjs("2025-08-23 12:00").toDate(),
     end: dayjs("2025-08-23 12:00").add(1, "hours").toDate(),
-    title: "Chemistry",
+    subject: "Chemistry",
     students: ["Aabrit Gyawali"],
     tutor: "Fiona Martin",
     color: "#202020",
@@ -117,7 +117,7 @@ const events = [
   {
     start: dayjs("2025-08-23 12:00").toDate(),
     end: dayjs("2025-08-23 12:00").add(1, "hours").toDate(),
-    title: "Specialist Mathematics",
+    subject: "Specialist Mathematics",
     students: ["Tvisha Bansal"],
     tutor: "Lachlan Stevenson",
     color: "#202020",
@@ -125,7 +125,7 @@ const events = [
   {
     start: dayjs("2025-08-23 12:00").toDate(),
     end: dayjs("2025-08-23 12:00").add(1, "hours").toDate(),
-    title: "English",
+    subject: "English",
     students: ["Aiden Bansal"],
     tutor: "Akshita Bhatia",
     color: "#202020",
@@ -133,7 +133,7 @@ const events = [
   {
     start: dayjs("2025-08-23 12:00").toDate(),
     end: dayjs("2025-08-23 12:00").add(1, "hours").toDate(),
-    title: "Chemistry",
+    subject: "Chemistry",
     students: ["Hannah Laucher"],
     tutor: "Fiona Martin",
     color: "#202020",
@@ -141,7 +141,7 @@ const events = [
   {
     start: dayjs("2025-08-23 13:00").toDate(),
     end: dayjs("2025-08-23 13:00").add(1, "hours").toDate(),
-    title: "English",
+    subject: "English",
     students: ["Bethany Siwabessy", "Annabelle Kingston"],
     tutor: "Lachlan Stevenson",
     color: "#273627",
@@ -149,7 +149,7 @@ const events = [
   {
     start: dayjs("2025-08-23 13:00").toDate(),
     end: dayjs("2025-08-23 13:00").add(1, "hours").toDate(),
-    title: "English",
+    subject: "English",
     students: ["Lucy Mann", "Morgan Potgieter"],
     tutor: "Akshita Bhatia",
     color: "#BB8FCE",
@@ -157,7 +157,7 @@ const events = [
   {
     start: dayjs("2025-08-23 13:00").toDate(),
     end: dayjs("2025-08-23 13:00").add(1, "hours").toDate(),
-    title: "Chemistry",
+    subject: "Chemistry",
     students: ["Daniel Tran"],
     tutor: "Fiona Martin",
     color: "#FFA07A",
@@ -165,7 +165,7 @@ const events = [
   {
     start: dayjs("2025-08-23 13:00").toDate(),
     end: dayjs("2025-08-23 13:00").add(1, "hours").toDate(),
-    title: "Biology",
+    subject: "Biology",
     students: ["Hannah Laucher"],
     tutor: "TDB Group 1 TBD",
     color: "#202020",
@@ -173,7 +173,7 @@ const events = [
   {
     start: dayjs("2025-08-23 14:00").toDate(),
     end: dayjs("2025-08-23 14:00").add(1, "hours").toDate(),
-    title: "Mathematics Applications/Specialist Methods",
+    subject: "Mathematics Applications/Specialist Methods",
     students: ["Annabelle Kingston", "Daniel Tran"],
     tutor: "Lachlan Stevenson",
     color: "#273627",
@@ -181,7 +181,7 @@ const events = [
   {
     start: dayjs("2025-08-23 15:00").toDate(),
     end: dayjs("2025-08-23 15:00").add(1, "hours").toDate(),
-    title: "Mathematics",
+    subject: "Mathematics",
     students: ["Mila Ding"],
     tutor: "Akshita Bhatia",
     color: "#202020",
@@ -189,7 +189,7 @@ const events = [
   {
     start: dayjs("2025-08-23 15:00").toDate(),
     end: dayjs("2025-08-23 15:00").add(1, "hours").toDate(),
-    title: "English",
+    subject: "English",
     students: ["Gabrielle Yeung"],
     tutor: "Kaichen Xu",
     color: "#202020",
@@ -197,7 +197,7 @@ const events = [
   {
     start: dayjs("2025-08-24 10:00").toDate(),
     end: dayjs("2025-08-24 10:00").add(1, "hours").toDate(),
-    title: "English",
+    subject: "English",
     students: ["Thomas Le", "RishhiElango", "Karthik Villepin"],
     tutor: "Anh Nguyen",
     color: "#00D692",
@@ -205,7 +205,7 @@ const events = [
   {
     start: dayjs("2025-08-24 10:00").toDate(),
     end: dayjs("2025-08-24 10:00").add(1, "hours").toDate(),
-    title: "Mathematics Methods",
+    subject: "Mathematics Methods",
     students: ["Trisha Villepin"],
     tutor: "Oscar Lipscombe",
     color: "#4D8962",
@@ -213,7 +213,7 @@ const events = [
   {
     start: dayjs("2025-08-24 10:00").toDate(),
     end: dayjs("2025-08-24 10:00").add(1, "hours").toDate(),
-    title: "Specialist Methods",
+    subject: "Specialist Methods",
     students: ["Stella Pugmire"],
     tutor: "Harrison Arnold",
     color: "#AAAAAA",
@@ -221,7 +221,7 @@ const events = [
   {
     start: dayjs("2025-08-24 11:00").toDate(),
     end: dayjs("2025-08-24 11:00").add(1, "hours").toDate(),
-    title: "Mathematics",
+    subject: "Mathematics",
     students: ["Henry McDarmont"],
     tutor: "Harrison Arnold",
     color: "#AAAAAA",
@@ -229,7 +229,7 @@ const events = [
   {
     start: dayjs("2025-08-24 11:00").toDate(),
     end: dayjs("2025-08-24 11:00").add(1, "hours").toDate(),
-    title: "Mathematics",
+    subject: "Mathematics",
     students: ["Thomas Le", "Rishhi Elango", "Karthik Villepin"],
     tutor: "Oscar Lipscombe",
     color: "#4D8962",
@@ -237,7 +237,7 @@ const events = [
   {
     start: dayjs("2025-08-24 11:00").toDate(),
     end: dayjs("2025-08-24 11:00").add(1, "hours").toDate(),
-    title: "English",
+    subject: "English",
     students: ["Trisha Villepin"],
     tutor: "Anh Nguyen",
     color: "#00D692",
@@ -245,7 +245,7 @@ const events = [
   {
     start: dayjs("2025-08-24 11:00").toDate(),
     end: dayjs("2025-08-24 11:00").add(1, "hours").toDate(),
-    title: "Mathematics",
+    subject: "Mathematics",
     students: ["Henry Holley"],
     tutor: "Harrison Arnold",
     color: "#202020",
@@ -253,7 +253,7 @@ const events = [
   {
     start: dayjs("2025-08-24 11:00").toDate(),
     end: dayjs("2025-08-24 11:00").add(1, "hours").toDate(),
-    title: "Chemistry",
+    subject: "Chemistry",
     students: ["Stella Pugmire"],
     tutor: "Harry Williams",
     color: "#493839",
@@ -261,7 +261,7 @@ const events = [
   {
     start: dayjs("2025-08-24 12:00").toDate(),
     end: dayjs("2025-08-24 12:00").add(1, "hours").toDate(),
-    title: "Mathematics",
+    subject: "Mathematics",
     students: ["Than Nelson"],
     tutor: "Harrison Arnold",
     color: "#202020",
@@ -269,7 +269,7 @@ const events = [
   {
     start: dayjs("2025-08-24 12:00").toDate(),
     end: dayjs("2025-08-24 12:00").add(1, "hours").toDate(),
-    title: "Mathematics",
+    subject: "Mathematics",
     students: ["Mohammed Ali"],
     tutor: "Harrison Arnold",
     color: "#AAAAAA",
@@ -277,7 +277,7 @@ const events = [
   {
     start: dayjs("2025-08-24 12:00").toDate(),
     end: dayjs("2025-08-24 12:00").add(1, "hours").toDate(),
-    title: "Mathematics",
+    subject: "Mathematics",
     students: ["Karthik Villepin", "Isabella Kelly"],
     tutor: "Oscar Lipscombe",
     color: "#4D8962",
@@ -285,7 +285,7 @@ const events = [
   {
     start: dayjs("2025-08-24 12:00").toDate(),
     end: dayjs("2025-08-24 12:00").add(1, "hours").toDate(),
-    title: "Exercise Science",
+    subject: "Exercise Science",
     students: ["Trisha Villepin"],
     tutor: "Harry Williams",
     color: "#493839",
@@ -293,7 +293,7 @@ const events = [
   {
     start: dayjs("2025-08-24 13:00").toDate(),
     end: dayjs("2025-08-24 13:00").add(1, "hours").toDate(),
-    title: "Mathematics",
+    subject: "Mathematics",
     students: ["Mohammed Ali", "Aston Gilbert"],
     tutor: "Harrison Arnold",
     color: "#AAAAAA",
@@ -301,7 +301,7 @@ const events = [
   {
     start: dayjs("2025-08-24 13:00").toDate(),
     end: dayjs("2025-08-24 13:00").add(1, "hours").toDate(),
-    title: "English",
+    subject: "English",
     students: ["Ansh Gondalia"],
     tutor: "Anh Nguyen",
     color: "#00D692",
@@ -309,7 +309,7 @@ const events = [
   {
     start: dayjs("2025-08-24 13:00").toDate(),
     end: dayjs("2025-08-24 13:00").add(1, "hours").toDate(),
-    title: "Mathematics",
+    subject: "Mathematics",
     students: ["Keanu Suardika"],
     tutor: "Harry Williams",
     color: "#493839",
@@ -317,7 +317,7 @@ const events = [
   {
     start: dayjs("2025-08-24 13:00").toDate(),
     end: dayjs("2025-08-24 13:00").add(1, "hours").toDate(),
-    title: "English",
+    subject: "English",
     students: ["Jimmy Dean"],
     tutor: "Kaichen Xu",
     color: "#445566",
@@ -325,7 +325,7 @@ const events = [
   {
     start: dayjs("2025-08-24 14:00").toDate(),
     end: dayjs("2025-08-24 14:00").add(1, "hours").toDate(),
-    title: "English",
+    subject: "English",
     students: ["Ansh Gondalia"],
     tutor: "Anh Nguyen",
     color: "#00D692",
@@ -333,7 +333,7 @@ const events = [
   {
     start: dayjs("2025-08-24 14:00").toDate(),
     end: dayjs("2025-08-24 14:00").add(1, "hours").toDate(),
-    title: "Engineering",
+    subject: "Engineering",
     students: ["Deniz Ercan"],
     tutor: "Harrison Arnold",
     color: "#AAAAAA",
@@ -341,7 +341,7 @@ const events = [
   {
     start: dayjs("2025-08-24 14:00").toDate(),
     end: dayjs("2025-08-24 14:00").add(1, "hours").toDate(),
-    title: "Science",
+    subject: "Science",
     students: ["Keanu Suardika"],
     tutor: "Harry Williams",
     color: "#493839",
@@ -349,7 +349,7 @@ const events = [
   {
     start: dayjs("2025-08-24 14:00").toDate(),
     end: dayjs("2025-08-24 14:00").add(1, "hours").toDate(),
-    title: "English",
+    subject: "English",
     students: ["Dorian Vardai"],
     tutor: "Kaichen Xu",
     color: "#445566",
@@ -357,7 +357,7 @@ const events = [
   {
     start: dayjs("2025-08-24 14:00").toDate(),
     end: dayjs("2025-08-24 14:00").add(1, "hours").toDate(),
-    title: "Health Science",
+    subject: "Health Science",
     students: ["Morgan Potgieter"],
     tutor: "Akshita Bhatia",
     color: "#BB8FCE",
@@ -365,7 +365,7 @@ const events = [
   {
     start: dayjs("2025-08-24 14:00").toDate(),
     end: dayjs("2025-08-24 14:00").add(1, "hours").toDate(),
-    title: "English",
+    subject: "English",
     students: ["Krish Mohan"],
     tutor: "Beatriz Ledo Tonin",
     color: "#9AECDB",
@@ -373,7 +373,7 @@ const events = [
   {
     start: dayjs("2025-08-24 15:00").toDate(),
     end: dayjs("2025-08-24 15:00").add(1, "hours").toDate(),
-    title: "Mathematics",
+    subject: "Mathematics",
     students: ["Ansh Gondalia", "Tanvir Kaur"],
     tutor: "Harry Williams",
     color: "#493839",
@@ -381,7 +381,7 @@ const events = [
   {
     start: dayjs("2025-08-24 15:00").toDate(),
     end: dayjs("2025-08-24 15:00").add(1, "hours").toDate(),
-    title: "Human Biology",
+    subject: "Human Biology",
     students: ["Abby McCrae"],
     tutor: "Kyle Cavanagh",
     color: "#202020",
@@ -389,7 +389,7 @@ const events = [
   {
     start: dayjs("2025-08-24 15:00").toDate(),
     end: dayjs("2025-08-24 15:00").add(1, "hours").toDate(),
-    title: "English",
+    subject: "English",
     students: ["Jashanvir Dhillon"],
     tutor: "Beatriz Ledo Tonin",
     color: "#9AECDB",
@@ -397,7 +397,7 @@ const events = [
   {
     start: dayjs("2025-08-24 15:00").toDate(),
     end: dayjs("2025-08-24 15:00").add(1, "hours").toDate(),
-    title: "English",
+    subject: "English",
     students: ["Jayvir Singh"],
     tutor: "Kaichen Xu",
     color: "#445566",
@@ -405,7 +405,7 @@ const events = [
   {
     start: dayjs("2025-08-24 15:00").toDate(),
     end: dayjs("2025-08-24 15:00").add(1, "hours").toDate(),
-    title: "Pyschology",
+    subject: "Pyschology",
     students: ["Morgan Potgieter"],
     tutor: "Akshita Bhatia",
     color: "#BB8FCE",
@@ -413,7 +413,7 @@ const events = [
   {
     start: dayjs("2025-08-24 16:00").toDate(),
     end: dayjs("2025-08-24 16:00").add(1, "hours").toDate(),
-    title: "English",
+    subject: "English",
     students: ["Lochlan Brooks"],
     tutor: "Akshita Bhatia",
     color: "#BB8FCE",
@@ -421,7 +421,7 @@ const events = [
   {
     start: dayjs("2025-08-24 16:00").toDate(),
     end: dayjs("2025-08-24 16:00").add(1, "hours").toDate(),
-    title: "Science",
+    subject: "Science",
     students: ["Ansh Gondalia", "Shreyansh Pandey"],
     tutor: "Kyle Cavanagh",
     color: "#008FD6",
@@ -429,7 +429,7 @@ const events = [
   {
     start: dayjs("2025-08-24 16:00").toDate(),
     end: dayjs("2025-08-24 16:00").add(1, "hours").toDate(),
-    title: "English",
+    subject: "English",
     students: ["Sameen Rahaman"],
     tutor: "Danelda Theron",
     color: "#202020",
@@ -437,7 +437,7 @@ const events = [
   {
     start: dayjs("2025-08-24 17:00").toDate(),
     end: dayjs("2025-08-24 17:00").add(1, "hours").toDate(),
-    title: "English",
+    subject: "English",
     students: ["Lochlan Brooks", "Nicholas Race"],
     tutor: "Akshita Bhatia",
     color: "#BB8FCE",
@@ -445,7 +445,7 @@ const events = [
   {
     start: dayjs("2025-08-24 17:00").toDate(),
     end: dayjs("2025-08-24 17:00").add(1, "hours").toDate(),
-    title: "Mathematics",
+    subject: "Mathematics",
     students: ["Ansh Gondalia", "Shreyansh Pandey"],
     tutor: "Kyle Cavanagh",
     color: "#008FD6",
@@ -453,7 +453,7 @@ const events = [
   {
     start: dayjs("2025-08-25 16:00").toDate(),
     end: dayjs("2025-08-25 16:00").add(1, "hours").toDate(),
-    title: "Mathematics",
+    subject: "Mathematics",
     students: ["Delphine Waites", "Alicia Ho"],
     tutor: "Harry Williams",
     color: "#493839",
@@ -461,7 +461,7 @@ const events = [
   {
     start: dayjs("2025-08-25 16:00").toDate(),
     end: dayjs("2025-08-25 16:00").add(1, "hours").toDate(),
-    title: "Mathematics",
+    subject: "Mathematics",
     students: ["Silas Wiles", "Harriet McDarmont"],
     tutor: "Darcy Ryan",
     color: "#909163",
@@ -469,7 +469,7 @@ const events = [
   {
     start: dayjs("2025-08-25 16:00").toDate(),
     end: dayjs("2025-08-25 16:00").add(1, "hours").toDate(),
-    title: "Mathematics",
+    subject: "Mathematics",
     students: ["Ario Ghara Hafshejani", "Artin Hafshejani"],
     tutor: "Lachlan Stevenson",
     color: "#273627",
@@ -477,7 +477,7 @@ const events = [
   {
     start: dayjs("2025-08-25 16:00").toDate(),
     end: dayjs("2025-08-25 16:00").add(1, "hours").toDate(),
-    title: "Mathematics",
+    subject: "Mathematics",
     students: ["Sera Jacob"],
     tutor: "Fiona Martin",
     color: "#FFA07A",
@@ -485,7 +485,7 @@ const events = [
   {
     start: dayjs("2025-08-25 16:00").toDate(),
     end: dayjs("2025-08-25 16:00").add(1, "hours").toDate(),
-    title: "Mathematics/Mathematics Methods",
+    subject: "Mathematics/Mathematics Methods",
     students: ["Harry Moore-Foster", "Kirra Choquenot"],
     tutor: "Justin Xia",
     color: "#D63D00",
@@ -493,7 +493,7 @@ const events = [
   {
     start: dayjs("2025-08-25 16:00").toDate(),
     end: dayjs("2025-08-25 16:00").add(1, "hours").toDate(),
-    title: "Mathematics Methods",
+    subject: "Mathematics Methods",
     students: ["Ariel Moffat"],
     tutor: "Fiona Martin",
     color: "#202020",
@@ -501,7 +501,7 @@ const events = [
   {
     start: dayjs("2025-08-25 16:00").toDate(),
     end: dayjs("2025-08-25 16:00").add(1, "hours").toDate(),
-    title: "Mathematics",
+    subject: "Mathematics",
     students: ["Jawan Rahamen"],
     tutor: "Danelda Theron",
     color: "#202020",
@@ -509,7 +509,7 @@ const events = [
   {
     start: dayjs("2025-08-25 17:00").toDate(),
     end: dayjs("2025-08-25 17:00").add(1, "hours").toDate(),
-    title: "Physics",
+    subject: "Physics",
     students: ["Katherine Stewardson"],
     tutor: "Lachlan Stevenson",
     color: "#202020",
@@ -517,7 +517,7 @@ const events = [
   {
     start: dayjs("2025-08-25 17:00").toDate(),
     end: dayjs("2025-08-25 17:00").add(1, "hours").toDate(),
-    title: "English",
+    subject: "English",
     students: ["Delphine Waites", "Ryan Yang"],
     tutor: "Harry Williams",
     color: "#493839",
@@ -525,7 +525,7 @@ const events = [
   {
     start: dayjs("2025-08-25 17:00").toDate(),
     end: dayjs("2025-08-25 17:00").add(1, "hours").toDate(),
-    title: "Reading",
+    subject: "Reading",
     students: ["Silas Wiles"],
     tutor: "Darcy Ryan",
     color: "#909163",
@@ -533,7 +533,7 @@ const events = [
   {
     start: dayjs("2025-08-25 17:00").toDate(),
     end: dayjs("2025-08-25 17:00").add(1, "hours").toDate(),
-    title: "Physics",
+    subject: "Physics",
     students: ["Johann Paliakkara", "Mohammed Ali"],
     tutor: "Lachlan Stevenson",
     color: "#273627",
@@ -541,7 +541,7 @@ const events = [
   {
     start: dayjs("2025-08-25 17:00").toDate(),
     end: dayjs("2025-08-25 17:00").add(1, "hours").toDate(),
-    title: "English",
+    subject: "English",
     students: ["Serana Yang"],
     tutor: "Nikita Dahiya",
     color: "#8A2BE2",
@@ -549,7 +549,7 @@ const events = [
   {
     start: dayjs("2025-08-25 17:00").toDate(),
     end: dayjs("2025-08-25 17:00").add(1, "hours").toDate(),
-    title: "Mathematics",
+    subject: "Mathematics",
     students: ["Sara jacob"],
     tutor: "Fiona Martin",
     color: "#FFA07A",
@@ -557,7 +557,7 @@ const events = [
   {
     start: dayjs("2025-08-25 17:00").toDate(),
     end: dayjs("2025-08-25 17:00").add(1, "hours").toDate(),
-    title: "English",
+    subject: "English",
     students: ["Willfred Deyegbe"],
     tutor: "Beatriz Ledo Tonin",
     color: "#9AECDB",
@@ -565,7 +565,7 @@ const events = [
   {
     start: dayjs("2025-08-25 18:00").toDate(),
     end: dayjs("2025-08-25 18:00").add(1, "hours").toDate(),
-    title: "Specialist Methods",
+    subject: "Specialist Methods",
     students: ["Katherine Stewardson"],
     tutor: "Oscar Lipscombe",
     color: "#202020",
@@ -573,7 +573,7 @@ const events = [
   {
     start: dayjs("2025-08-25 18:00").toDate(),
     end: dayjs("2025-08-25 18:00").add(1, "hours").toDate(),
-    title: "English",
+    subject: "English",
     students: ["Than Nelson"],
     tutor: "Akshita Bhatia",
     color: "#202020",
@@ -581,7 +581,7 @@ const events = [
   {
     start: dayjs("2025-08-25 18:00").toDate(),
     end: dayjs("2025-08-25 18:00").add(1, "hours").toDate(),
-    title: "English",
+    subject: "English",
     students: ["Mohammed Ali", "Robert McDonald"],
     tutor: "Akshita Bhatia",
     color: "#BB8FCE",
@@ -589,7 +589,7 @@ const events = [
   {
     start: dayjs("2025-08-25 18:00").toDate(),
     end: dayjs("2025-08-25 18:00").add(1, "hours").toDate(),
-    title: "English",
+    subject: "English",
     students: ["Abid Mustafa"],
     tutor: "Anh Nguyen",
     color: "#00D692",
@@ -597,7 +597,7 @@ const events = [
   {
     start: dayjs("2025-08-25 18:00").toDate(),
     end: dayjs("2025-08-25 18:00").add(1, "hours").toDate(),
-    title: "Specialist Methods",
+    subject: "Specialist Methods",
     students: ["Elizabeth Goldsworthy"],
     tutor: "Oscar Lipscombe",
     color: "#4D8962",
@@ -605,7 +605,7 @@ const events = [
   {
     start: dayjs("2025-08-25 18:00").toDate(),
     end: dayjs("2025-08-25 18:00").add(1, "hours").toDate(),
-    title: "Mathematics",
+    subject: "Mathematics",
     students: ["Caitlin Martin", "Harvey Irvine"],
     tutor: "Fiona Martin",
     color: "#FFA07A",
@@ -613,7 +613,7 @@ const events = [
   {
     start: dayjs("2025-08-25 18:00").toDate(),
     end: dayjs("2025-08-25 18:00").add(1, "hours").toDate(),
-    title: "Mathematics",
+    subject: "Mathematics",
     students: ["Ethan Jeffress"],
     tutor: "Justin Xia",
     color: "#D63D00",
@@ -621,7 +621,7 @@ const events = [
   {
     start: dayjs("2025-08-25 19:00").toDate(),
     end: dayjs("2025-08-25 19:00").add(1, "hours").toDate(),
-    title: "Mathematics Methods/Specialist Methods",
+    subject: "Mathematics Methods/Specialist Methods",
     students: ["Hanin Mostafa", "Lochlan Brooks", "Elizabeth Goldsworthy"],
     tutor: "Lachlan Stevenson",
     color: "#273627",
@@ -629,7 +629,7 @@ const events = [
   {
     start: dayjs("2025-08-25 19:00").toDate(),
     end: dayjs("2025-08-25 19:00").add(1, "hours").toDate(),
-    title: "Mathematics",
+    subject: "Mathematics",
     students: ["Abid Mustafa"],
     tutor: "Oscar Lipscombe",
     color: "#4D8962",
@@ -637,7 +637,7 @@ const events = [
   {
     start: dayjs("2025-08-25 19:00").toDate(),
     end: dayjs("2025-08-25 19:00").add(1, "hours").toDate(),
-    title: "English",
+    subject: "English",
     students: ["Yasmin Mostafa", "Robert McDonald"],
     tutor: "Akshita Bhatia",
     color: "#BB8FCE",
@@ -645,7 +645,7 @@ const events = [
   {
     start: dayjs("2025-08-25 19:00").toDate(),
     end: dayjs("2025-08-25 19:00").add(1, "hours").toDate(),
-    title: "Mathematics",
+    subject: "Mathematics",
     students: ["Asha Curtis"],
     tutor: "Fiona Martin",
     color: "#FFA07A",
@@ -653,7 +653,7 @@ const events = [
   {
     start: dayjs("2025-08-25 19:00").toDate(),
     end: dayjs("2025-08-25 19:00").add(1, "hours").toDate(),
-    title: "English",
+    subject: "English",
     students: ["Praneel Sood"],
     tutor: "Anh Nguyen",
     color: "#00D692",
@@ -661,7 +661,7 @@ const events = [
   {
     start: dayjs("2025-08-25 20:00").toDate(),
     end: dayjs("2025-08-25 20:00").add(1, "hours").toDate(),
-    title: "Philosophy",
+    subject: "Philosophy",
     students: ["Nicholas Race", "Lochlan Brooks"],
     tutor: "Oscar Lipscombe",
     color: "#4D8962",
@@ -669,7 +669,7 @@ const events = [
   {
     start: dayjs("2025-08-25 20:00").toDate(),
     end: dayjs("2025-08-25 20:00").add(1, "hours").toDate(),
-    title: "English",
+    subject: "English",
     students: ["Ranvir Dhillon"],
     tutor: "Anh Nguyen",
     color: "#202020",
@@ -677,7 +677,7 @@ const events = [
   {
     start: dayjs("2025-08-25 20:00").toDate(),
     end: dayjs("2025-08-25 20:00").add(1, "hours").toDate(),
-    title: "English",
+    subject: "English",
     students: ["Kranvir Dhillon"],
     tutor: "Fiona Martin",
     color: "#202020",
@@ -685,7 +685,7 @@ const events = [
   {
     start: dayjs("2025-08-26 16:00").toDate(),
     end: dayjs("2025-08-26 16:00").add(1, "hours").toDate(),
-    title: "English",
+    subject: "English",
     students: ["Ethan He"],
     tutor: "Akshita Bhatia",
     color: "#BB8FCE",
@@ -693,7 +693,7 @@ const events = [
   {
     start: dayjs("2025-08-26 16:00").toDate(),
     end: dayjs("2025-08-26 16:00").add(1, "hours").toDate(),
-    title: "Mathematics",
+    subject: "Mathematics",
     students: ["Rea Nevin"],
     tutor: "Harrison Arnold",
     color: "#202020",
@@ -701,7 +701,7 @@ const events = [
   {
     start: dayjs("2025-08-26 16:00").toDate(),
     end: dayjs("2025-08-26 16:00").add(1, "hours").toDate(),
-    title: "Mathematics",
+    subject: "Mathematics",
     students: ["Annabella He"],
     tutor: "Oscar Lipscombe",
     color: "#4D8962",
@@ -709,7 +709,7 @@ const events = [
   {
     start: dayjs("2025-08-26 16:00").toDate(),
     end: dayjs("2025-08-26 16:00").add(1, "hours").toDate(),
-    title: "Mathematics Methods",
+    subject: "Mathematics Methods",
     students: ["Hamish Larner"],
     tutor: "Oscar Lipscombe",
     color: "#202020",
@@ -717,7 +717,7 @@ const events = [
   {
     start: dayjs("2025-08-26 16:00").toDate(),
     end: dayjs("2025-08-26 16:00").add(1, "hours").toDate(),
-    title: "Mathematics/Science",
+    subject: "Mathematics/Science",
     students: ["James He", "Delilah Duncan"],
     tutor: "Rohan Reynolds",
     color: "#96CEB4",
@@ -725,7 +725,7 @@ const events = [
   {
     start: dayjs("2025-08-26 16:00").toDate(),
     end: dayjs("2025-08-26 16:00").add(1, "hours").toDate(),
-    title: "English",
+    subject: "English",
     students: ["Xavier Fitzpatrick", "Hawan Rahaman"],
     tutor: "Maya Reynolds",
     color: "#6C5B7B",
@@ -733,7 +733,7 @@ const events = [
   {
     start: dayjs("2025-08-26 16:00").toDate(),
     end: dayjs("2025-08-26 16:00").add(1, "hours").toDate(),
-    title: "Mathematics",
+    subject: "Mathematics",
     students: ["Sameen Rahaman"],
     tutor: "Harrison Arnold",
     color: "#AAAAAA",
@@ -741,7 +741,7 @@ const events = [
   {
     start: dayjs("2025-08-26 17:00").toDate(),
     end: dayjs("2025-08-26 17:00").add(1, "hours").toDate(),
-    title: "Mathematics Methods",
+    subject: "Mathematics Methods",
     students: ["Lilla Johnston-Knight"],
     tutor: "Harrison Arnold",
     color: "#AAAAAA",
@@ -749,7 +749,7 @@ const events = [
   {
     start: dayjs("2025-08-26 17:00").toDate(),
     end: dayjs("2025-08-26 17:00").add(1, "hours").toDate(),
-    title: "English",
+    subject: "English",
     students: ["Ahmad Mohammad"],
     tutor: "Zahara Smith",
     color: "#00BFFF",
@@ -757,7 +757,7 @@ const events = [
   {
     start: dayjs("2025-08-26 17:00").toDate(),
     end: dayjs("2025-08-26 17:00").add(1, "hours").toDate(),
-    title: "Mathematics",
+    subject: "Mathematics",
     students: ["Ava Hill"],
     tutor: "Akshita Bhatia",
     color: "#BB8FCE",
@@ -765,7 +765,7 @@ const events = [
   {
     start: dayjs("2025-08-26 17:00").toDate(),
     end: dayjs("2025-08-26 17:00").add(1, "hours").toDate(),
-    title: "Mathematics",
+    subject: "Mathematics",
     students: ["Xavier Fitzpatrick", "Patrick Hocking"],
     tutor: "Maya Reynolds",
     color: "#6C5B7B",
@@ -773,7 +773,7 @@ const events = [
   {
     start: dayjs("2025-08-26 18:00").toDate(),
     end: dayjs("2025-08-26 18:00").add(1, "hours").toDate(),
-    title: "Physics",
+    subject: "Physics",
     students: ["Maaz Keriwala"],
     tutor: "Harrison Arnold",
     color: "#202020",
@@ -781,7 +781,7 @@ const events = [
   {
     start: dayjs("2025-08-26 18:00").toDate(),
     end: dayjs("2025-08-26 18:00").add(1, "hours").toDate(),
-    title: "Physics",
+    subject: "Physics",
     students: ["Hugo Packham", "Shiven Mitra"],
     tutor: "Harrison Arnold",
     color: "#AAAAAA",
@@ -789,7 +789,7 @@ const events = [
   {
     start: dayjs("2025-08-26 18:00").toDate(),
     end: dayjs("2025-08-26 18:00").add(1, "hours").toDate(),
-    title: "Mathematics",
+    subject: "Mathematics",
     students: ["Samara Ding", "Gemma Tyndall"],
     tutor: "Fiona Martin",
     color: "#FFA07A",
@@ -797,7 +797,7 @@ const events = [
   {
     start: dayjs("2025-08-26 18:00").toDate(),
     end: dayjs("2025-08-26 18:00").add(1, "hours").toDate(),
-    title: "Mathematics",
+    subject: "Mathematics",
     students: ["Robert McDonald", "Ahman Mohammad"],
     tutor: "Kyle Cavanagh",
     color: "#008FD6",
@@ -805,7 +805,7 @@ const events = [
   {
     start: dayjs("2025-08-26 18:00").toDate(),
     end: dayjs("2025-08-26 18:00").add(1, "hours").toDate(),
-    title: "Mathematics",
+    subject: "Mathematics",
     students: ["Charlotte Delos Santos"],
     tutor: "Akshita Bhatia",
     color: "#BB8FCE",
@@ -813,7 +813,7 @@ const events = [
   {
     start: dayjs("2025-08-26 18:00").toDate(),
     end: dayjs("2025-08-26 18:00").add(1, "hours").toDate(),
-    title: "English",
+    subject: "English",
     students: ["Sangay Wangchuk"],
     tutor: "Zahara Smith",
     color: "#00BFFF",
@@ -821,7 +821,7 @@ const events = [
   {
     start: dayjs("2025-08-26 19:00").toDate(),
     end: dayjs("2025-08-26 19:00").add(1, "hours").toDate(),
-    title: "Specialist Mathematics/Mathematics",
+    subject: "Specialist Mathematics/Mathematics",
     students: ["Hugo Packham", "Shiven Mitra"],
     tutor: "Harrison Arnold",
     color: "#AAAAAA",
@@ -829,7 +829,7 @@ const events = [
   {
     start: dayjs("2025-08-26 19:00").toDate(),
     end: dayjs("2025-08-26 19:00").add(1, "hours").toDate(),
-    title: "Mathematics",
+    subject: "Mathematics",
     students: ["Robert McDonald"],
     tutor: "Kyle Cavanagh",
     color: "#008FD6",
@@ -837,7 +837,7 @@ const events = [
   {
     start: dayjs("2025-08-26 19:00").toDate(),
     end: dayjs("2025-08-26 19:00").add(1, "hours").toDate(),
-    title: "Mathematics",
+    subject: "Mathematics",
     students: ["Amelia Fiala", "Audrey Dyer"],
     tutor: "Akshita Bhatia",
     color: "#BB8FCE",
@@ -845,7 +845,7 @@ const events = [
   {
     start: dayjs("2025-08-26 19:00").toDate(),
     end: dayjs("2025-08-26 19:00").add(1, "hours").toDate(),
-    title: "English",
+    subject: "English",
     students: ["Samara Ding"],
     tutor: "Zahara Smith",
     color: "#00BFFF",
@@ -853,7 +853,7 @@ const events = [
   {
     start: dayjs("2025-08-26 19:00").toDate(),
     end: dayjs("2025-08-26 19:00").add(1, "hours").toDate(),
-    title: "Mathematics Applications",
+    subject: "Mathematics Applications",
     students: ["Emily McGregor"],
     tutor: "Fiona Martin",
     color: "#FFA07A",
@@ -861,7 +861,7 @@ const events = [
   {
     start: dayjs("2025-08-26 20:00").toDate(),
     end: dayjs("2025-08-26 20:00").add(1, "hours").toDate(),
-    title: "Physics",
+    subject: "Physics",
     students: ["Jaydet bainBridge", "Sophie MacDougall"],
     tutor: "Harrison Arnold",
     color: "#AAAAAA",
@@ -869,7 +869,7 @@ const events = [
   {
     start: dayjs("2025-08-26 20:00").toDate(),
     end: dayjs("2025-08-26 20:00").add(1, "hours").toDate(),
-    title: "Biology",
+    subject: "Biology",
     students: ["Aabrit Gyawali"],
     tutor: "Kyle Cavanagh",
     color: "#202020",
@@ -877,7 +877,7 @@ const events = [
   {
     start: dayjs("2025-08-26 20:00").toDate(),
     end: dayjs("2025-08-26 20:00").add(1, "hours").toDate(),
-    title: "Literature",
+    subject: "Literature",
     students: ["Emily McGregor"],
     tutor: "Akshita Bhatia",
     color: "#BB8FCE",
@@ -885,7 +885,7 @@ const events = [
   {
     start: dayjs("2025-08-27 16:00").toDate(),
     end: dayjs("2025-08-27 16:00").add(1, "hours").toDate(),
-    title: "Chemistry",
+    subject: "Chemistry",
     students: ["Hugo Packham", "Henry Morgan"],
     tutor: "Brendan Huynh",
     color: "#0A2472",
@@ -893,7 +893,7 @@ const events = [
   {
     start: dayjs("2025-08-27 16:00").toDate(),
     end: dayjs("2025-08-27 16:00").add(1, "hours").toDate(),
-    title: "Mathematics",
+    subject: "Mathematics",
     students: ["Prit Brahmbhatt", "Alexandra Elford"],
     tutor: "Laura Gatto",
     color: "#662211",
@@ -901,7 +901,7 @@ const events = [
   {
     start: dayjs("2025-08-27 16:00").toDate(),
     end: dayjs("2025-08-27 16:00").add(1, "hours").toDate(),
-    title: "Mathematics",
+    subject: "Mathematics",
     students: ["Het Brahmbhatt"],
     tutor: "Darcy Dyan",
     color: "#909163",
@@ -909,7 +909,7 @@ const events = [
   {
     start: dayjs("2025-08-27 16:00").toDate(),
     end: dayjs("2025-08-27 16:00").add(1, "hours").toDate(),
-    title: "Mathematics",
+    subject: "Mathematics",
     students: ["Giles Wyborn"],
     tutor: "Kyle Cavanagh",
     color: "#008FD6",
@@ -917,7 +917,7 @@ const events = [
   {
     start: dayjs("2025-08-27 16:00").toDate(),
     end: dayjs("2025-08-27 16:00").add(1, "hours").toDate(),
-    title: "Mathematics",
+    subject: "Mathematics",
     students: ["Hugh Wyborn"],
     tutor: "Akshita Bhatia",
     color: "#BB8FCE",
@@ -925,7 +925,7 @@ const events = [
   {
     start: dayjs("2025-08-27 16:00").toDate(),
     end: dayjs("2025-08-27 16:00").add(1, "hours").toDate(),
-    title: "Physics",
+    subject: "Physics",
     students: ["Finn Develin"],
     tutor: "Rohan Reynolds",
     color: "#96CEB4",
@@ -933,7 +933,7 @@ const events = [
   {
     start: dayjs("2025-08-27 17:00").toDate(),
     end: dayjs("2025-08-27 17:00").add(1, "hours").toDate(),
-    title: "Mathematics",
+    subject: "Mathematics",
     students: ["Heidi Fridemanis"],
     tutor: "Brendan Huynh",
     color: "#0A2472",
@@ -941,7 +941,7 @@ const events = [
   {
     start: dayjs("2025-08-27 17:00").toDate(),
     end: dayjs("2025-08-27 17:00").add(1, "hours").toDate(),
-    title: "Mathematics",
+    subject: "Mathematics",
     students: ["Levi Fridemanis"],
     tutor: "Darcy Dyan",
     color: "#909163",
@@ -949,7 +949,7 @@ const events = [
   {
     start: dayjs("2025-08-27 17:00").toDate(),
     end: dayjs("2025-08-27 17:00").add(1, "hours").toDate(),
-    title: "Mathematics",
+    subject: "Mathematics",
     students: ["Max Pedvin "],
     tutor: "Akshita Bhatia",
     color: "#BB8FCE",
@@ -957,7 +957,7 @@ const events = [
   {
     start: dayjs("2025-08-27 17:00").toDate(),
     end: dayjs("2025-08-27 17:00").add(1, "hours").toDate(),
-    title: "Mathematics",
+    subject: "Mathematics",
     students: ["Eren Yilmazsimsek"],
     tutor: "Laura Gatto",
     color: "#662211",
@@ -965,7 +965,7 @@ const events = [
   {
     start: dayjs("2025-08-27 17:00").toDate(),
     end: dayjs("2025-08-27 17:00").add(1, "hours").toDate(),
-    title: "English",
+    subject: "English",
     students: ["Lucas Allen"],
     tutor: "Maya Reynolds",
     color: "#6C5B7B",
@@ -973,7 +973,7 @@ const events = [
   {
     start: dayjs("2025-08-27 18:00").toDate(),
     end: dayjs("2025-08-27 18:00").add(1, "hours").toDate(),
-    title: "Mathematics",
+    subject: "Mathematics",
     students: ["Daniel Kim", "Praneel Sood"],
     tutor: "Darcy Dyan",
     color: "#909163",
@@ -981,7 +981,7 @@ const events = [
   {
     start: dayjs("2025-08-27 18:00").toDate(),
     end: dayjs("2025-08-27 18:00").add(1, "hours").toDate(),
-    title: "Science",
+    subject: "Science",
     students: ["Joe Kim", "Yasmin Mostafa"],
     tutor: "Laura Gatto",
     color: "#662211",
@@ -989,7 +989,7 @@ const events = [
   {
     start: dayjs("2025-08-27 18:00").toDate(),
     end: dayjs("2025-08-27 18:00").add(1, "hours").toDate(),
-    title: "Chemistry",
+    subject: "Chemistry",
     students: ["Hanin Mostafa"],
     tutor: "Brendan Huynh",
     color: "#0A2472",
@@ -997,7 +997,7 @@ const events = [
   {
     start: dayjs("2025-08-27 18:00").toDate(),
     end: dayjs("2025-08-27 18:00").add(1, "hours").toDate(),
-    title: "Chemistry",
+    subject: "Chemistry",
     students: ["Charlotte Edwards"],
     tutor: "Brendan Huynh",
     color: "#202020",
@@ -1005,7 +1005,7 @@ const events = [
   {
     start: dayjs("2025-08-27 18:00").toDate(),
     end: dayjs("2025-08-27 18:00").add(1, "hours").toDate(),
-    title: "Mathematics Methods",
+    subject: "Mathematics Methods",
     students: ["Chamille Pauline Kael Cadungog"],
     tutor: "Kyle Cavanagh",
     color: "#202020",
@@ -1013,7 +1013,7 @@ const events = [
   {
     start: dayjs("2025-08-27 18:00").toDate(),
     end: dayjs("2025-08-27 18:00").add(1, "hours").toDate(),
-    title: "Specialist Methods",
+    subject: "Specialist Methods",
     students: ["Navya Rajput"],
     tutor: "Kyle Cavanagh",
     color: "#008FD6",
@@ -1021,7 +1021,7 @@ const events = [
   {
     start: dayjs("2025-08-27 18:00").toDate(),
     end: dayjs("2025-08-27 18:00").add(1, "hours").toDate(),
-    title: "English",
+    subject: "English",
     students: ["Max Murphy"],
     tutor: "Akshita Bhatia",
     color: "#BB8FCE",
@@ -1029,7 +1029,7 @@ const events = [
   {
     start: dayjs("2025-08-27 19:00").toDate(),
     end: dayjs("2025-08-27 19:00").add(1, "hours").toDate(),
-    title: "Biology",
+    subject: "Biology",
     students: ["Hanin Mostafa"],
     tutor: "Brendan Huynh",
     color: "#0A2472",
@@ -1037,7 +1037,7 @@ const events = [
   {
     start: dayjs("2025-08-27 19:00").toDate(),
     end: dayjs("2025-08-27 19:00").add(1, "hours").toDate(),
-    title: "Mathematics",
+    subject: "Mathematics",
     students: ["Yasmin Mostafa"],
     tutor: "Laura Gatto",
     color: "#662211",
@@ -1045,7 +1045,7 @@ const events = [
   {
     start: dayjs("2025-08-27 19:00").toDate(),
     end: dayjs("2025-08-27 19:00").add(1, "hours").toDate(),
-    title: "Mathematics",
+    subject: "Mathematics",
     students: ["Brendan Brooks", "Louis Muzikar"],
     tutor: "Harry Williams",
     color: "#493839",
@@ -1053,7 +1053,7 @@ const events = [
   {
     start: dayjs("2025-08-27 19:00").toDate(),
     end: dayjs("2025-08-27 19:00").add(1, "hours").toDate(),
-    title: "English",
+    subject: "English",
     students: ["Camilla Pauline kael Cadungog"],
     tutor: "Akshita Bhatia",
     color: "#202020",
@@ -1061,7 +1061,7 @@ const events = [
   {
     start: dayjs("2025-08-27 19:00").toDate(),
     end: dayjs("2025-08-27 19:00").add(1, "hours").toDate(),
-    title: "Specialist Methods",
+    subject: "Specialist Methods",
     students: ["Kanishka Chheda", "Navya Rajput"],
     tutor: "Kyle Cavanagh",
     color: "#008FD6",
@@ -1069,7 +1069,7 @@ const events = [
   {
     start: dayjs("2025-08-27 19:00").toDate(),
     end: dayjs("2025-08-27 19:00").add(1, "hours").toDate(),
-    title: "Mathematics",
+    subject: "Mathematics",
     students: ["Ellie Stuart"],
     tutor: "Laura Gatto",
     color: "#202020",
@@ -1077,7 +1077,7 @@ const events = [
   {
     start: dayjs("2025-08-27 19:00").toDate(),
     end: dayjs("2025-08-27 19:00").add(1, "hours").toDate(),
-    title: "English",
+    subject: "English",
     students: ["Jackson Tate"],
     tutor: "Akshita Bhatia",
     color: "#BB8FCE",
@@ -1085,7 +1085,7 @@ const events = [
   {
     start: dayjs("2025-08-27 20:00").toDate(),
     end: dayjs("2025-08-27 20:00").add(1, "hours").toDate(),
-    title: "Mathematics",
+    subject: "Mathematics",
     students: ["Brandan Brooks"],
     tutor: "Harry Williams",
     color: "#493839",
@@ -1093,7 +1093,7 @@ const events = [
   {
     start: dayjs("2025-08-28 16:00").toDate(),
     end: dayjs("2025-08-28 16:00").add(1, "hours").toDate(),
-    title: "Literacy",
+    subject: "Literacy",
     students: ["Dante Amarfio"],
     tutor: "Danelda Theron",
     color: "#FD79A8",
@@ -1101,7 +1101,7 @@ const events = [
   {
     start: dayjs("2025-08-28 16:00").toDate(),
     end: dayjs("2025-08-28 16:00").add(1, "hours").toDate(),
-    title: "Chemistry",
+    subject: "Chemistry",
     students: ["Daniel Tran"],
     tutor: "Brendan Huynh",
     color: "#0A2472",
@@ -1109,7 +1109,7 @@ const events = [
   {
     start: dayjs("2025-08-28 16:00").toDate(),
     end: dayjs("2025-08-28 16:00").add(1, "hours").toDate(),
-    title: "Physics",
+    subject: "Physics",
     students: ["Prajiet Eswaran"],
     tutor: "Lachlan Stevenson",
     color: "#273627",
@@ -1117,7 +1117,7 @@ const events = [
   {
     start: dayjs("2025-08-28 17:00").toDate(),
     end: dayjs("2025-08-28 17:00").add(1, "hours").toDate(),
-    title: "Mathematics",
+    subject: "Mathematics",
     students: ["Willem Hehir"],
     tutor: "Lachlan Stevenson",
     color: "#202020",
@@ -1125,7 +1125,7 @@ const events = [
   {
     start: dayjs("2025-08-28 17:00").toDate(),
     end: dayjs("2025-08-28 17:00").add(1, "hours").toDate(),
-    title: "Science",
+    subject: "Science",
     students: ["Robert McDonald"],
     tutor: "Brendan Huynh",
     color: "#0A2472",
@@ -1133,7 +1133,7 @@ const events = [
   {
     start: dayjs("2025-08-28 17:00").toDate(),
     end: dayjs("2025-08-28 17:00").add(1, "hours").toDate(),
-    title: "Mathematics Methods/Specialist Methods",
+    subject: "Mathematics Methods/Specialist Methods",
     students: ["Skye McGregor", "Prajiet Eswaran"],
     tutor: "Lachlan Stevenson",
     color: "#273627",
@@ -1141,7 +1141,7 @@ const events = [
   {
     start: dayjs("2025-08-28 17:00").toDate(),
     end: dayjs("2025-08-28 17:00").add(1, "hours").toDate(),
-    title: "Mathematics",
+    subject: "Mathematics",
     students: ["Abby Strangman", "Henry Flanagan"],
     tutor: "Danelda Theron",
     color: "#FD79A8",
@@ -1149,7 +1149,7 @@ const events = [
   {
     start: dayjs("2025-08-28 18:00").toDate(),
     end: dayjs("2025-08-28 18:00").add(1, "hours").toDate(),
-    title: "English",
+    subject: "English",
     students: ["Catherine Howell", "Samuel Manik"],
     tutor: "Kaichen Xu",
     color: "#445566",
@@ -1157,7 +1157,7 @@ const events = [
   {
     start: dayjs("2025-08-28 18:00").toDate(),
     end: dayjs("2025-08-28 18:00").add(1, "hours").toDate(),
-    title: "English",
+    subject: "English",
     students: ["Henry Flanagan", "Ansh Gondalia"],
     tutor: "Danelda Theron",
     color: "#FD79A8",
@@ -1165,7 +1165,7 @@ const events = [
   {
     start: dayjs("2025-08-28 18:00").toDate(),
     end: dayjs("2025-08-28 18:00").add(1, "hours").toDate(),
-    title: "Chemistry",
+    subject: "Chemistry",
     students: ["Shiven Mitra", "Johann Paliakkara"],
     tutor: "Nikita Dahiya",
     color: "#8A2BE2",
@@ -1173,7 +1173,7 @@ const events = [
   {
     start: dayjs("2025-08-28 18:00").toDate(),
     end: dayjs("2025-08-28 18:00").add(1, "hours").toDate(),
-    title: "Chemistry",
+    subject: "Chemistry",
     students: ["Skye McGregor"],
     tutor: "Brendan Huynh",
     color: "#0A2472",
@@ -1181,7 +1181,7 @@ const events = [
   {
     start: dayjs("2025-08-28 18:00").toDate(),
     end: dayjs("2025-08-28 18:00").add(1, "hours").toDate(),
-    title: "English",
+    subject: "English",
     students: ["Jess Hart"],
     tutor: "Lachlan Stevenson",
     color: "#202020",
@@ -1189,7 +1189,7 @@ const events = [
   {
     start: dayjs("2025-08-28 18:00").toDate(),
     end: dayjs("2025-08-28 18:00").add(1, "hours").toDate(),
-    title: "Chemistry",
+    subject: "Chemistry",
     students: ["Rea Nevin"],
     tutor: "Brendan Huynh",
     color: "#202020",
@@ -1197,7 +1197,7 @@ const events = [
   {
     start: dayjs("2025-08-28 18:00").toDate(),
     end: dayjs("2025-08-28 18:00").add(1, "hours").toDate(),
-    title: "Specialist Methods",
+    subject: "Specialist Methods",
     students: ["Rohit Ratheesh", "Ganesh Menon"],
     tutor: "Lachlan Stevenson",
     color: "#273627",
@@ -1205,7 +1205,7 @@ const events = [
   {
     start: dayjs("2025-08-28 19:00").toDate(),
     end: dayjs("2025-08-28 19:00").add(1, "hours").toDate(),
-    title: "Mathematics Methods/Specialist Methods",
+    subject: "Mathematics Methods/Specialist Methods",
     students: ["Ellen Reinecker", "Catherine Howell", "johann Paliakkara"],
     tutor: "Lachlan Stevenson",
     color: "#273627",
@@ -1213,7 +1213,7 @@ const events = [
   {
     start: dayjs("2025-08-28 19:00").toDate(),
     end: dayjs("2025-08-28 19:00").add(1, "hours").toDate(),
-    title: "Mathematics",
+    subject: "Mathematics",
     students: ["Ansh Gondalia", "Samuel Manik"],
     tutor: "Harrison Arnold",
     color: "#AAAAAA",
@@ -1221,7 +1221,7 @@ const events = [
   {
     start: dayjs("2025-08-28 19:00").toDate(),
     end: dayjs("2025-08-28 19:00").add(1, "hours").toDate(),
-    title: "Biology",
+    subject: "Biology",
     students: ["Lilla Johnston-Knight"],
     tutor: "Danelda Theron",
     color: "#202020",
@@ -1229,7 +1229,7 @@ const events = [
   {
     start: dayjs("2025-08-28 19:00").toDate(),
     end: dayjs("2025-08-28 19:00").add(1, "hours").toDate(),
-    title: "Biology",
+    subject: "Biology",
     students: ["Jess Hart"],
     tutor: "Danelda Theron",
     color: "#202020",
@@ -1237,7 +1237,7 @@ const events = [
   {
     start: dayjs("2025-08-28 19:00").toDate(),
     end: dayjs("2025-08-28 19:00").add(1, "hours").toDate(),
-    title: "Specialist Methods",
+    subject: "Specialist Methods",
     students: ["Jaydet Bainbridge"],
     tutor: "Harrison Arnold",
     color: "#202020",
@@ -1245,7 +1245,7 @@ const events = [
   {
     start: dayjs("2025-08-28 19:00").toDate(),
     end: dayjs("2025-08-28 19:00").add(1, "hours").toDate(),
-    title: "Chemistry",
+    subject: "Chemistry",
     students: ["Jaidi Bainbridge"],
     tutor: "Nikita Dahiya",
     color: "#202020",
@@ -1253,7 +1253,7 @@ const events = [
   {
     start: dayjs("2025-08-28 19:00").toDate(),
     end: dayjs("2025-08-28 19:00").add(1, "hours").toDate(),
-    title: "Science",
+    subject: "Science",
     students: ["Lacey Rogers"],
     tutor: "Brendan Huynh",
     color: "#0A2472",
@@ -1261,7 +1261,7 @@ const events = [
   {
     start: dayjs("2025-08-28 20:00").toDate(),
     end: dayjs("2025-08-28 20:00").add(1, "hours").toDate(),
-    title: "Specialist Methods",
+    subject: "Specialist Methods",
     students: ["Henry Morgan"],
     tutor: "Harrison Arnold",
     color: "#AAAAAA",
@@ -1269,7 +1269,7 @@ const events = [
   {
     start: dayjs("2025-08-28 20:00").toDate(),
     end: dayjs("2025-08-28 20:00").add(1, "hours").toDate(),
-    title: "Modern History",
+    subject: "Modern History",
     students: ["Elwynn Bussenschutt"],
     tutor: "Lachlan Stevenson",
     color: "#273627",
@@ -1277,7 +1277,7 @@ const events = [
   {
     start: dayjs("2025-08-28 20:00").toDate(),
     end: dayjs("2025-08-28 20:00").add(1, "hours").toDate(),
-    title: "Mathematics Methods",
+    subject: "Mathematics Methods",
     students: ["Jess Hart"],
     tutor: "Harrison Arnold",
     color: "#202020",
@@ -1285,7 +1285,7 @@ const events = [
   {
     start: dayjs("2025-08-29 16:00").toDate(),
     end: dayjs("2025-08-29 16:00").add(1, "hours").toDate(),
-    title: "English",
+    subject: "English",
     students: ["Joe Kim", "Hugh Wyborn"],
     tutor: "Akshita Bhatia",
     color: "#BB8FCE",
@@ -1293,7 +1293,7 @@ const events = [
   {
     start: dayjs("2025-08-29 16:00").toDate(),
     end: dayjs("2025-08-29 16:00").add(1, "hours").toDate(),
-    title: "English",
+    subject: "English",
     students: ["Daniel Kim"],
     tutor: "Danelda Theron",
     color: "#FD79A8",
@@ -1301,7 +1301,7 @@ const events = [
   {
     start: dayjs("2025-08-29 16:00").toDate(),
     end: dayjs("2025-08-29 16:00").add(1, "hours").toDate(),
-    title: "English",
+    subject: "English",
     students: ["Candice Li"],
     tutor: "Nikita Dahiya",
     color: "#8A2BE2",
@@ -1309,7 +1309,7 @@ const events = [
   {
     start: dayjs("2025-08-29 16:00").toDate(),
     end: dayjs("2025-08-29 16:00").add(1, "hours").toDate(),
-    title: "English",
+    subject: "English",
     students: ["Giles Wyborn", "Yiming Li"],
     tutor: "Jonathan Hill",
     color: "#C7CEEA",
@@ -1317,7 +1317,7 @@ const events = [
   {
     start: dayjs("2025-08-29 16:00").toDate(),
     end: dayjs("2025-08-29 16:00").add(1, "hours").toDate(),
-    title: "Mathematics/Mathematics Methods",
+    subject: "Mathematics/Mathematics Methods",
     students: ["Rafa Lai", "Maddison Searles"],
     tutor: "Justin Xia",
     color: "#D63D00",
@@ -1325,7 +1325,7 @@ const events = [
   {
     start: dayjs("2025-08-29 16:00").toDate(),
     end: dayjs("2025-08-29 16:00").add(1, "hours").toDate(),
-    title: "English",
+    subject: "English",
     students: ["Ella Burrows"],
     tutor: "Danelda Theron",
     color: "#202020",
@@ -1333,7 +1333,7 @@ const events = [
   {
     start: dayjs("2025-08-29 17:00").toDate(),
     end: dayjs("2025-08-29 17:00").add(1, "hours").toDate(),
-    title: "Mathematics",
+    subject: "Mathematics",
     students: ["Elliot Loo", "Candice Li", "Shreya Jacob"],
     tutor: "Danelda Theron",
     color: "#FD79A8",
@@ -1341,7 +1341,7 @@ const events = [
   {
     start: dayjs("2025-08-29 17:00").toDate(),
     end: dayjs("2025-08-29 17:00").add(1, "hours").toDate(),
-    title: "Mathematics Methods",
+    subject: "Mathematics Methods",
     students: ["Chloe dann", "Xanthe Pick", "Yiming Li"],
     tutor: "Oscar Lipscombe",
     color: "#4D8962",
@@ -1349,7 +1349,7 @@ const events = [
   {
     start: dayjs("2025-08-29 17:00").toDate(),
     end: dayjs("2025-08-29 17:00").add(1, "hours").toDate(),
-    title: "Physics",
+    subject: "Physics",
     students: ["Skye McGregor"],
     tutor: "Fiona martin",
     color: "#FFA07A",
@@ -1357,7 +1357,7 @@ const events = [
   {
     start: dayjs("2025-08-29 17:00").toDate(),
     end: dayjs("2025-08-29 17:00").add(1, "hours").toDate(),
-    title: "Mathematics",
+    subject: "Mathematics",
     students: ["Reuben Loo"],
     tutor: "Nikita Dahiya",
     color: "#8A2BE2",
@@ -1365,7 +1365,7 @@ const events = [
   {
     start: dayjs("2025-08-29 17:00").toDate(),
     end: dayjs("2025-08-29 17:00").add(1, "hours").toDate(),
-    title: "Mathematics",
+    subject: "Mathematics",
     students: ["William Munro"],
     tutor: "Akshita Bhatia",
     color: "#BB8FCE",
@@ -1373,7 +1373,7 @@ const events = [
   {
     start: dayjs("2025-08-29 17:00").toDate(),
     end: dayjs("2025-08-29 17:00").add(1, "hours").toDate(),
-    title: "Mathematics",
+    subject: "Mathematics",
     students: ["Grace Jandi"],
     tutor: "Justin Xia",
     color: "#D63D00",
@@ -1381,7 +1381,7 @@ const events = [
   {
     start: dayjs("2025-08-29 18:00").toDate(),
     end: dayjs("2025-08-29 18:00").add(1, "hours").toDate(),
-    title: "English",
+    subject: "English",
     students: ["Angus Chan", "Abigail Law"],
     tutor: "Nikita Dahiya",
     color: "#8A2BE2",
@@ -1389,7 +1389,7 @@ const events = [
   {
     start: dayjs("2025-08-29 18:00").toDate(),
     end: dayjs("2025-08-29 18:00").add(1, "hours").toDate(),
-    title: "Mathematics/Specialist Methods",
+    subject: "Mathematics/Specialist Methods",
     students: ["Lochlan Brooks", "Ella Shockley", "Jackson Tate"],
     tutor: "Oscar Lipscombe",
     color: "#4D8962",
@@ -1397,7 +1397,7 @@ const events = [
   {
     start: dayjs("2025-08-29 18:00").toDate(),
     end: dayjs("2025-08-29 18:00").add(1, "hours").toDate(),
-    title: "English",
+    subject: "English",
     students: ["Abby Chan"],
     tutor: "Akshita Bhatia",
     color: "#BB8FCE",
@@ -1405,7 +1405,7 @@ const events = [
   {
     start: dayjs("2025-08-29 18:00").toDate(),
     end: dayjs("2025-08-29 18:00").add(1, "hours").toDate(),
-    title: "English",
+    subject: "English",
     students: ["William Shockley"],
     tutor: "Fiona martin",
     color: "#FFA07A",
@@ -1413,7 +1413,7 @@ const events = [
   {
     start: dayjs("2025-08-29 19:00").toDate(),
     end: dayjs("2025-08-29 19:00").add(1, "hours").toDate(),
-    title: "HL Physics/Mathematics",
+    subject: "HL Physics/Mathematics",
     students: ["Lochlan Brooks", "Ella Shockley"],
     tutor: "Oscar Lipscombe",
     color: "#4D8962",
@@ -1421,7 +1421,7 @@ const events = [
   {
     start: dayjs("2025-08-29 19:00").toDate(),
     end: dayjs("2025-08-29 19:00").add(1, "hours").toDate(),
-    title: "Physics",
+    subject: "Physics",
     students: ["Samhit Vallabhanemi"],
     tutor: "Oscar Lipscombe",
     color: "#202020",
@@ -1429,7 +1429,7 @@ const events = [
   {
     start: dayjs("2025-08-29 19:00").toDate(),
     end: dayjs("2025-08-29 19:00").add(1, "hours").toDate(),
-    title: "Mathematics",
+    subject: "Mathematics",
     students: ["William Shockley"],
     tutor: "Fiona martin",
     color: "#FFA07A",
@@ -1437,7 +1437,7 @@ const events = [
   {
     start: dayjs("2025-08-29 19:00").toDate(),
     end: dayjs("2025-08-29 19:00").add(1, "hours").toDate(),
-    title: "Mathematics",
+    subject: "Mathematics",
     students: ["Violet Nichols"],
     tutor: "Justin Xia",
     color: "#D63D00",
