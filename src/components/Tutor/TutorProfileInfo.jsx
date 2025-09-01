@@ -1,4 +1,4 @@
-import { React, useState, useRef } from "react";
+import { useState, useRef } from "react";
 import {
   Avatar,
   Stack,
@@ -7,14 +7,16 @@ import {
   TextField,
   Typography,
   useTheme,
+  Tooltip,
 } from "@mui/material";
-import Grid from "@mui/material/Grid2";
-import EditIcon from "@mui/icons-material/Edit";
 import { Saturation, Hue } from "react-color-palette";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
-import dayjs from "dayjs";
-import "react-color-palette/css";
 import { tokens } from "../../theme";
+import { InfoOutlined } from "@mui/icons-material";
+import EditIcon from "@mui/icons-material/Edit";
+import dayjs from "dayjs";
+import Grid from "@mui/material/Grid2";
+import "react-color-palette/css";
 
 const TutorProfileInfo = ({
   formData,
@@ -66,6 +68,15 @@ const TutorProfileInfo = ({
     setFormData({ ...formData, [name]: date });
   };
 
+  const isTooLight = (r, g, b) => r * 0.299 + g * 0.587 + b * 0.114 > 186;
+
+  const handleColorChange = (color) => {
+    const { r, g, b } = color.rgb;
+    if (!isTooLight(r, g, b)) {
+      setTutorColor(color);
+    }
+  };
+
   return (
     <Grid container spacing={2} alignItems="center">
       <Grid item size={4} sx={{ display: "flex", justifyContent: "center" }}>
@@ -82,7 +93,7 @@ const TutorProfileInfo = ({
             onMouseLeave={() => setHover(false)}
           >
             <Avatar
-              src={isEdit ? (profilePicPreview ?? profilePic) : profilePic}
+              src={isEdit ? profilePicPreview ?? profilePic : profilePic}
               sx={{
                 width: 140,
                 height: 140,
@@ -124,10 +135,31 @@ const TutorProfileInfo = ({
             />
           </Box>
           {isEdit && (
-            <Stack spacing={1}>
-              <Saturation height={70} color={tutorColor} onChange={setTutorColor} />
-              <Hue color={tutorColor} onChange={setTutorColor} />
-            </Stack>
+            <Box display="flex" justifyContent="center" position="relative">
+              <Box
+                sx={{
+                  position: "absolute",
+                  left: -50,
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                }}
+              >
+                <Tooltip title="Lighter colors are unable to be selected as white text is displayed on top of your color">
+                  <IconButton size="small">
+                    <InfoOutlined fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              </Box>
+
+              <Stack width="140px" spacing={1} alignItems="center">
+                <Saturation
+                  height={70}
+                  color={tutorColor}
+                  onChange={handleColorChange}
+                />
+                <Hue color={tutorColor} onChange={handleColorChange} />
+              </Stack>
+            </Box>
           )}
         </Stack>
       </Grid>
@@ -157,7 +189,9 @@ const TutorProfileInfo = ({
                 label="Last Name"
               />
               <DatePicker
-                value={formData.dateOfBirth ? dayjs(formData.dateOfBirth) : null}
+                value={
+                  formData.dateOfBirth ? dayjs(formData.dateOfBirth) : null
+                }
                 onChange={handleDateChange("dateOfBirth")}
                 label="Date of Birth"
               />

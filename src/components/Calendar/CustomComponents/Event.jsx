@@ -1,20 +1,41 @@
 import { Box, Menu, MenuItem, Typography } from "@mui/material";
 import { useState } from "react";
 
-function EventCard({ event }) {
+function EventCard({ event, onOpen }) {
   const [anchorEl, setAnchorEl] = useState(null);
+  const menuOpen = Boolean(anchorEl);
+
+  const handleMouseDown = (e) => {
+    if (e.button === 2) {
+      e.stopPropagation();
+    }
+  };
+
   const handleContextMenu = (e) => {
     e.preventDefault();
+    e.stopPropagation();
     setAnchorEl(e.currentTarget);
   };
 
-  const handleClose = () => setAnchorEl(null);
+  const handleClick = (e) => {
+    if (menuOpen) {
+      e.stopPropagation();
+      return;
+    }
+    onOpen?.(event);
+  };
+
+  const handleCloseMenu = () => setAnchorEl(null);
 
   return (
     <Box
+      onMouseDown={handleMouseDown}
       onContextMenu={handleContextMenu}
+      onClick={handleClick}
+      role="button"
+      tabIndex={0}
       height="100%"
-      sx={{ bgcolor: event.color ?? event.color, padding: "8px" }}
+      sx={{ bgcolor: event.color ?? event.color, p: 1 }}
     >
       <Typography variant="subtitle2" noWrap>
         {event.subject}
@@ -22,18 +43,22 @@ function EventCard({ event }) {
       <Typography variant="subtitle2" noWrap>
         {event.tutor}
       </Typography>
-      {event.students &&
-        event.students.map((student) => (
-          <Typography key={student} variant="caption" display="block" noWrap>
-            {student}
-          </Typography>
-        ))}
+      {event.students?.map((student) => (
+        <Typography key={student} variant="caption" display="block" noWrap>
+          {student}
+        </Typography>
+      ))}
 
-      <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleClose}>
+      <Menu
+        anchorEl={anchorEl}
+        open={menuOpen}
+        onClose={handleCloseMenu}
+        onClick={(e) => e.stopPropagation()}
+      >
         <MenuItem
           onClick={() => {
-            console.log("View", event);
-            handleClose();
+            onOpen?.(event);
+            handleCloseMenu();
           }}
         >
           View
@@ -41,18 +66,10 @@ function EventCard({ event }) {
         <MenuItem
           onClick={() => {
             console.log("Delete", event);
-            handleClose();
+            handleCloseMenu();
           }}
         >
           Delete
-        </MenuItem>
-        <MenuItem
-          onClick={() => {
-            console.log("Move", event);
-            handleClose();
-          }}
-        >
-          Move
         </MenuItem>
       </Menu>
     </Box>

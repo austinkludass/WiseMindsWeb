@@ -72,7 +72,7 @@ const EventDialog = ({ event, onClose, onEdit, onDelete }) => {
             </Typography>
             <Stack direction="row" spacing={1} flexWrap="wrap">
               {event.students?.map((student, i) => (
-                <Chip key={i} label={student} />
+                <Chip color="default" key={i} label={student} />
               ))}
             </Stack>
           </Box>
