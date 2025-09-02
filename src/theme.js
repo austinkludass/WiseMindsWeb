@@ -61,6 +61,7 @@ export const tokens = (mode) => ({
           900: "#151632",
         },
         orangeAccent: {
+          100: "#f1dead",
           400: "#F5C444",
           700: "#FCA61C",
         },
@@ -125,6 +126,7 @@ export const tokens = (mode) => ({
           900: "#e1e2fe",
         },
         orangeAccent: {
+          100: "#c6c7e7",
           400: "#3e4396",
           700: "#3e4396",
           // Old orange: 400 -> ffb744, 700 -> fca61c
@@ -145,7 +147,8 @@ export const themeSettings = (mode) => {
       ...(mode === "dark"
         ? {
             primary: {
-              main: colors.primary[500],
+              main: colors.orangeAccent[700],
+              highlight: colors.orangeAccent[100],
             },
             secondary: {
               main: colors.greenAccent[500],
@@ -161,7 +164,8 @@ export const themeSettings = (mode) => {
           }
         : {
             primary: {
-              main: colors.primary[100],
+              main: colors.orangeAccent[700],
+              highlight: colors.orangeAccent[100],
             },
             secondary: {
               main: colors.greenAccent[500],

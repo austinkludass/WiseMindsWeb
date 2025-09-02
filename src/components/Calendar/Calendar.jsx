@@ -40,12 +40,11 @@ const BigCalendar = () => {
         localizer={localizer}
         events={events}
         defaultDate={new Date()}
-        views={["month", "week", "day"]}
+        views={["week", "day"]}
         startAccessor="start"
         endAccessor="end"
         defaultView="week"
         style={{ height: "200vh" }}
-        showAllEvents
         min={new Date(2025, 0, 1, 6, 0)}
         max={new Date(2025, 0, 1, 22, 0)}
         selectable

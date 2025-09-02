@@ -8,10 +8,37 @@ import {
   Divider,
   IconButton,
   Stack,
+  TextField,
+  Tooltip,
   Typography,
 } from "@mui/material";
 import dayjs from "dayjs";
-import { Delete, Edit } from "@mui/icons-material";
+import {
+  Delete,
+  Edit,
+  CalendarMonthOutlined,
+  SchoolOutlined,
+  GroupsOutlined,
+  LocationOnOutlined,
+  SpeakerNotesOutlined,
+  RepeatOutlined,
+} from "@mui/icons-material";
+
+const StyledIconBox = ({ children }) => (
+  <Box
+    sx={{
+      padding: "4px",
+      backgroundColor: "primary.highlight",
+      borderRadius: "8px",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      color: "primary.main",
+    }}
+  >
+    {children}
+  </Box>
+);
 
 const EventDialog = ({ event, onClose, onEdit, onDelete }) => {
   if (!event) return null;
@@ -41,57 +68,109 @@ const EventDialog = ({ event, onClose, onEdit, onDelete }) => {
 
       <DialogContent dividers>
         <Stack spacing={2}>
-          <Box>
-            <Typography variant="subtitle2" color="text.secondary">
-              {dayjs(event.start).format("dddd, MMMM D, YYYY")}
-            </Typography>
-            <Typography variant="body2">
-              {dayjs(event.start).format("h:mm A")} -{" "}
-              {dayjs(event.end).format("h:mm A")}
-            </Typography>
+          <Box
+            display="flex"
+            alignItems="center"
+            justifyContent="space-between"
+          >
+            <Box display="flex" alignItems="center" gap={1}>
+              <StyledIconBox>
+                <CalendarMonthOutlined fontSize="large" />
+              </StyledIconBox>
+              <Box>
+                <Typography variant="subtitle2" color="text.secondary">
+                  {dayjs(event.start).format("dddd, MMMM D, YYYY")}
+                </Typography>
+                <Typography variant="body2">
+                  {dayjs(event.start).format("h:mm A")} -{" "}
+                  {dayjs(event.end).format("h:mm A")}
+                </Typography>
+              </Box>
+            </Box>
+            {event.frequency && (
+              <Tooltip title={`Repeats ${event.frequency ?? ""}`}>
+                <RepeatOutlined />
+              </Tooltip>
+            )}
           </Box>
 
           <Divider />
 
-          <Box>
-            <Typography variant="subtitle2" color="text.secondary">
-              Tutor
-            </Typography>
-            <Chip
-              label={event.tutor}
-              sx={{
-                backgroundColor: event.color,
-                color: "white",
-              }}
-            />
-          </Box>
-
-          <Box>
-            <Typography variant="subtitle2" color="text.secondary">
-              Students
-            </Typography>
-            <Stack direction="row" spacing={1} flexWrap="wrap">
-              {event.students?.map((student, i) => (
-                <Chip color="default" key={i} label={student} />
-              ))}
-            </Stack>
-          </Box>
-
-          <Box>
-            <Typography variant="subtitle2" color="text.secondary">
-              Location
-            </Typography>
-            <Typography>{event.location}</Typography>
-          </Box>
-
-          {event.notes && (
+          <Box display="flex" alignItems="center" gap={1}>
+            <StyledIconBox>
+              <SchoolOutlined fontSize="large" />
+            </StyledIconBox>
             <Box>
+              <Typography variant="subtitle2" color="text.secondary">
+                Tutor
+              </Typography>
+              <Chip
+                label={event.tutor}
+                sx={{
+                  backgroundColor: event.color,
+                  color: "white",
+                }}
+              />
+            </Box>
+          </Box>
+
+          <Box display="flex" alignItems="center" gap={1}>
+            <StyledIconBox>
+              <GroupsOutlined fontSize="large" />
+            </StyledIconBox>
+            <Box>
+              <Typography variant="subtitle2" color="text.secondary">
+                Students
+              </Typography>
+              <Stack direction="row" spacing={1} flexWrap="wrap">
+                {event.students?.map((student, i) => (
+                  <Chip color="default" key={i} label={student} />
+                ))}
+              </Stack>
+            </Box>
+          </Box>
+
+          <Box display="flex" alignItems="center" gap={1}>
+            <StyledIconBox>
+              <LocationOnOutlined fontSize="large" />
+            </StyledIconBox>
+            <Box>
+              <Typography variant="subtitle2" color="text.secondary">
+                Location
+              </Typography>
+              <Typography>{event.location}</Typography>
+            </Box>
+          </Box>
+
+          <Box display="flex" alignItems="flex-start" gap={1} pt={1}>
+            <StyledIconBox>
+              <SpeakerNotesOutlined fontSize="large" />
+            </StyledIconBox>
+            <Box sx={{ flexGrow: 1 }}>
               <Typography variant="subtitle2" color="text.secondary">
                 Notes
               </Typography>
-              <Typography>{event.notes}</Typography>
+              <TextField
+                multiline
+                rows={4}
+                value={event.notes}
+                slotProps={{
+                  input: {
+                    readOnly: true,
+                    sx: {
+                      borderRadius: "8px",
+                      padding: "10px",
+                      overflowY: "auto",
+                    },
+                  },
+                }}
+                variant="outlined"
+                sx={{
+                  width: "100%",
+                }}
+              />
             </Box>
-          )}
+          </Box>
         </Stack>
       </DialogContent>
 

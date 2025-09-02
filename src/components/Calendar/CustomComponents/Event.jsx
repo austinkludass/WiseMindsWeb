@@ -4,25 +4,25 @@ import BookIcon from "@mui/icons-material/Book";
 import GroupsOutlinedIcon from "@mui/icons-material/GroupsOutlined";
 import React, { useState, useEffect, useRef } from "react";
 
-const EventCard = React.memo(({ event, onOpen }) => {
+const EventCard = React.memo(({ event }) => {
   const [anchorEl, setAnchorEl] = useState(null);
   const [isCompact, setIsCompact] = useState(false);
   const cardRef = useRef(null);
 
   const menuOpen = Boolean(anchorEl);
 
-  useEffect(() => {
-    const el = cardRef.current;
-    if (!el) return;
+  // useEffect(() => {
+  //   const el = cardRef.current;
+  //   if (!el) return;
 
-    const observer = new ResizeObserver(([entry]) => {
-      const width = entry.contentRect.width;
-      setIsCompact(width < 60);
-    });
+  //   const observer = new ResizeObserver(([entry]) => {
+  //     const width = entry.contentRect.width;
+  //     setIsCompact(width < 60);
+  //   });
 
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
+  //   observer.observe(el);
+  //   return () => observer.disconnect();
+  // }, []);
 
   const handleMouseDown = (e) => {
     if (e.button === 2) {
@@ -41,7 +41,6 @@ const EventCard = React.memo(({ event, onOpen }) => {
       e.stopPropagation();
       return;
     }
-    onOpen?.(event);
   };
 
   const handleCloseMenu = () => setAnchorEl(null);
@@ -98,7 +97,7 @@ const EventCard = React.memo(({ event, onOpen }) => {
       >
         <MenuItem
           onClick={() => {
-            onOpen?.(event);
+            console.log("View", event);
             handleCloseMenu();
           }}
         >
