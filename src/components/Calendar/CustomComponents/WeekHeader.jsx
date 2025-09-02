@@ -1,8 +1,9 @@
 import { Typography, Box, useTheme } from "@mui/material";
 import { tokens } from "../../../theme";
 import dayjs from "dayjs";
+import React from "react";
 
-function WeekHeader({ date }) {
+const WeekHeader = React.memo(({ date }) => {
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
   const isToday = dayjs(date).isSame(dayjs(), "day");
@@ -24,13 +25,15 @@ function WeekHeader({ date }) {
           m: "6px",
         }}
       >
-        <Typography variant="body2" sx={{ textTransform: "uppercase"}}>{dayjs(date).format("ddd")}</Typography>
+        <Typography variant="body2" sx={{ textTransform: "uppercase" }}>
+          {dayjs(date).format("ddd")}
+        </Typography>
         <Typography variant="h5" fontWeight="bold">
           {dayjs(date).format("D")}
         </Typography>
       </Box>
     </Box>
   );
-}
+});
 
 export default WeekHeader;

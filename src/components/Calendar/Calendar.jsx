@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { Calendar, dayjsLocalizer } from "react-big-calendar";
 import { Box } from "@mui/material";
 import dayjs from "dayjs";
@@ -20,7 +20,19 @@ const localizer = dayjsLocalizer(dayjs);
 
 const BigCalendar = () => {
   const [selectedEvent, setSelectedEvent] = useState(null);
-  const handleClose = () => setSelectedEvent(null);
+
+  const components = useMemo(
+    () => ({
+      toolbar: Toolbar,
+      event: EventCard,
+      week: {
+        header: WeekHeader,
+      },
+    }),
+    []
+  );
+
+  const handleSelectEvent = useCallback((event) => setSelectedEvent(event), []);
 
   return (
     <Box>
@@ -36,26 +48,22 @@ const BigCalendar = () => {
         showAllEvents
         min={new Date(2025, 0, 1, 6, 0)}
         max={new Date(2025, 0, 1, 22, 0)}
-        onSelectEvent={(event) => setSelectedEvent(event)}
-        selectable={true}
+        selectable
+        onSelectEvent={handleSelectEvent}
         onSelectSlot={(slotInfo) => {
           // Handle timeslot single click
         }}
-        components={{
-          toolbar: Toolbar,
-          event: EventCard,
-          week: {
-            header: WeekHeader,
-          },
-        }}
+        components={components}
       />
 
-      <EventDialog
-        event={selectedEvent}
-        onClose={handleClose}
-        onEdit={(event) => console.log("Edit", event)}
-        onDelete={(event) => console.log("Delete", event)}
-      />
+      {selectedEvent && (
+        <EventDialog
+          event={selectedEvent}
+          onClose={() => setSelectedEvent(null)}
+          onEdit={(event) => console.log("Edit", event)}
+          onDelete={(event) => console.log("Delete", event)}
+        />
+      )}
     </Box>
   );
 };
