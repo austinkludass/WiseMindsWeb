@@ -3,9 +3,11 @@ import {logger} from "firebase-functions";
 import {onSchedule} from "firebase-functions/v2/scheduler";
 import {onDocumentWritten} from "firebase-functions/v2/firestore";
 import dayjs from "dayjs";
+import isSameOrAfter from "dayjs/plugin/isSameOrAfter";
 
 admin.initializeApp();
 const db = admin.firestore();
+dayjs.extend(isSameOrAfter);
 
 type Priority = "low" | "medium" | "high";
 
@@ -134,6 +136,120 @@ async function evaluateTutorNotifications(tutorId: string, tutor: Tutor) {
     );
   }
 }
+
+async function generateLessonsForTemplate(
+  templateId: string,
+  template: any,
+  weeksAhead = 26,
+  force = false
+) {
+  const frequencyWeeks = template.frequency === "weekly" ? 1 : 2;
+  let current = dayjs(template.startDate);
+  const end = dayjs().add(weeksAhead, "week");
+
+  while (current.isBefore(end)) {
+    if (current.isSameOrAfter(dayjs(), "day")) {
+      const lessonId = `${templateId}_${current.format("YYYYMMDD")}`;
+      const lessonRef = db.collection("lessons").doc(lessonId);
+
+      const startDateTime = dayjs(
+        `${current.format("YYYY-MM-DD")}T${template.startTime}`
+      ).toISOString();
+      const endDateTime = dayjs(
+        `${current.format("YYYY-MM-DD")}T${template.endTime}`
+      ).toISOString();
+
+      const {startDate, startTime, endTime, ...templateData} = template;
+
+      const lessonData = {
+        ...templateData,
+        id: lessonId,
+        templateId,
+        startDateTime,
+        endDateTime,
+        students: template.studentIds.map((id: string, i: number) => ({
+          studentId: id,
+          studentName: template.studentNames[i],
+          attendance: null,
+          report: "",
+        })),
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      };
+
+      if (force) {
+        await lessonRef.set(lessonData);
+      } else {
+        const lessonDoc = await lessonRef.get();
+        if (!lessonDoc.exists) {
+          await lessonRef.set(lessonData);
+        }
+      }
+    }
+    current = current.add(frequencyWeeks, "week");
+  }
+}
+
+export const generateLessons = onSchedule(
+  {
+    schedule: "every monday 03:00",
+    timeZone: "Australia/Sydney",
+  },
+  async () => {
+    logger.info("Running weekly lesson generation...");
+    const snap = await db.collection("lessonTemplates").get();
+    for (const doc of snap.docs) {
+      await generateLessonsForTemplate(doc.id, doc.data(), 26, false);
+    }
+
+    logger.info("Finished weekly lesson generation.");
+  }
+);
+
+export const onLessonTemplateWrite = onDocumentWritten(
+  {
+    document: "lessonTemplates/{templateId}",
+    region: "australia-southeast1",
+  },
+  async (event) => {
+    const templateId = event.params.templateId as string;
+    const after = event.data?.after?.data();
+
+    if (!after) {
+      const snap = await db
+        .collection("lessons")
+        .where("templateId", "==", templateId)
+        .where("startDateTime", ">=", dayjs().toISOString())
+        .get();
+
+      const batch = db.batch();
+      snap.forEach((doc) => batch.delete(doc.ref));
+      await batch.commit();
+
+      logger.info(`Deleted future lessons for removed template ${templateId}`);
+      return;
+    }
+
+    const futureLessonsSnap = await db
+      .collection("lessons")
+      .where("templateId", "==", templateId)
+      .where("startDateTime", ">=", dayjs().toISOString())
+      .get();
+
+    if (!futureLessonsSnap.empty) {
+      const batch = db.batch();
+      futureLessonsSnap.forEach((doc) => batch.delete(doc.ref));
+      await batch.commit();
+      logger.info(
+        `Deleted ${futureLessonsSnap.size} 
+        future lessons for template ${templateId}`
+      );
+    }
+
+    await generateLessonsForTemplate(templateId, after, 26, true);
+    logger.info(`Generated lessons for template ${templateId}`);
+  }
+);
 
 export const generateTutorNotifications = onSchedule(
   {

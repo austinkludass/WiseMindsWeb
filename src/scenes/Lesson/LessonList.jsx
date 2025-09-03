@@ -96,6 +96,8 @@ const LessonList = () => {
     if (!type) newErrors.type = "Type is required";
     if (!startTime) newErrors.startTime = "Start time is required";
     if (!endTime) newErrors.endTime = "End time is required";
+    if (startTime >= endTime) newErrors.endTime = "End time needs to be after start time"
+    else if (endTime.diff(startTime, "hour") < 1) newErrors.endTime = "Lesson needs to be at least 1 hour long";
     return newErrors;
   };
 
@@ -113,7 +115,6 @@ const LessonList = () => {
     const locationObj = locationList.find((l) => l.id === location);
 
     const lessonData = {
-      date: date.format("YYYY-MM-DD"),
       startTime: startTime.format("HH:mm"),
       endTime: endTime.format("HH:mm"),
       type,
@@ -293,7 +294,7 @@ const LessonList = () => {
   }, []);
 
   useEffect(() => {
-    const q = query(collection(db, "lessonTemplates"), orderBy("date", "desc"));
+    const q = query(collection(db, "lessonTemplates"), orderBy("startDate", "desc"));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const fetched = snapshot.docs.map((doc) => ({
         id: doc.id,
@@ -317,7 +318,7 @@ const LessonList = () => {
 
   const columns = [
     {
-      field: "date",
+      field: "startDate",
       headerName: "Date",
       flex: 1,
       renderCell: (params) => {
