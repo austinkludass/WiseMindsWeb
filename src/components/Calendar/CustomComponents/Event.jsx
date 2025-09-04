@@ -7,9 +7,13 @@ import React, { useState, useEffect, useRef } from "react";
 const EventCard = React.memo(({ event }) => {
   const [anchorEl, setAnchorEl] = useState(null);
   const [isCompact, setIsCompact] = useState(false);
+  const [reportAnchor, setReportAnchor] = useState(null);
+  const [cancelAnchor, setCancelAnchor] = useState(null);
   const cardRef = useRef(null);
 
   const menuOpen = Boolean(anchorEl);
+  const reportMenuOpen = Boolean(reportAnchor);
+  const cancelMenuOpen = Boolean(cancelAnchor);
 
   // useEffect(() => {
   //   const el = cardRef.current;
@@ -43,7 +47,11 @@ const EventCard = React.memo(({ event }) => {
     }
   };
 
-  const handleCloseMenu = () => setAnchorEl(null);
+  const handleCloseMenu = () => {
+    setAnchorEl(null);
+    setReportAnchor(null);
+    setCancelAnchor(null);
+  };
 
   return (
     <Box
@@ -54,17 +62,17 @@ const EventCard = React.memo(({ event }) => {
       role="button"
       tabIndex={0}
       height="100%"
-      sx={{ bgcolor: event.color ?? event.color, pl: 0.5, pt: 1 }}
+      sx={{ bgcolor: event.tutorColor ?? event.tutorColor, pl: 0.5, pt: 1 }}
     >
       {!isCompact ? (
         <>
           <Typography variant="subtitle2" noWrap>
-            {event.subject}
+            {event.subjectGroupName}
           </Typography>
           <Typography variant="caption" noWrap>
-            {event.tutor}
+            {event.tutorName}
           </Typography>
-          {event.students?.map((student) => (
+          {event.studentNames?.map((student) => (
             <Typography key={student} variant="caption" display="block" noWrap>
               {student}
             </Typography>
@@ -77,13 +85,13 @@ const EventCard = React.memo(({ event }) => {
           alignItems="flex-start"
           gap={0.5}
         >
-          <Tooltip title={event.subject}>
+          <Tooltip title={event.subjectGroupName}>
             <BookIcon fontSize="small" />
           </Tooltip>
-          <Tooltip title={event.tutor}>
+          <Tooltip title={event.tutorName}>
             <SchoolOutlinedIcon fontSize="small" />
           </Tooltip>
-          <Tooltip title={event.students?.join(", ")}>
+          <Tooltip title={event.studentNames?.join(", ")}>
             <GroupsOutlinedIcon fontSize="small" />
           </Tooltip>
         </Box>
@@ -105,12 +113,66 @@ const EventCard = React.memo(({ event }) => {
         </MenuItem>
         <MenuItem
           onClick={() => {
+            console.log("Edit", event);
+            handleCloseMenu();
+          }}
+        >
+          Edit
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
             console.log("Delete", event);
             handleCloseMenu();
           }}
         >
           Delete
         </MenuItem>
+
+        <MenuItem onClick={(e) => setReportAnchor(e.currentTarget)}>
+          Report
+        </MenuItem>
+        <Menu
+          anchorEl={reportAnchor}
+          open={reportMenuOpen}
+          onClose={() => setReportAnchor(null)}
+          anchorOrigin={{ vertical: "top", horizontal: "right" }}
+          transformOrigin={{ vertical: "top", horizontal: "left" }}
+        >
+          {event.studentNames?.map((student) => (
+            <MenuItem
+              key={student}
+              onClick={() => {
+                console.log("Report:", student, event);
+                handleCloseMenu();
+              }}
+            >
+              {student}
+            </MenuItem>
+          ))}
+        </Menu>
+
+        <MenuItem onClick={(e) => setCancelAnchor(e.currentTarget)}>
+          Cancel
+        </MenuItem>
+        <Menu
+          anchorEl={cancelAnchor}
+          open={cancelMenuOpen}
+          onClose={() => setCancelAnchor(null)}
+          anchorOrigin={{ vertical: "top", horizontal: "right" }}
+          transformOrigin={{ vertical: "top", horizontal: "left" }}
+        >
+          {event.studentNames?.map((student) => (
+            <MenuItem
+              key={student}
+              onClick={() => {
+                console.log("Cancel:", student, event);
+                handleCloseMenu();
+              }}
+            >
+              {student}
+            </MenuItem>
+          ))}
+        </Menu>
       </Menu>
     </Box>
   );

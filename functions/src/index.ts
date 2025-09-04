@@ -2,12 +2,17 @@ import * as admin from "firebase-admin";
 import {logger} from "firebase-functions";
 import {onSchedule} from "firebase-functions/v2/scheduler";
 import {onDocumentWritten} from "firebase-functions/v2/firestore";
+import {BigBatch} from "@qualdesk/firestore-big-batch";
 import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
+import timezone from "dayjs/plugin/timezone";
 import isSameOrAfter from "dayjs/plugin/isSameOrAfter";
 
 admin.initializeApp();
 const db = admin.firestore();
 dayjs.extend(isSameOrAfter);
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 type Priority = "low" | "medium" | "high";
 
@@ -32,6 +37,8 @@ interface NotificationDoc {
 }
 
 const notifId = (userId: string, key: string) => `${userId}__${key}`;
+
+const tz = "Australia/Sydney";
 
 async function upsertNotification(
   userId: string,
@@ -143,27 +150,31 @@ async function generateLessonsForTemplate(
   weeksAhead = 26,
   force = false
 ) {
+  const batch = new BigBatch({firestore: db});
+
   const frequencyWeeks = template.frequency === "weekly" ? 1 : 2;
-  let current = dayjs(template.startDate);
-  const end = dayjs().add(weeksAhead, "week");
+  let current = dayjs(template.startDate).startOf("day");
+  const end = dayjs().add(weeksAhead, "week").startOf("day");
 
   while (current.isBefore(end)) {
-    if (current.isSameOrAfter(dayjs(), "day")) {
+    if (current.isSameOrAfter(dayjs().startOf("day"))) {
       const lessonId = `${templateId}_${current.format("YYYYMMDD")}`;
       const lessonRef = db.collection("lessons").doc(lessonId);
 
-      const startDateTime = dayjs(
-        `${current.format("YYYY-MM-DD")}T${template.startTime}`
+      const startDateTime = dayjs.tz(
+        `${current.format("YYYY-MM-DD")}T${template.startTime}`,
+        tz
       ).toISOString();
-      const endDateTime = dayjs(
-        `${current.format("YYYY-MM-DD")}T${template.endTime}`
+
+      const endDateTime = dayjs.tz(
+        `${current.format("YYYY-MM-DD")}T${template.endTime}`,
+        tz
       ).toISOString();
 
       const {startDate, startTime, endTime, ...templateData} = template;
 
       const lessonData = {
         ...templateData,
-        id: lessonId,
         templateId,
         startDateTime,
         endDateTime,
@@ -177,17 +188,12 @@ async function generateLessonsForTemplate(
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
       };
 
-      if (force) {
-        await lessonRef.set(lessonData);
-      } else {
-        const lessonDoc = await lessonRef.get();
-        if (!lessonDoc.exists) {
-          await lessonRef.set(lessonData);
-        }
-      }
+      batch.set(lessonRef, lessonData, {merge: force});
     }
     current = current.add(frequencyWeeks, "week");
   }
+
+  await batch.commit();
 }
 
 export const generateLessons = onSchedule(
@@ -222,11 +228,14 @@ export const onLessonTemplateWrite = onDocumentWritten(
         .where("startDateTime", ">=", dayjs().toISOString())
         .get();
 
-      const batch = db.batch();
-      snap.forEach((doc) => batch.delete(doc.ref));
-      await batch.commit();
-
-      logger.info(`Deleted future lessons for removed template ${templateId}`);
+      if (!snap.empty) {
+        const batch = new BigBatch({firestore: db});
+        snap.docs.forEach((doc) => batch.delete(doc.ref));
+        await batch.commit();
+        logger.info(
+          `Deleted future lessons for removed template ${templateId}`
+        );
+      }
       return;
     }
 
@@ -237,8 +246,8 @@ export const onLessonTemplateWrite = onDocumentWritten(
       .get();
 
     if (!futureLessonsSnap.empty) {
-      const batch = db.batch();
-      futureLessonsSnap.forEach((doc) => batch.delete(doc.ref));
+      const batch = new BigBatch({firestore: db});
+      futureLessonsSnap.docs.forEach((doc) => batch.delete(doc.ref));
       await batch.commit();
       logger.info(
         `Deleted ${futureLessonsSnap.size} 

@@ -17,7 +17,6 @@ import {
   Accordion,
   Chip,
 } from "@mui/material";
-import { DataGrid } from "@mui/x-data-grid";
 import {
   DatePicker,
   TimePicker,
@@ -32,11 +31,9 @@ import {
   addDoc,
   collection,
   getDocs,
-  onSnapshot,
-  orderBy,
+  serverTimestamp,
 } from "firebase/firestore";
 import { toast, ToastContainer } from "react-toastify";
-import { query } from "firebase/database";
 
 const lessonTypes = ["Normal", "Postpone", "Cancelled", "Trial", "Unconfirmed"];
 
@@ -54,13 +51,13 @@ const initialState = {
   endTime: dayjs().hour(13).minute(0),
 };
 
-const typeColors = {
-  Normal: "success",
-  Trial: "primary",
-  Postpone: "warning",
-  Unconfirmed: "info",
-  Cancelled: "error",
-};
+// const typeColors = {
+//   Normal: "success",
+//   Trial: "primary",
+//   Postpone: "warning",
+//   Unconfirmed: "info",
+//   Cancelled: "error",
+// };
 
 const LessonList = () => {
   const [date, setDate] = useState(initialState.date);
@@ -83,7 +80,7 @@ const LessonList = () => {
   const [startTime, setStartTime] = useState(initialState.startTime);
   const [endTime, setEndTime] = useState(initialState.endTime);
   const [errors, setErrors] = useState({});
-  const [lessons, setLessons] = useState([]);
+  // const [lessons, setLessons] = useState([]);
 
   const validate = () => {
     const newErrors = {};
@@ -96,8 +93,10 @@ const LessonList = () => {
     if (!type) newErrors.type = "Type is required";
     if (!startTime) newErrors.startTime = "Start time is required";
     if (!endTime) newErrors.endTime = "End time is required";
-    if (startTime >= endTime) newErrors.endTime = "End time needs to be after start time"
-    else if (endTime.diff(startTime, "hour") < 1) newErrors.endTime = "Lesson needs to be at least 1 hour long";
+    if (startTime >= endTime)
+      newErrors.endTime = "End time needs to be after start time";
+    else if (endTime.diff(startTime, "hour") < 1)
+      newErrors.endTime = "Lesson needs to be at least 1 hour long";
     return newErrors;
   };
 
@@ -138,27 +137,45 @@ const LessonList = () => {
           frequency,
           startDate: date.format("YYYY-MM-DD"),
         });
-
-        toast.success("Lesson created");
       } else {
-        const lessonRef = await addDoc(collection(db, "lessonInstances"), {
-          ...lessonData,
+        const lessonsCol = collection(db, "lessons");
+
+        const startDateTime = dayjs(
+          `${date.format("YYYY-MM-DD")}T${startTime.format("HH:mm")}`,
+        ).toISOString();
+        const endDateTime = dayjs(
+          `${date.format("YYYY-MM-DD")}T${endTime.format("HH:mm")}`,
+        ).toISOString();
+
+        const singleLessonData = {
+          type,
+          notes,
+          tutorId: tutor,
+          studentIds: selectedStudents,
+          subjectGroupId: subjectGroup,
+          locationId: location,
+          tutorName: tutorObj ? tutorObj.name : "",
+          tutorColor: tutorObj ? tutorObj.tutorColor : "#888888",
+          studentNames: studentObjs.map((s) => s.name),
+          subjectGroupName: subjectGroupObj ? subjectGroupObj.name : "",
+          locationName: locationObj ? locationObj.name : "",
           templateId: null,
-        });
+          startDateTime,
+          endDateTime,
+          students: studentObjs.map((s) => ({
+            studentId: s.id,
+            studentName: s.name,
+            attendance: null,
+            report: "",
+          })),
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        };
 
-        for (let studentId of selectedStudents) {
-          await addDoc(collection(db, "lessonReports"), {
-            lessonInstanceId: lessonRef.id,
-            studentId,
-            present: null,
-            satisfaction: null,
-            notes: "",
-          });
-        }
-
-        toast.success("Lesson created");
+        await addDoc(lessonsCol, singleLessonData);
       }
 
+      toast.success("Lesson created");
       handleReset();
     } catch (error) {
       toast.error("Error creating lesson: " + error.message);
@@ -293,19 +310,6 @@ const LessonList = () => {
     fetchSubjectGroups();
   }, []);
 
-  useEffect(() => {
-    const q = query(collection(db, "lessonTemplates"), orderBy("startDate", "desc"));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const fetched = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      setLessons(fetched);
-    });
-
-    return () => unsubscribe();
-  }, []);
-
   const getSubjectGroupLabel = (group) => {
     if (!group) return "";
     const subjectNames = group.subjectIds
@@ -316,42 +320,42 @@ const LessonList = () => {
     }`;
   };
 
-  const columns = [
-    {
-      field: "startDate",
-      headerName: "Date",
-      flex: 1,
-      renderCell: (params) => {
-        if (!params.value) return "";
-        return dayjs(params.value).format("DD MMM YY");
-      },
-    },
-    { field: "startTime", headerName: "Start", flex: 0.5 },
-    { field: "endTime", headerName: "End", flex: 0.5 },
-    { field: "tutorName", headerName: "Tutor", flex: 1 },
-    {
-      field: "studentNames",
-      headerName: "Students",
-      flex: 1.5,
-      renderCell: (params) => {
-        const students = params.value;
-        if (!Array.isArray(students)) return "";
-        return students.join(", ");
-      },
-    },
-    { field: "subjectGroupName", headerName: "Subject Group", flex: 1 },
-    { field: "locationName", headerName: "Location", flex: 1 },
-    {
-      field: "type",
-      headerName: "Type",
-      flex: 1,
-      renderCell: (params) => {
-        const type = params.value;
-        const color = typeColors[type] || "default";
-        return <Chip label={type} color={color} size="small" />;
-      },
-    },
-  ];
+  // const columns = [
+  //   {
+  //     field: "startDate",
+  //     headerName: "Date",
+  //     flex: 1,
+  //     renderCell: (params) => {
+  //       if (!params.value) return "";
+  //       return dayjs(params.value).format("DD MMM YY");
+  //     },
+  //   },
+  //   { field: "startTime", headerName: "Start", flex: 0.5 },
+  //   { field: "endTime", headerName: "End", flex: 0.5 },
+  //   { field: "tutorName", headerName: "Tutor", flex: 1 },
+  //   {
+  //     field: "studentNames",
+  //     headerName: "Students",
+  //     flex: 1.5,
+  //     renderCell: (params) => {
+  //       const students = params.value;
+  //       if (!Array.isArray(students)) return "";
+  //       return students.join(", ");
+  //     },
+  //   },
+  //   { field: "subjectGroupName", headerName: "Subject Group", flex: 1 },
+  //   { field: "locationName", headerName: "Location", flex: 1 },
+  //   {
+  //     field: "type",
+  //     headerName: "Type",
+  //     flex: 1,
+  //     renderCell: (params) => {
+  //       const type = params.value;
+  //       const color = typeColors[type] || "default";
+  //       return <Chip label={type} color={color} size="small" />;
+  //     },
+  //   },
+  // ];
 
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="en-gb">
@@ -587,7 +591,7 @@ const LessonList = () => {
         <Typography variant="h5" gutterBottom>
           Lessons
         </Typography>
-        <DataGrid
+        {/* <DataGrid
           rows={lessons}
           columns={columns}
           pageSizeOptions={[5, 10, 25]}
@@ -595,7 +599,7 @@ const LessonList = () => {
             pagination: { paginationModel: { pageSize: 10 } },
           }}
           filterMode="client"
-        />
+        /> */}
       </Paper>
       <ToastContainer position="top-right" autoClose={3000} />
     </LocalizationProvider>

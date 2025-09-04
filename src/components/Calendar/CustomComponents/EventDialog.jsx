@@ -50,11 +50,11 @@ const EventDialog = ({ event, onClose, onEdit, onDelete }) => {
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          backgroundColor: event.color || "primary.main",
+          backgroundColor: event.tutorColor || "primary.main",
         }}
       >
         <Typography variant="h4" color="white">
-          {event.subject || "Lesson Details"}
+          {event.subjectGroupName || "Lesson Details"}
         </Typography>
         <Box>
           <IconButton sx={{ color: "white" }} onClick={() => onEdit?.(event)}>
@@ -105,9 +105,9 @@ const EventDialog = ({ event, onClose, onEdit, onDelete }) => {
                 Tutor
               </Typography>
               <Chip
-                label={event.tutor}
+                label={event.tutorName}
                 sx={{
-                  backgroundColor: event.color,
+                  backgroundColor: event.tutorColor,
                   color: "white",
                 }}
               />
@@ -123,7 +123,7 @@ const EventDialog = ({ event, onClose, onEdit, onDelete }) => {
                 Students
               </Typography>
               <Stack direction="row" spacing={1} flexWrap="wrap">
-                {event.students?.map((student, i) => (
+                {event.studentNames?.map((student, i) => (
                   <Chip color="default" sx={{ cursor: "pointer"}} key={i} label={student} />
                 ))}
               </Stack>
@@ -138,7 +138,7 @@ const EventDialog = ({ event, onClose, onEdit, onDelete }) => {
               <Typography variant="subtitle2" color="text.secondary">
                 Location
               </Typography>
-              <Typography>{event.location}</Typography>
+              <Typography>{event.locationName}</Typography>
             </Box>
           </Box>
 
