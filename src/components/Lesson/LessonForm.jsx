@@ -12,6 +12,9 @@ import {
   FormControlLabel,
   Radio,
   Chip,
+  Dialog,
+  DialogTitle,
+  DialogActions,
 } from "@mui/material";
 import { DatePicker, TimePicker } from "@mui/x-date-pickers";
 import dayjs from "dayjs";
@@ -26,7 +29,7 @@ import { toast } from "react-toastify";
 
 const lessonTypes = ["Normal", "Postpone", "Cancelled", "Trial", "Unconfirmed"];
 
-const LessonForm = ({ initialValues, onCreated, onCancel }) => {
+const LessonForm = ({ initialValues, onCreated, onUpdated, edit }) => {
   const [date, setDate] = useState(initialValues.date || dayjs());
   const [startTime, setStartTime] = useState(
     initialValues.startTime || dayjs()
@@ -48,6 +51,7 @@ const LessonForm = ({ initialValues, onCreated, onCancel }) => {
   const [frequency, setFrequency] = useState("weekly");
   const [notes, setNotes] = useState("");
   const [errors, setErrors] = useState({});
+  const [editConfirmOpen, setEditConfirmOpen] = useState(false);
 
   const validate = () => {
     const newErrors = {};
@@ -181,7 +185,27 @@ const LessonForm = ({ initialValues, onCreated, onCancel }) => {
     }`;
   };
 
+  const handleSubmit = () => {
+    if (edit) {
+      if (initialValues.repeat) {
+        setEditConfirmOpen(true);
+      } else {
+        handleEdit(false);
+      }
+    } else {
+      handleCreate();
+    }
+  };
+
+  const handleEdit = async (applyToFuture = false) => {
+    console.log("Edit lesson, apply to future: ", applyToFuture);
+    return;
+  };
+
   const handleCreate = async () => {
+    // Handle edit logic
+    if (edit) return;
+
     const newErrors = validate();
     setErrors(newErrors);
 
@@ -278,6 +302,36 @@ const LessonForm = ({ initialValues, onCreated, onCancel }) => {
     setEndTime(initialValues.endTime);
     setErrors({});
   };
+
+  useEffect(() => {
+    if (initialValues.tutor && tutorsList.length > 0) {
+      setTutor(initialValues.tutor);
+    }
+  }, [initialValues.tutor, tutorsList]);
+
+  useEffect(() => {
+    if (initialValues.selectedStudents && studentOptions.length > 0) {
+      setSelectedStudents(initialValues.selectedStudents);
+    }
+  }, [initialValues.selectedStudents, studentOptions]);
+
+  useEffect(() => {
+    if (initialValues.subjectGroup && subjectGroups.length > 0) {
+      setSubjectGroup(initialValues.subjectGroup);
+    }
+  }, [initialValues.subjectGroup, subjectGroups]);
+
+  useEffect(() => {
+    if (initialValues.location && locationList.length > 0) {
+      setLocation(initialValues.location);
+    }
+  }, [initialValues.location, locationList]);
+
+  useEffect(() => {
+    if (initialValues.notes) {
+      setNotes(initialValues.notes);
+    }
+  }, [initialValues.notes]);
 
   return (
     <Stack spacing={3}>
@@ -439,31 +493,33 @@ const LessonForm = ({ initialValues, onCreated, onCancel }) => {
         </TextField>
       </Stack>
 
-      <Stack direction="row" alignItems="center" spacing={2}>
-        <Typography>Repeat</Typography>
-        <Switch
-          checked={repeat}
-          onChange={(e) => setRepeat(e.target.checked)}
-        />
-        {repeat && (
-          <RadioGroup
-            row
-            value={frequency}
-            onChange={(e) => setFrequency(e.target.value)}
-          >
-            <FormControlLabel
-              value="weekly"
-              control={<Radio />}
-              label="Weekly"
-            />
-            <FormControlLabel
-              value="fortnightly"
-              control={<Radio />}
-              label="Fortnightly"
-            />
-          </RadioGroup>
-        )}
-      </Stack>
+      {!edit && (
+        <Stack direction="row" alignItems="center" spacing={2}>
+          <Typography>Repeat</Typography>
+          <Switch
+            checked={repeat}
+            onChange={(e) => setRepeat(e.target.checked)}
+          />
+          {repeat && (
+            <RadioGroup
+              row
+              value={frequency}
+              onChange={(e) => setFrequency(e.target.value)}
+            >
+              <FormControlLabel
+                value="weekly"
+                control={<Radio />}
+                label="Weekly"
+              />
+              <FormControlLabel
+                value="fortnightly"
+                control={<Radio />}
+                label="Fortnightly"
+              />
+            </RadioGroup>
+          )}
+        </Stack>
+      )}
 
       <TextField
         label="Notes"
@@ -475,13 +531,35 @@ const LessonForm = ({ initialValues, onCreated, onCancel }) => {
       />
 
       <Stack direction="row" spacing={2}>
-        <Button variant="contained" onClick={handleCreate}>
-          Create Lesson
+        <Button variant="contained" onClick={handleSubmit}>
+          {edit ? "Edit Lesson" : "Create Lesson"}
         </Button>
         <Button variant="outlined" onClick={handleReset}>
           Reset
         </Button>
       </Stack>
+
+      <Dialog open={editConfirmOpen} onClose={() => setEditConfirmOpen(false)}>
+        <DialogTitle>Apply changes to...</DialogTitle>
+        <DialogActions>
+          <Button
+            onClick={() => {
+              setEditConfirmOpen(false);
+              handleEdit(false);
+            }}
+          >
+            Only this lesson
+          </Button>
+          <Button
+            onClick={() => {
+              setEditConfirmOpen(false);
+              handleEdit(true);
+            }}
+          >
+            This and future lessons
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Stack>
   );
 };
