@@ -8,6 +8,7 @@ import Toolbar from "./CustomComponents/Toolbar";
 import WeekHeader from "./CustomComponents/WeekHeader";
 import EventCard from "./CustomComponents/Event";
 import EventDialog from "./CustomComponents/EventDialog";
+import NewEventDialog from "./CustomComponents/NewEventDialog";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import "./calendar.scss";
 
@@ -22,6 +23,7 @@ const BigCalendar = () => {
   const [events, setEvents] = useState([]);
   const [cache, setCache] = useState({});
   const [selectedEvent, setSelectedEvent] = useState(null);
+  const [newLessonSlot, setNewLessonSlot] = useState(null);
 
   const components = useMemo(
     () => ({
@@ -103,7 +105,7 @@ const BigCalendar = () => {
         onSelectEvent={handleSelectEvent}
         onRangeChange={handleRangeChange}
         onSelectSlot={(slotInfo) => {
-          // Handle timeslot single click
+          setNewLessonSlot(slotInfo);
         }}
         components={components}
       />
@@ -120,6 +122,14 @@ const BigCalendar = () => {
             console.log("Delete", event);
             invalidateWeek(event.start);
           }}
+        />
+      )}
+
+      {newLessonSlot && (
+        <NewEventDialog
+          slot={newLessonSlot}
+          onClose={() => setNewLessonSlot(null)}
+          invalidateWeek={invalidateWeek}
         />
       )}
     </Box>
