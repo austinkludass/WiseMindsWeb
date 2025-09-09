@@ -154,24 +154,26 @@ async function generateLessonsForTemplate(
 
   const frequencyWeeks = template.frequency === "weekly" ? 1 : 2;
   let current = dayjs(template.startDate).startOf("day");
-  const end = dayjs().add(weeksAhead, "week").startOf("day");
 
-  while (current.isBefore(end)) {
+  const hardEnd = template.endDate ?
+    dayjs(template.endDate).endOf("day") :
+    dayjs().add(weeksAhead, "week").startOf("day");
+
+  while (current.isBefore(hardEnd)) {
     if (current.isSameOrAfter(dayjs().startOf("day"))) {
       const lessonId = `${templateId}_${current.format("YYYYMMDD")}`;
       const lessonRef = db.collection("lessons").doc(lessonId);
 
-      const startDateTime = dayjs.tz(
-        `${current.format("YYYY-MM-DD")}T${template.startTime}`,
-        tz
-      ).toISOString();
+      const startDateTime = dayjs
+        .tz(`${current.format("YYYY-MM-DD")}T${template.startTime}`, tz)
+        .toISOString();
 
-      const endDateTime = dayjs.tz(
-        `${current.format("YYYY-MM-DD")}T${template.endTime}`,
-        tz
-      ).toISOString();
+      const endDateTime = dayjs
+        .tz(`${current.format("YYYY-MM-DD")}T${template.endTime}`, tz)
+        .toISOString();
 
-      const {startDate, startTime, endTime, ...templateData} = template;
+      const {startDate, startTime, endTime, endDate, ...templateData} =
+        template;
 
       const lessonData = {
         ...templateData,
@@ -184,6 +186,7 @@ async function generateLessonsForTemplate(
           attendance: null,
           report: "",
         })),
+        isException: false,
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
       };
@@ -226,6 +229,7 @@ export const onLessonTemplateWrite = onDocumentWritten(
         .collection("lessons")
         .where("templateId", "==", templateId)
         .where("startDateTime", ">=", dayjs().toISOString())
+        .where("isException", "==", false)
         .get();
 
       if (!snap.empty) {
@@ -243,6 +247,7 @@ export const onLessonTemplateWrite = onDocumentWritten(
       .collection("lessons")
       .where("templateId", "==", templateId)
       .where("startDateTime", ">=", dayjs().toISOString())
+      .where("isException", "==", false)
       .get();
 
     if (!futureLessonsSnap.empty) {
@@ -255,7 +260,14 @@ export const onLessonTemplateWrite = onDocumentWritten(
       );
     }
 
-    await generateLessonsForTemplate(templateId, after, 26, true);
+    const {endDate, ...templateData} = after;
+
+    await generateLessonsForTemplate(
+      templateId,
+      {...templateData, endDate},
+      26,
+      true
+    );
     logger.info(`Generated lessons for template ${templateId}`);
   }
 );

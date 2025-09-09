@@ -1,15 +1,18 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
+import { collection, onSnapshot, query, where } from "firebase/firestore";
 import { Calendar, dayjsLocalizer } from "react-big-calendar";
+import { ToastContainer } from "react-toastify";
 import { Box } from "@mui/material";
-import { getLessonsForWeek } from "../../data/firebaseHelpers";
-import dayjs from "dayjs";
+import { db } from "../../data/firebase";
+import NewEventDialog from "./CustomComponents/NewEventDialog";
 import updateLocale from "dayjs/plugin/updateLocale";
-import Toolbar from "./CustomComponents/Toolbar";
+import EventDialog from "./CustomComponents/EventDialog";
 import WeekHeader from "./CustomComponents/WeekHeader";
 import EventCard from "./CustomComponents/Event";
-import EventDialog from "./CustomComponents/EventDialog";
-import NewEventDialog from "./CustomComponents/NewEventDialog";
+import Toolbar from "./CustomComponents/Toolbar";
+import dayjs from "dayjs";
 import "react-big-calendar/lib/css/react-big-calendar.css";
+import "react-toastify/dist/ReactToastify.css";
 import "./calendar.scss";
 
 dayjs.extend(updateLocale);
@@ -21,9 +24,9 @@ const localizer = dayjsLocalizer(dayjs);
 
 const BigCalendar = () => {
   const [events, setEvents] = useState([]);
-  const [cache, setCache] = useState({});
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [newLessonSlot, setNewLessonSlot] = useState(null);
+  const [unsubscribe, setUnsubscribe] = useState(null);
 
   const components = useMemo(
     () => ({
@@ -38,54 +41,57 @@ const BigCalendar = () => {
 
   const handleSelectEvent = useCallback((event) => setSelectedEvent(event), []);
 
-  const fetchWeek = useCallback(
-    async (weekStart, weekEnd, setActive = false) => {
-      const cacheKey = weekStart.format("YYYY-MM-DD");
+  const subscribeWeek = useCallback(
+    (startDate, endDate) => {
+      if (unsubscribe) unsubscribe();
 
-      if (cache[cacheKey]) {
-        if (setActive) setEvents(cache[cacheKey]);
-        return;
-      }
+      const lessonRef = collection(db, "lessons");
+      const q = query(
+        lessonRef,
+        where("startDateTime", ">=", startDate.toISOString()),
+        where("startDateTime", "<=", endDate.toISOString())
+      );
 
-      const lessons = await getLessonsForWeek(weekStart, weekEnd);
+      const newUnsubscribe = onSnapshot(q, (snap) => {
+        const lessons = snap.docs.map((doc) => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            ...data,
+            start: data.startDateTime.toDate
+              ? data.startDateTime.toDate()
+              : new Date(data.startDateTime),
+            end: data.endDateTime.toDate
+              ? data.endDateTime.toDate()
+              : new Date(data.endDateTime),
+          };
+        });
 
-      setCache((prev) => {
-        const updated = { ...prev, [cacheKey]: lessons };
-        if (setActive) setEvents(lessons);
-        return updated;
+        setEvents(lessons);
       });
+
+      setUnsubscribe(() => newUnsubscribe);
     },
-    [cache]
+    [unsubscribe]
   );
 
-  const handleRangeChange = async (range) => {
-    const startDate = dayjs(range[0]).startOf("week");
-    const endDate = dayjs(range[range.length - 1]).endOf("week");
-
-    await fetchWeek(startDate, endDate, true);
-
-    const prevStart = startDate.subtract(1, "week");
-    const prevEnd = endDate.subtract(1, "week");
-    fetchWeek(prevStart, prevEnd);
-
-    const nextStart = startDate.add(1, "week");
-    const nextEnd = endDate.add(1, "week");
-    fetchWeek(nextStart, nextEnd);
-  };
-
-  const invalidateWeek = (date) => {
-    const key = dayjs(date).startOf("week").format("YYYY-MM-DD");
-    setCache((prev) => {
-      const updated = { ...prev };
-      delete updated[key];
-      return updated;
-    });
-  };
+  const handleRangeChange = useCallback(
+    (range) => {
+      const startDate = dayjs(range[0]).startOf("week");
+      const endDate = dayjs(range[range.length - 1]).endOf("week");
+      subscribeWeek(startDate, endDate);
+    },
+    [subscribeWeek]
+  );
 
   useEffect(() => {
     const startOfWeek = dayjs().startOf("week").toDate();
     const endOfWeek = dayjs().endOf("week").toDate();
     handleRangeChange([startOfWeek, endOfWeek]);
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
   }, []);
 
   return (
@@ -114,14 +120,7 @@ const BigCalendar = () => {
         <EventDialog
           event={selectedEvent}
           onClose={() => setSelectedEvent(null)}
-          onEdit={(event) => {
-            console.log("Edit", event);
-            invalidateWeek(event.start);
-          }}
-          onDelete={(event) => {
-            console.log("Delete", event);
-            invalidateWeek(event.start);
-          }}
+          onDelete={() => setSelectedEvent(null)}
         />
       )}
 
@@ -129,9 +128,10 @@ const BigCalendar = () => {
         <NewEventDialog
           slot={newLessonSlot}
           onClose={() => setNewLessonSlot(null)}
-          invalidateWeek={invalidateWeek}
         />
       )}
+
+      <ToastContainer position="top-right" autoClose={3000} />
     </Box>
   );
 };

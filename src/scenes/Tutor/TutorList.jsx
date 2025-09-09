@@ -21,6 +21,7 @@ const fetchTutors = async () => {
     return querySnapshot.docs.map((doc) => ({
       id: doc.id,
       avatar: doc.data().avatar,
+      tutorColor: doc.data().tutorColor,
       firstName: doc.data().firstName,
       lastName: doc.data().lastName,
       wiseMindsEmail: doc.data().wiseMindsEmail,
@@ -55,7 +56,10 @@ const TutorList = () => {
       sortable: false,
       renderCell: (params) => (
         <Box sx={{ display: "flex", alignItems: "center", height: "100%" }}>
-          <Avatar src={params.value} sx={{ width: 40, height: 40 }} />
+          <Avatar
+            src={params.value}
+            sx={{ width: 40, height: 40, bgcolor: params.row.tutorColor }}
+          />
         </Box>
       ),
     },
@@ -99,7 +103,13 @@ const TutorList = () => {
         >
           <Typography variant="h6">NEW</Typography>
         </Button>
-        <Paper sx={{ width: "100vh", backgroundColor: "transparent", marginTop: "4px" }}>
+        <Paper
+          sx={{
+            width: "100vh",
+            backgroundColor: "transparent",
+            marginTop: "4px",
+          }}
+        >
           <DataGrid
             checkboxSelection={false}
             rows={rows}

@@ -24,6 +24,9 @@ import {
   addDoc,
   getDocs,
   serverTimestamp,
+  doc,
+  getDoc,
+  updateDoc,
 } from "firebase/firestore";
 import { toast } from "react-toastify";
 
@@ -187,7 +190,7 @@ const LessonForm = ({ initialValues, onCreated, onUpdated, edit }) => {
 
   const handleSubmit = () => {
     if (edit) {
-      if (initialValues.repeat) {
+      if (initialValues.frequency) {
         setEditConfirmOpen(true);
       } else {
         handleEdit(false);
@@ -198,14 +201,79 @@ const LessonForm = ({ initialValues, onCreated, onUpdated, edit }) => {
   };
 
   const handleEdit = async (applyToFuture = false) => {
-    console.log("Edit lesson, apply to future: ", applyToFuture);
-    return;
+    try {
+      const tutorObj = tutorsList.find((t) => t.id === tutor);
+      const studentObjs = studentOptions.filter((s) =>
+        selectedStudents.includes(s.id)
+      );
+      const subjectGroupObj = subjectGroups.find((g) => g.id === subjectGroup);
+      const locationObj = locationList.find((l) => l.id === location);
+
+      const updatedFields = {
+        startTime: startTime.format("HH:mm"),
+        endTime: endTime.format("HH:mm"),
+        type,
+        notes,
+        tutorId: tutor,
+        studentIds: selectedStudents,
+        subjectGroupId: subjectGroup,
+        locationId: location,
+        tutorName: tutorObj ? tutorObj.name : "",
+        tutorColor: tutorObj?.tutorColor || "#888888",
+        studentNames: studentObjs.map((s) => s.name),
+        subjectGroupName: subjectGroupObj ? subjectGroupObj.name : "",
+        locationName: locationObj ? locationObj.name : "",
+      };
+
+      if (applyToFuture && initialValues.templateId) {
+        const templateRef = doc(
+          db,
+          "lessonTemplates",
+          initialValues.templateId
+        );
+        const templateSnap = await getDoc(templateRef);
+        if (!templateSnap.exists()) return;
+
+        const oldTemplate = templateSnap.data();
+
+        await updateDoc(templateRef, {
+          endDate: dayjs(initialValues.startDateTime)
+            .subtract(1, "day")
+            .format("YYYY-MM-DD"),
+          updatedAt: serverTimestamp(),
+        });
+
+        const newTemplate = {
+          ...oldTemplate,
+          ...updatedFields,
+          startDate: dayjs(initialValues.startDateTime).format("YYYY-MM-DD"),
+          endDate: null,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        };
+
+        await addDoc(collection(db, "lessonTemplates"), newTemplate);
+      } else {
+        const lessonRef = doc(db, "lessons", initialValues.id);
+        await updateDoc(lessonRef, {
+          ...updatedFields,
+          isException: true,
+          updatedAt: serverTimestamp(),
+        });
+      }
+
+      toast.success("Lesson updated");
+      onUpdated?.({
+        ...updatedFields,
+        id: initialValues.id,
+        templateId: initialValues.templateId,
+      });
+    } catch (error) {
+      toast.error("Error updating lesson: " + error.message);
+    }
   };
 
   const handleCreate = async () => {
-    // Handle edit logic
-    if (edit) return;
-
     const newErrors = validate();
     setErrors(newErrors);
 
@@ -241,6 +309,7 @@ const LessonForm = ({ initialValues, onCreated, onUpdated, edit }) => {
           ...lessonData,
           frequency,
           startDate: date.format("YYYY-MM-DD"),
+          endDate: null,
         });
       } else {
         const lessonsCol = collection(db, "lessons");
@@ -273,6 +342,7 @@ const LessonForm = ({ initialValues, onCreated, onUpdated, edit }) => {
             attendance: null,
             report: "",
           })),
+          isException: false,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
         };

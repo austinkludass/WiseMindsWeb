@@ -8,7 +8,7 @@ import {
 import dayjs from "dayjs";
 import LessonForm from "../../Lesson/LessonForm";
 
-const NewEventDialog = ({ slot, onClose, invalidateWeek }) => {
+const NewEventDialog = ({ slot, onClose }) => {
   if (!slot) return null;
 
   return (
@@ -36,7 +36,6 @@ const NewEventDialog = ({ slot, onClose, invalidateWeek }) => {
             }}
             onCreated={() => {
               onClose();
-              invalidateWeek(slot.start);
             }}
           />
         </Box>

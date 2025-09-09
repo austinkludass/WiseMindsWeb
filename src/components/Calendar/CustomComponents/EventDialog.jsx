@@ -43,7 +43,7 @@ const StyledIconBox = ({ children }) => (
   </Box>
 );
 
-const EventDialog = ({ event, onClose, onEdit, onDelete }) => {
+const EventDialog = ({ event, onClose, onDelete }) => {
   const [mode, setMode] = useState("view");
   if (!event) return null;
 
@@ -209,16 +209,17 @@ const EventDialog = ({ event, onClose, onEdit, onDelete }) => {
               subjectGroup: event.subjectGroupId,
               location: event.locationId,
               type: event.type ?? "Normal",
-              repeat: event.repeat ?? false,
-              frequency: event.frequency ?? "weekly",
+              frequency: event.frequency,
               notes: event.notes ?? "",
               startTime: dayjs(event.start),
               endTime: dayjs(event.end),
+              templateId: event.templateId,
+              startDateTime: event.startDateTime,
+              id: event.id,
             }}
             edit
-            onCreated={(updated) => {
-              onEdit?.(updated);
-              handleBack();
+            onUpdated={() => {
+              onClose();
             }}
           />
         )}

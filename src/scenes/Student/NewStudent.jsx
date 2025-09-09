@@ -152,7 +152,7 @@ const NewStudent = () => {
   });
 
   const [adminInfo, setAdminInfo] = useState({
-    homeLocation: "belconnen",
+    homeLocation: null,
     baseRate: null,
   });
 
