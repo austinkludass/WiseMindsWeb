@@ -1,4 +1,4 @@
-import { Box, useTheme } from "@mui/material";
+import { Box, useTheme, useMediaQuery } from "@mui/material";
 import Header from "../../components/Global/Header";
 import { tokens } from "../../theme";
 import Noticeboard from "../../components/Dashboard/Noticeboard";
@@ -9,6 +9,8 @@ import Notifications from "../../components/Dashboard/Notifications";
 const Dashboard = () => {
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+
   return (
     <Box m="20px">
       <Box display="flex" justifyContent="space-between" alignItems="center">
@@ -17,13 +19,13 @@ const Dashboard = () => {
 
       <Box
         display="grid"
-        gridTemplateColumns="repeat(12, 1fr)"
-        gridTemplateRows="200px 400px 200px"
+        gridTemplateColumns={isMobile ? "1fr" : "repeat(12, 1fr)"}
+        gridTemplateRows={isMobile ? "repeat(5, 300px) 600px repeat(3, 300px)" : "200px 400px 200px"}
         gap="20px"
       >
         {/* Row 1 */}
         <Box
-          gridColumn="span 3"
+          gridColumn={isMobile ? "span 1" : "span 3"}
           backgroundColor={colors.primary[400]}
           display="flex"
           alignItems="center"
@@ -34,7 +36,7 @@ const Dashboard = () => {
         </Box>
 
         <Box
-          gridColumn="span 3"
+          gridColumn={isMobile ? "span 1" : "span 3"}
           backgroundColor={colors.primary[400]}
           display="flex"
           alignItems="center"
@@ -45,7 +47,7 @@ const Dashboard = () => {
         </Box>
 
         <Box
-          gridColumn="span 3"
+          gridColumn={isMobile ? "span 1" : "span 3"}
           backgroundColor={colors.primary[400]}
           display="flex"
           alignItems="center"
@@ -56,7 +58,7 @@ const Dashboard = () => {
         </Box>
 
         <Box
-          gridColumn="span 3"
+          gridColumn={isMobile ? "span 1" : "span 3"}
           backgroundColor={colors.primary[400]}
           display="flex"
           alignItems="center"
@@ -68,7 +70,7 @@ const Dashboard = () => {
 
         {/* Row 2 */}
         <Box
-          gridColumn="span 6"
+          gridColumn={isMobile ? "span 1" : "span 6"}
           backgroundColor={colors.primary[400]}
           display="flex"
           alignItems="center"
@@ -79,7 +81,7 @@ const Dashboard = () => {
         </Box>
 
         <Box
-          gridColumn="span 6"
+          gridColumn={isMobile ? "span 1" : "span 6"}
           backgroundColor={colors.primary[400]}
           display="flex"
           alignItems="center"
@@ -91,7 +93,7 @@ const Dashboard = () => {
 
         {/* Row 3 */}
         <Box
-          gridColumn="span 4"
+          gridColumn={isMobile ? "span 1" : "span 4"}
           backgroundColor={colors.primary[400]}
           display="flex"
           alignItems="center"
@@ -100,9 +102,9 @@ const Dashboard = () => {
         >
           <Notifications />
         </Box>
-        
+
         <Box
-          gridColumn="span 4"
+          gridColumn={isMobile ? "span 1" : "span 4"}
           backgroundColor={colors.primary[400]}
           display="flex"
           alignItems="center"
@@ -113,7 +115,7 @@ const Dashboard = () => {
         </Box>
 
         <Box
-          gridColumn="span 4"
+          gridColumn={isMobile ? "span 1" : "span 4"}
           backgroundColor={colors.primary[400]}
           display="flex"
           alignItems="center"
