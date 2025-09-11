@@ -5,15 +5,15 @@ import Popup from "reactjs-popup";
 import "reactjs-popup/dist/index.css";
 
 const owlFacts = [
-  "Scientists think male owls find and advertise a territory, but female owls select the actual nest sites. Together, the owl pair defends their nest. The nest area will be the owl family’s home for several months.",
+  "Scientists think male owls find and advertise a territory, but female owls select the actual nest sites. Together, the owl pair defends their nest. The nest area will be the owl family's home for several months.",
   "When young owls hatch, they are covered with white, downy feathers and their eyes are closed. Several days after hatching, their eyes open and their white downy feathers are replaced with darker ones, often grey or brownish.",
-  "Owls eyes can’t move like ours can, its fixated in their skull, so to look at things they have to move their entire head.",
+  "Owls eyes can't move like ours can, its fixated in their skull, so to look at things they have to move their entire head.",
   "Owls are zygodactyl, which means their feet have two forward-facing toes and two backward-facing toes.",
-  "Some owls fish for their food, like the Pel’s fishing owl.",
+  "Some owls fish for their food, like the Pel's fishing owl.",
   "Owls have a special adaptation that allows them to see in almost complete darkness.",
   "Owls can detect prey hidden under snow, leaves, or even underground using their sharp hearing.",
   "Owls don't have eyeballs—they're more like eye tubes. They're elongated and held in place by a bony structure in the skull called a sclerotic ring.",
-  "The Spectacled Owl has distinctive white markings around its eyes, making it look like it’s wearing glasses.",
+  "The Spectacled Owl has distinctive white markings around its eyes, making it look like it's wearing glasses.",
   "Often, burrowing owls will line the entrance of their burrows with animal dung. This is a wise hunting strategy, as dung works as bait for insects that the owl can then feed on.",
   "Generally, the large owls hoot and the small owls toot.",
   "Owls sometimes hide their food. They capture prey and use their bill to carefully stuff the food into a hiding spot.",
@@ -38,7 +38,7 @@ const owlFacts = [
   "The largest North American owl, in appearance, is the Great Gray Owl, which is up to 32 inches tall.",
   "Many owls vocalize at a distinctively low frequency, which allows their songs to travel long distances without being absorbed by vegetation.",
   "Small, rodent-like mammals, such as voles and mice, are the primary prey for many owl species.",
-  "An Owls vision is long-sighted, so owls can’t see things clearly up-close.",
+  "An Owls vision is long-sighted, so owls can't see things clearly up-close.",
   "When flapping is necessary, many owl species have special flight feathers that make the action as silent as possible.",
   "The Northern Hawk Owl can detect—primarily by sight—a vole to eat up to a half a mile away.",
   "Owls must overcome a natural fear of each other in order to mate.",
@@ -51,7 +51,7 @@ const owlFacts = [
   "The baby owls, or owlets, hatch within three to five weeks of the eggs being laid, and will hatch in the order in which they were laid.",
   "Some owls have been trained to hunt with humans, similar to falconry.",
   "Owls are often seen as the symbol for wisdom.",
-  "Did you know their ears aren’t placed symmetrical on the sides of their heads. One is placed a tiny bit higher than the other, this makes it so the owl can better place where the sound is coming from.",
+  "Did you know their ears aren't placed symmetrical on the sides of their heads. One is placed a tiny bit higher than the other, this makes it so the owl can better place where the sound is coming from.",
   "Eagle Owls are among the most powerful owls and can hunt foxes.",
   "They are often seen doing a little dance with their heads. They are calculating a distance.",
   "Owls have no teeth in their beaks to chew prey. Instead, they swallow it whole or in large chunks.",
@@ -98,11 +98,12 @@ function OwlFacts() {
       <Popup
         trigger={
           <img
-            alt="profile-user"
-            width="100px"
-            height="100px"
-            src={`../../assets/wisemindslogo.png`}
+            alt="Wise Minds Logo"
+            width={100}
+            height={100}
+            src={"../../assets/wisemindslogo_small.png"}
             style={{ cursor: "pointer", borderRadius: "50%" }}
+            loading="lazy"
           />
         }
         position="right center"
