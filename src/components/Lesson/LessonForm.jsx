@@ -12,9 +12,6 @@ import {
   FormControlLabel,
   Radio,
   Chip,
-  Dialog,
-  DialogTitle,
-  DialogActions,
 } from "@mui/material";
 import { DatePicker, TimePicker } from "@mui/x-date-pickers";
 import dayjs from "dayjs";
@@ -29,6 +26,7 @@ import {
   updateDoc,
 } from "firebase/firestore";
 import { toast } from "react-toastify";
+import ConfirmEventDialog from "../Calendar/CustomComponents/ConfirmEventDialog";
 
 const lessonTypes = ["Normal", "Postpone", "Cancelled", "Trial", "Unconfirmed"];
 
@@ -609,27 +607,15 @@ const LessonForm = ({ initialValues, onCreated, onUpdated, edit }) => {
         </Button>
       </Stack>
 
-      <Dialog open={editConfirmOpen} onClose={() => setEditConfirmOpen(false)}>
-        <DialogTitle>Apply changes to...</DialogTitle>
-        <DialogActions>
-          <Button
-            onClick={() => {
-              setEditConfirmOpen(false);
-              handleEdit(false);
-            }}
-          >
-            Only this lesson
-          </Button>
-          <Button
-            onClick={() => {
-              setEditConfirmOpen(false);
-              handleEdit(true);
-            }}
-          >
-            This and future lessons
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <ConfirmEventDialog
+        open={editConfirmOpen}
+        onClose={() => setEditConfirmOpen(false)}
+        onConfirmOnly={() => handleEdit(false)}
+        onConfirmFuture={() => handleEdit(true)}
+        title="Apply changes to..."
+        onlyLabel="Only this lesson"
+        futureLabel="This and future lessons"
+      />
     </Stack>
   );
 };

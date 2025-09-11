@@ -2,11 +2,13 @@ import { useState, useMemo, useCallback, useEffect } from "react";
 import { collection, onSnapshot, query, where } from "firebase/firestore";
 import { Calendar, dayjsLocalizer } from "react-big-calendar";
 import { ToastContainer } from "react-toastify";
-import { Box } from "@mui/material";
+import { Box, IconButton, Collapse, Badge } from "@mui/material";
+import { FilterList } from "@mui/icons-material";
 import { db } from "../../data/firebase";
 import NewEventDialog from "./CustomComponents/NewEventDialog";
 import updateLocale from "dayjs/plugin/updateLocale";
 import EventDialog from "./CustomComponents/EventDialog";
+import FilterPanel from "./CustomComponents/FilterPanel";
 import WeekHeader from "./CustomComponents/WeekHeader";
 import EventCard from "./CustomComponents/Event";
 import Toolbar from "./CustomComponents/Toolbar";
@@ -23,10 +25,87 @@ dayjs.updateLocale("en", {
 const localizer = dayjsLocalizer(dayjs);
 
 const BigCalendar = () => {
-  const [events, setEvents] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [newLessonSlot, setNewLessonSlot] = useState(null);
   const [unsubscribe, setUnsubscribe] = useState(null);
+  const [allEvents, setAllEvents] = useState([]);
+  const [showFilters, setShowFilters] = useState(false);
+  const [filters, setFilters] = useState({
+    tutors: [],
+    students: [],
+    subjectGroups: [],
+    locations: [],
+    frequencies: [],
+    types: [],
+  });
+
+  const activeFilterCount = useMemo(() => {
+    return Object.values(filters).reduce(
+      (count, value) => count + (value.length > 0 ? 1 : 0),
+      0
+    );
+  }, [filters]);
+
+  const options = useMemo(() => {
+    return {
+      tutors: [...new Set(allEvents.map((e) => e.tutorName))],
+      students: [...new Set(allEvents.flatMap((e) => e.studentNames || []))],
+      subjectGroups: [...new Set(allEvents.map((e) => e.subjectGroupName))],
+      locations: [...new Set(allEvents.map((e) => e.locationName))],
+    };
+  }, [allEvents]);
+
+  const filteredEvents = useMemo(() => {
+    return allEvents.filter((event) => {
+      if (
+        filters.tutors.length > 0 &&
+        !filters.tutors.includes(event.tutorName)
+      ) {
+        return false;
+      }
+
+      if (
+        filters.students.length > 0 &&
+        !event.studentNames.some((s) => filters.students.includes(s))
+      ) {
+        return false;
+      }
+
+      if (
+        filters.subjectGroups.length > 0 &&
+        !filters.subjectGroups.includes(event.subjectGroupName)
+      ) {
+        return false;
+      }
+
+      if (
+        filters.locations.length > 0 &&
+        !filters.locations.includes(event.locationName)
+      ) {
+        return false;
+      }
+
+      if (filters.frequencies.length > 0) {
+        const eventFrequency = event.frequency
+          ? event.frequency.toLowerCase()
+          : "single";
+
+        if (
+          !filters.frequencies
+            .map((f) => f.toLowerCase())
+            .includes(eventFrequency)
+        ) {
+          return false;
+        }
+      }
+
+      if (filters.types.length > 0 && !filters.types.includes(event.type)) {
+        return false;
+      }
+
+      return true;
+    });
+  }, [allEvents, filters]);
 
   const components = useMemo(
     () => ({
@@ -67,7 +146,7 @@ const BigCalendar = () => {
           };
         });
 
-        setEvents(lessons);
+        setAllEvents(lessons);
       });
 
       setUnsubscribe(() => newUnsubscribe);
@@ -96,9 +175,29 @@ const BigCalendar = () => {
 
   return (
     <Box>
+      <Box display="flex" justifyContent="flex-end" mb={1}>
+        <IconButton onClick={() => setShowFilters((prev) => !prev)}>
+          <Badge
+            badgeContent={activeFilterCount}
+            color="primary"
+            invisible={activeFilterCount === 0}
+          >
+            <FilterList />
+          </Badge>
+        </IconButton>
+      </Box>
+
+      <Collapse in={showFilters}>
+        <FilterPanel
+          filters={filters}
+          setFilters={setFilters}
+          options={options}
+        />
+      </Collapse>
+
       <Calendar
         localizer={localizer}
-        events={events}
+        events={filteredEvents}
         defaultDate={new Date()}
         views={["week", "day"]}
         startAccessor="start"
