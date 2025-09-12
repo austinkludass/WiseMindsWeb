@@ -22,7 +22,7 @@ const Noticeboard = () => {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const [senderName, setSenderName] = useState("");
-  const messagesEndRef = useRef(null);
+  const messagesContainerRef = useRef(null);
 
   useEffect(() => {
     const fetchTutorName = async () => {
@@ -62,8 +62,9 @@ const Noticeboard = () => {
   }, []);
 
   useEffect(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTop =
+        messagesContainerRef.current.scrollHeight;
     }
   }, [messages]);
 
@@ -114,6 +115,7 @@ const Noticeboard = () => {
       </Typography>
 
       <Box
+        ref={messagesContainerRef}
         flex="1"
         overflow="auto"
         mb={2}
@@ -131,7 +133,11 @@ const Noticeboard = () => {
             bgcolor={colors.primary[500]}
             borderRadius="6px"
           >
-            <Typography variant="body2" color={colors.orangeAccent[400]} sx={{ fontWeight: "bold" }}>
+            <Typography
+              variant="body2"
+              color={colors.orangeAccent[400]}
+              sx={{ fontWeight: "bold" }}
+            >
               {msg.senderName}{" "}
               <span style={{ fontWeight: "normal", fontSize: "0.8em" }}>
                 {msg.timestamp?.toDate
@@ -142,7 +148,6 @@ const Noticeboard = () => {
             <Typography variant="body1">{msg.message}</Typography>
           </Box>
         ))}
-        <div ref={messagesEndRef} />
       </Box>
 
       <Box display="flex" gap="8px">
