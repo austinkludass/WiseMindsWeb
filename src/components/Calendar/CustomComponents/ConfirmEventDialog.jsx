@@ -14,6 +14,7 @@ const ConfirmEventDialog = ({
       <DialogTitle>{title}</DialogTitle>
       <DialogActions>
         <Button
+          variant="contained"
           onClick={() => {
             onConfirmOnly?.();
             onClose?.();
@@ -22,6 +23,7 @@ const ConfirmEventDialog = ({
           {onlyLabel}
         </Button>
         <Button
+          variant="contained"
           onClick={() => {
             onConfirmFuture?.();
             onClose?.();

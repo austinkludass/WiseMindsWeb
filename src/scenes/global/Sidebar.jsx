@@ -1,17 +1,17 @@
-import { useState } from "react";
-import { ProSidebar, Menu, MenuItem, SubMenu } from "react-pro-sidebar";
-import "react-pro-sidebar/dist/css/styles.css";
 import { Box, IconButton, Typography, useTheme } from "@mui/material";
-import { Link } from "react-router-dom";
+import { ProSidebar, Menu, MenuItem, SubMenu } from "react-pro-sidebar";
+import { SettingsOutlined } from "@mui/icons-material";
+import { useState } from "react";
 import { tokens } from "../../theme";
-import HomeOutlinedIcon from "@mui/icons-material/HomeOutlined";
+import { Link } from "react-router-dom";
 import CorporateFareOutlinedIcon from "@mui/icons-material/CorporateFareOutlined";
-import PeopleAltOutlinedIcon from "@mui/icons-material/PeopleAltOutlined";
 import CalendarMonthOutlinedIcon from "@mui/icons-material/CalendarMonthOutlined";
+import PeopleAltOutlinedIcon from "@mui/icons-material/PeopleAltOutlined";
 import MenuBookOutlinedIcon from "@mui/icons-material/MenuBookOutlined";
+import HomeOutlinedIcon from "@mui/icons-material/HomeOutlined";
 import MenuOutlinedIcon from "@mui/icons-material/MenuOutlined";
 import OwlFacts from "../../components/Global/OwlFacts";
-import { SettingsOutlined } from "@mui/icons-material";
+import "react-pro-sidebar/dist/css/styles.css";
 
 const Item = ({ title, to, icon, selected, setSelected }) => {
   const theme = useTheme();
@@ -38,6 +38,7 @@ const Sidebar = () => {
   return (
     <Box
       sx={{
+        height: "100vh",
         "& .pro-sidebar-inner": {
           background: `${colors.primary[400]} !important`,
         },
@@ -59,43 +60,56 @@ const Sidebar = () => {
         "& .pro-arrow": {
           display: "none !important",
         },
+        "& .pro-sidebar .pro-menu > ul > .pro-sub-menu > .pro-inner-list-item":
+          {
+            backgroundColor: "transparent !important",
+          },
+        "& .pro-sidebar .pro-menu > ul > .pro-sub-menu > .pro-inner-list-item > div > ul":
+          {
+            paddingY: "4px !important",
+          },
+        "& .pro-sidebar.collapsed .pro-menu > ul > .pro-menu-item.pro-sub-menu > .pro-inner-list-item > .popper-inner":
+          {
+            backgroundColor: `${colors.primary[400]} !important`,
+          },
       }}
     >
-      <ProSidebar collapsed={isCollapsed}>
-        <Menu iconShape="square">
-          <MenuItem
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            icon={isCollapsed ? <MenuOutlinedIcon /> : undefined}
-            style={{ margin: "10px 0 20px 0", color: colors.grey[100] }}
+      <ProSidebar collapsed={isCollapsed} style={{ height: "100%" }}>
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            height: "100%",
+          }}
+        >
+          <Box
+            sx={{
+              flexShrink: 0,
+              px: 2,
+              py: 2,
+            }}
           >
-            {!isCollapsed && (
-              <Box
-                display="flex"
-                justifyContent="space-between"
-                alignItems="center"
-                ml="15px"
-              >
-                <Typography variant="h3" color={colors.grey[100]}></Typography>
-                <IconButton onClick={() => setIsCollapsed(!isCollapsed)}>
-                  <MenuOutlinedIcon />
-                </IconButton>
-              </Box>
-            )}
-          </MenuItem>
+            <Box
+              display="flex"
+              justifyContent={isCollapsed ? "center" : "flex-end"}
+              alignItems="center"
+              mb={isCollapsed ? 0 : 2}
+            >
+              <IconButton onClick={() => setIsCollapsed(!isCollapsed)}>
+                <MenuOutlinedIcon />
+              </IconButton>
+            </Box>
 
-          {!isCollapsed && (
-            <>
-              <Box mb="25px">
+            {!isCollapsed && (
+              <>
                 <Box display="flex" justifyContent="center" alignItems="center">
                   <OwlFacts />
                 </Box>
-
-                <Box textAlign="center">
+                <Box textAlign="center" mt={1}>
                   <Typography
                     variant="h2"
                     color={colors.grey[100]}
                     fontWeight="bold"
-                    sx={{ m: "10px 0 0 0" }}
                   >
                     Wise Minds
                   </Typography>
@@ -103,123 +117,132 @@ const Sidebar = () => {
                     Admin
                   </Typography>
                 </Box>
-              </Box>
-              <Box paddingLeft={"10%"}>
+              </>
+            )}
+          </Box>
+
+          <Box
+            sx={{
+              flex: 1,
+              overflowY: "auto",
+              pr: 1,
+              "&::-webkit-scrollbar": { width: "6px" },
+            }}
+          >
+            <Menu iconShape="square">
+              <Item
+                title="Dashboard"
+                to="/"
+                icon={<HomeOutlinedIcon />}
+                selected={selected}
+                setSelected={setSelected}
+              />
+              <SubMenu
+                title="Tutoring"
+                icon={<CalendarMonthOutlinedIcon />}
+                style={{ color: colors.grey[100] }}
+              >
                 <Item
-                  title="Dashboard"
-                  to="/"
-                  icon={<HomeOutlinedIcon />}
+                  title="Calendar"
+                  to="/calendar"
                   selected={selected}
                   setSelected={setSelected}
                 />
-                <SubMenu
-                  title="Tutoring"
-                  icon={<CalendarMonthOutlinedIcon />}
-                  rootstyles={{ "pro-arrow": { display: "none" } }}
-                  style={{ color: colors.grey[100] }}
-                >
-                  <Item
-                    title="Calendar"
-                    to="/calendar"
-                    selected={selected}
-                    setSelected={setSelected}
-                  />
-                  <Item
-                    title="Lessons"
-                    to="/lessons"
-                    selected={selected}
-                    setSelected={setSelected}
-                  />
-                </SubMenu>
-                <SubMenu
-                  title="Administration"
-                  icon={<PeopleAltOutlinedIcon />}
-                  style={{ color: colors.grey[100] }}
-                >
-                  <Item
-                    title="Tutors"
-                    to="/tutors"
-                    selected={selected}
-                    setSelected={setSelected}
-                  />
-                  <Item
-                    title="Tutor Absences"
-                    to="/tutorabsences"
-                    selected={selected}
-                    setSelected={setSelected}
-                  />
-                  <Item
-                    title="Students"
-                    to="/students"
-                    selected={selected}
-                    setSelected={setSelected}
-                  />
-                  <Item
-                    title="Student Absences"
-                    to="/studentabsences"
-                    selected={selected}
-                    setSelected={setSelected}
-                  />
-                  <Item
-                    title="Invoices"
-                    to="/invoices"
-                    selected={selected}
-                    setSelected={setSelected}
-                  />
-                  <Item
-                    title="Payroll"
-                    to="/payroll"
-                    selected={selected}
-                    setSelected={setSelected}
-                  />
-                </SubMenu>
-                <SubMenu
-                  title="Teaching"
-                  icon={<MenuBookOutlinedIcon />}
-                  style={{ color: colors.grey[100] }}
-                >
-                  <Item
-                    title="Subjects"
-                    to="/subjects"
-                    selected={selected}
-                    setSelected={setSelected}
-                  />
-                  <Item
-                    title="Feedback"
-                    to="/feedback"
-                    selected={selected}
-                    setSelected={setSelected}
-                  />
-                  <Item
-                    title="Wise Courses"
-                    to="/wisecourses"
-                    selected={selected}
-                    setSelected={setSelected}
-                  />
-                </SubMenu>
-                <SubMenu
-                  title="Belconnen"
-                  icon={<CorporateFareOutlinedIcon />}
-                  style={{ color: colors.grey[100] }}
-                >
-                  <Item
-                    title="Tutoring Bays"
-                    to="/tutoringbays"
-                    selected={selected}
-                    setSelected={setSelected}
-                  />
-                </SubMenu>
                 <Item
-                  title="Settings"
-                  to="/settings"
-                  icon={<SettingsOutlined />}
+                  title="Lessons"
+                  to="/lessons"
                   selected={selected}
                   setSelected={setSelected}
                 />
-              </Box>
-            </>
-          )}
-        </Menu>
+              </SubMenu>
+              <SubMenu
+                title="Administration"
+                icon={<PeopleAltOutlinedIcon />}
+                style={{ color: colors.grey[100] }}
+              >
+                <Item
+                  title="Tutors"
+                  to="/tutors"
+                  selected={selected}
+                  setSelected={setSelected}
+                />
+                <Item
+                  title="Tutor Absences"
+                  to="/tutorabsences"
+                  selected={selected}
+                  setSelected={setSelected}
+                />
+                <Item
+                  title="Students"
+                  to="/students"
+                  selected={selected}
+                  setSelected={setSelected}
+                />
+                <Item
+                  title="Student Absences"
+                  to="/studentabsences"
+                  selected={selected}
+                  setSelected={setSelected}
+                />
+                <Item
+                  title="Invoices"
+                  to="/invoices"
+                  selected={selected}
+                  setSelected={setSelected}
+                />
+                <Item
+                  title="Payroll"
+                  to="/payroll"
+                  selected={selected}
+                  setSelected={setSelected}
+                />
+              </SubMenu>
+              <SubMenu
+                title="Teaching"
+                icon={<MenuBookOutlinedIcon />}
+                style={{ color: colors.grey[100] }}
+              >
+                <Item
+                  title="Subjects"
+                  to="/subjects"
+                  selected={selected}
+                  setSelected={setSelected}
+                />
+                <Item
+                  title="Feedback"
+                  to="/feedback"
+                  selected={selected}
+                  setSelected={setSelected}
+                />
+                <Item
+                  title="Wise Courses"
+                  to="/wisecourses"
+                  selected={selected}
+                  setSelected={setSelected}
+                />
+              </SubMenu>
+              <SubMenu
+                title="Belconnen"
+                icon={<CorporateFareOutlinedIcon />}
+                style={{ color: colors.grey[100] }}
+              >
+                <Item
+                  title="Tutoring Bays"
+                  to="/tutoringbays"
+                  selected={selected}
+                  setSelected={setSelected}
+                />
+              </SubMenu>
+              <Item
+                title="Settings"
+                to="/settings"
+                icon={<SettingsOutlined />}
+                selected={selected}
+                setSelected={setSelected}
+              />
+            </Menu>
+          </Box>
+        </Box>
       </ProSidebar>
     </Box>
   );

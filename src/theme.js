@@ -242,7 +242,7 @@ export const themeSettings = (mode) => {
         styleOverrides: {
           root: {
             "&.MuiButton-textPrimary": {
-              color: "white",
+              color: colors.orangeAccent[700],
             },
           },
           containedPrimary: {
@@ -307,6 +307,7 @@ export const themeSettings = (mode) => {
           root: {
             "&.Mui-selected": {
               backgroundColor: `${colors.orangeAccent[700]} !important`,
+              color: "#e0e0e0 !important",
             },
           },
         },

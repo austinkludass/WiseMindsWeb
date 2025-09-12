@@ -22,6 +22,7 @@ import SearchIcon from "@mui/icons-material/Search";
 
 const searchOptions = [
   { label: "Calendar", task: "", path: "/calendar" },
+  { label: "Dashboard", task: "", path: "/home" },
   { label: "Home", task: "", path: "/home" },
   { label: "Lessons", task: "", path: "/lessons" },
   { label: "Locations", task: "", path: "/tutoringbays" },
