@@ -70,7 +70,9 @@ const Sidebar = () => {
           },
         "& .pro-sidebar.collapsed .pro-menu > ul > .pro-menu-item.pro-sub-menu > .pro-inner-list-item > .popper-inner":
           {
-            backgroundColor: `${colors.primary[400]} !important`,
+            backgroundColor: `${colors.primary[500]} !important`,
+            borderRadius: "0px 8px 8px 0px",
+            border: `4px solid ${colors.primary[400]}`,
           },
       }}
     >

@@ -18,6 +18,8 @@ import {
   Stack,
   Chip,
   Autocomplete,
+  Collapse,
+  Tooltip,
 } from "@mui/material";
 import {
   Delete as DeleteIcon,
@@ -54,9 +56,14 @@ const SubjectList = () => {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleteType, setDeleteType] = useState("");
   const [showSubjectsMap, setShowSubjectsMap] = useState({});
+  const [showGroupSubjectsMap, setShowGroupSubjectsMap] = useState({});
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [selectedSubject, setSelectedSubject] = useState(null);
   const [searchParams, setSearchParams] = useSearchParams();
+  const [showAddCurriculum, setShowAddCurriculum] = useState(false);
+  const [curriculumSearch, setCurriculumSearch] = useState("");
+  const [showAddGroup, setShowAddGroup] = useState(false);
+  const [groupSearch, setGroupSearch] = useState("");
 
   const tabMap = {
     0: "curriculums",
@@ -96,6 +103,13 @@ const SubjectList = () => {
     setShowSubjectsMap((prev) => ({
       ...prev,
       [curriculumId]: !prev[curriculumId],
+    }));
+  };
+
+  const toggleShowGroupSubjects = (groupId) => {
+    setShowGroupSubjectsMap((prev) => ({
+      ...prev,
+      [groupId]: !prev[groupId],
     }));
   };
 
@@ -286,166 +300,217 @@ const SubjectList = () => {
           <Card
             sx={{
               display: "flex",
+              flexDirection: "column",
               alignItems: "center",
               padding: "16px",
               gap: "16px",
               marginBottom: "16px",
             }}
           >
-            <TextField
-              label="Enter curriculum name..."
-              value={newCurriculum}
-              onChange={(e) => setNewCurriculum(e.target.value)}
-              fullWidth
-              sx={{ mr: 2 }}
-            />
-            <Button variant="contained" onClick={handleAddCurriculum}>
-              Add
-            </Button>
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                width: "100%",
+                gap: 2,
+              }}
+            >
+              <TextField
+                label="Search curriculums..."
+                value={curriculumSearch}
+                onChange={(e) => setCurriculumSearch(e.target.value)}
+                fullWidth
+              />
+
+              <Tooltip title="Add new Curriculum">
+                <IconButton
+                  color={showAddCurriculum ? "primary" : "default"}
+                  onClick={() => setShowAddCurriculum((prev) => !prev)}
+                >
+                  <AddIcon />
+                </IconButton>
+              </Tooltip>
+            </Box>
+
+            <Collapse
+              sx={{ width: "100%" }}
+              in={showAddCurriculum}
+              timeout="auto"
+              unmountOnExit
+            >
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  width: "100%",
+                  gap: 1,
+                }}
+              >
+                <TextField
+                  label="Enter curriculum name..."
+                  value={newCurriculum}
+                  onChange={(e) => setNewCurriculum(e.target.value)}
+                  fullWidth
+                  sx={{ mr: 2 }}
+                />
+                <Button variant="contained" onClick={handleAddCurriculum}>
+                  Add
+                </Button>
+              </Box>
+            </Collapse>
           </Card>
 
           <Box display="flex" flexWrap="wrap" gap={2} mt={2}>
-            {curriculums.map((cur) => (
-              <Card
-                key={cur.id}
-                sx={{
-                  width: "100%",
-                  maxWidth: "480px",
-                  padding: "16px",
-                  borderRadius: "12px",
-                }}
-              >
-                <Box display="flex" justifyContent="space-between">
-                  <Box display="flex" alignItems="center" gap={1}>
-                    <BookIcon />
-                    {editCurriculumId === cur.id ? (
-                      <TextField
-                        value={editedName}
-                        onChange={(e) => setEditedName(e.target.value)}
-                      />
-                    ) : (
-                      <Typography variant="h6">{cur.name}</Typography>
-                    )}
-                    <Chip
-                      label={`${
-                        subjects.filter((s) => s.curriculumId === cur.id).length
-                      } subjects`}
-                    />
-                  </Box>
-                  <Box
-                    sx={{
-                      display: "flex",
-                      flex: "0",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      marginLeft: "10px",
-                    }}
-                  >
-                    {editCurriculumId === cur.id ? (
-                      <IconButton
-                        onClick={() => saveEdit(cur.id, "curriculum")}
-                      >
-                        <SaveIcon />
-                      </IconButton>
-                    ) : (
-                      <IconButton
-                        onClick={() =>
-                          startEdit(cur.id, "curriculum", cur.name)
-                        }
-                      >
-                        <EditIcon />
-                      </IconButton>
-                    )}
-                    <IconButton
-                      onClick={() => openDeleteDialog("curriculum", cur)}
-                    >
-                      <DeleteIcon />
-                    </IconButton>
-                  </Box>
-                </Box>
-
-                <Stack direction="row" mt={2} spacing={2}>
-                  <TextField
-                    fullWidth
-                    placeholder="Add new subject..."
-                    value={subjectInput[cur.id] || ""}
-                    onChange={(e) =>
-                      setSubjectInput((prev) => ({
-                        ...prev,
-                        [cur.id]: e.target.value,
-                      }))
-                    }
-                  />
-                  <Box
-                    sx={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    <Button
-                      variant="contained"
-                      onClick={() => handleAddSubject(cur.id)}
-                    >
-                      Add
-                    </Button>
-                  </Box>
-                </Stack>
-
-                <Button
-                  size="small"
-                  sx={{ mt: "10px" }}
-                  variant="outlined"
-                  onClick={() => toggleShowSubjects(cur.id)}
+            {curriculums
+              .filter((cur) =>
+                cur.name
+                  .toLowerCase()
+                  .includes(curriculumSearch.trim().toLowerCase())
+              )
+              .map((cur) => (
+                <Card
+                  key={cur.id}
+                  sx={{
+                    width: "100%",
+                    maxWidth: "480px",
+                    padding: "16px",
+                    borderRadius: "12px",
+                  }}
                 >
-                  {showSubjectsMap[cur.id] ? "Hide Subjects" : "Show Subjects"}
-                </Button>
-
-                {showSubjectsMap[cur.id] && (
-                  <List
-                    height={400} // Set to your desired height
-                    itemCount={
-                      subjects.filter((s) => s.curriculumId === cur.id).length
-                    }
-                    itemSize={50} // Height of each item in px
-                    width="100%"
-                  >
-                    {({ index, style }) => {
-                      const filtered = subjects
-                        .filter((s) => s.curriculumId === cur.id)
-                        .sort((a, b) => a.name.localeCompare(b.name));
-                      const subject = filtered[index];
-
-                      return (
-                        <Box
-                          key={subject.id}
-                          sx={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            alignItems: "center",
-                            padding: "8px 12px",
-                            marginTop: "8px",
-                            borderRadius: "8px",
-                          }}
-                          style={style}
-                          display="flex"
-                          justifyContent="space-between"
-                          alignItems="center"
-                          px={2}
+                  <Box display="flex" justifyContent="space-between">
+                    <Box display="flex" alignItems="center" gap={1}>
+                      <BookIcon />
+                      {editCurriculumId === cur.id ? (
+                        <TextField
+                          value={editedName}
+                          onChange={(e) => setEditedName(e.target.value)}
+                        />
+                      ) : (
+                        <Typography variant="h6">{cur.name}</Typography>
+                      )}
+                      <Chip
+                        label={`${
+                          subjects.filter((s) => s.curriculumId === cur.id)
+                            .length
+                        } subjects`}
+                      />
+                    </Box>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        flex: "0",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        marginLeft: "10px",
+                      }}
+                    >
+                      {editCurriculumId === cur.id ? (
+                        <IconButton
+                          onClick={() => saveEdit(cur.id, "curriculum")}
                         >
-                          <Typography>{subject.name}</Typography>
-                          <IconButton
-                            onClick={() => handleDeleteSubject(subject.id)}
+                          <SaveIcon />
+                        </IconButton>
+                      ) : (
+                        <IconButton
+                          onClick={() =>
+                            startEdit(cur.id, "curriculum", cur.name)
+                          }
+                        >
+                          <EditIcon />
+                        </IconButton>
+                      )}
+                      <IconButton
+                        onClick={() => openDeleteDialog("curriculum", cur)}
+                      >
+                        <DeleteIcon />
+                      </IconButton>
+                    </Box>
+                  </Box>
+
+                  <Stack direction="row" mt={2} spacing={2}>
+                    <TextField
+                      fullWidth
+                      placeholder="Add new subject..."
+                      value={subjectInput[cur.id] || ""}
+                      onChange={(e) =>
+                        setSubjectInput((prev) => ({
+                          ...prev,
+                          [cur.id]: e.target.value,
+                        }))
+                      }
+                    />
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <Button
+                        variant="contained"
+                        onClick={() => handleAddSubject(cur.id)}
+                      >
+                        Add
+                      </Button>
+                    </Box>
+                  </Stack>
+
+                  <Button
+                    size="small"
+                    sx={{ mt: "10px" }}
+                    variant="outlined"
+                    onClick={() => toggleShowSubjects(cur.id)}
+                  >
+                    {showSubjectsMap[cur.id]
+                      ? "Hide Subjects"
+                      : "Show Subjects"}
+                  </Button>
+
+                  {showSubjectsMap[cur.id] && (
+                    <List
+                      height={400}
+                      itemCount={
+                        subjects.filter((s) => s.curriculumId === cur.id).length
+                      }
+                      itemSize={50}
+                      width="100%"
+                    >
+                      {({ index, style }) => {
+                        const filtered = subjects
+                          .filter((s) => s.curriculumId === cur.id)
+                          .sort((a, b) => a.name.localeCompare(b.name));
+                        const subject = filtered[index];
+
+                        return (
+                          <Box
+                            key={subject.id}
+                            sx={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "center",
+                              padding: "8px 12px",
+                              marginTop: "8px",
+                              borderRadius: "8px",
+                            }}
+                            style={style}
+                            display="flex"
+                            justifyContent="space-between"
+                            alignItems="center"
+                            px={2}
                           >
-                            <DeleteIcon />
-                          </IconButton>
-                        </Box>
-                      );
-                    }}
-                  </List>
-                )}
-              </Card>
-            ))}
+                            <Typography>{subject.name}</Typography>
+                            <IconButton
+                              onClick={() => handleDeleteSubject(subject.id)}
+                            >
+                              <DeleteIcon />
+                            </IconButton>
+                          </Box>
+                        );
+                      }}
+                    </List>
+                  )}
+                </Card>
+              ))}
           </Box>
         </Box>
       )}
@@ -455,171 +520,249 @@ const SubjectList = () => {
           <Card
             sx={{
               display: "flex",
+              flexDirection: "column",
               alignItems: "center",
               padding: "16px",
               gap: "16px",
               marginBottom: "16px",
             }}
           >
-            <TextField
-              label="Enter group name..."
-              value={newGroup}
-              onChange={(e) => setNewGroup(e.target.value)}
-              fullWidth
-              sx={{ mr: 2 }}
-            />
-            <Button variant="contained" onClick={handleAddGroup}>
-              Add
-            </Button>
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                width: "100%",
+                gap: 2,
+              }}
+            >
+              <TextField
+                label="Search groups..."
+                value={groupSearch}
+                onChange={(e) => setGroupSearch(e.target.value)}
+                fullWidth
+              />
+
+              <Tooltip title="Add new Subject Group">
+                <IconButton
+                  color={showAddGroup ? "primary" : "default"}
+                  onClick={() => setShowAddGroup((prev) => !prev)}
+                >
+                  <AddIcon />
+                </IconButton>
+              </Tooltip>
+            </Box>
+
+            <Collapse
+              sx={{ width: "100%" }}
+              in={showAddGroup}
+              timeout="auto"
+              unmountOnExit
+            >
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  width: "100%",
+                  gap: 1,
+                }}
+              >
+                <TextField
+                  label="Enter group name..."
+                  value={newGroup}
+                  onChange={(e) => setNewGroup(e.target.value)}
+                  fullWidth
+                  sx={{ mr: 2 }}
+                />
+                <Button variant="contained" onClick={handleAddGroup}>
+                  Add
+                </Button>
+              </Box>
+            </Collapse>
           </Card>
 
           <Box display="flex" flexWrap="wrap" gap={2} mt={2}>
-            {groups.map((g) => (
-              <Card
-                key={g.id}
-                sx={{
-                  width: "100%",
-                  maxWidth: "480px",
-                  padding: "16px",
-                  borderRadius: "12px",
-                }}
-              >
-                <Box display="flex" justifyContent="space-between">
-                  <Box display="flex" alignItems="center" gap={1}>
-                    <GroupIcon />
-                    {editGroupId === g.id ? (
-                      <TextField
-                        value={editedName}
-                        onChange={(e) => setEditedName(e.target.value)}
+            {groups
+              .filter((g) =>
+                g.name.toLowerCase().includes(groupSearch.trim().toLowerCase())
+              )
+              .map((g) => (
+                <Card
+                  key={g.id}
+                  sx={{
+                    width: "100%",
+                    maxWidth: "480px",
+                    padding: "16px",
+                    borderRadius: "12px",
+                  }}
+                >
+                  <Box display="flex" justifyContent="space-between">
+                    <Box display="flex" alignItems="center" gap={1}>
+                      <GroupIcon />
+                      {editGroupId === g.id ? (
+                        <TextField
+                          value={editedName}
+                          onChange={(e) => setEditedName(e.target.value)}
+                        />
+                      ) : (
+                        <Typography variant="h6">{g.name}</Typography>
+                      )}
+                      <Chip
+                        label={`${g.subjectIds.length} subjects`}
+                        color="success"
                       />
-                    ) : (
-                      <Typography variant="h6">{g.name}</Typography>
-                    )}
-                    <Chip
-                      label={`${g.subjectIds.length} subjects`}
-                      color="success"
-                    />
-                  </Box>
-                  <Box
-                    sx={{
-                      display: "flex",
-                      flex: "0",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      marginLeft: "10px",
-                    }}
-                  >
-                    {editGroupId === g.id ? (
-                      <IconButton onClick={() => saveEdit(g.id, "group")}>
-                        <SaveIcon />
-                      </IconButton>
-                    ) : (
-                      <IconButton
-                        onClick={() => startEdit(g.id, "group", g.name)}
-                      >
-                        <EditIcon />
-                      </IconButton>
-                    )}
-                    <IconButton onClick={() => openDeleteDialog("group", g)}>
-                      <DeleteIcon />
-                    </IconButton>
-                  </Box>
-                </Box>
-
-                <Stack direction="row" mt={2} spacing={2}>
-                  <Autocomplete
-                    fullWidth
-                    disableListWrap
-                    value={
-                      subjects.find((s) => s.id === groupSubjectSelect[g.id]) ||
-                      null
-                    }
-                    options={subjects
-                      .filter((s) => !g.subjectIds.includes(s.id))
-                      .sort((a, b) => a.name.localeCompare(b.name))}
-                    getOptionLabel={(option) =>
-                      `${option.name} (${
-                        curriculums.find((c) => c.id === option.curriculumId)
-                          ?.name || "Unknown"
-                      })`
-                    }
-                    renderInput={(params) => (
-                      <TextField
-                        {...params}
-                        label="Select subject..."
-                        variant="outlined"
-                      />
-                    )}
-                    onChange={(_, value) => {
-                      setGroupSubjectSelect((prev) => ({
-                        ...prev,
-                        [g.id]: value?.id || "",
-                      }));
-                    }}
-                    isOptionEqualToValue={(option, value) =>
-                      option.id === value.id
-                    }
-                    slotProps={{
-                      listbox: {
-                        component: VirtualizedAutoComplete,
-                      },
-                    }}
-                  />
-                  <Box
-                    sx={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    <Button
-                      disabled={!groupSubjectSelect[g.id]}
-                      variant="contained"
-                      onClick={() => {
-                        handleAddSubjectToGroup(g.id);
-                        setGroupSubjectSelect((prev) => ({
-                          ...prev,
-                          [g.id]: "",
-                        }));
+                    </Box>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        flex: "0",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        marginLeft: "10px",
                       }}
                     >
-                      Add
-                    </Button>
-                  </Box>
-                </Stack>
-
-                <Box mt={1}>
-                  {g.subjectIds.map((id) => {
-                    const sub = subjects.find((s) => s.id === id);
-                    const cur = curriculums.find(
-                      (c) => c.id === sub?.curriculumId
-                    );
-                    return (
-                      <Box
-                        sx={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "center",
-                          padding: "8px 12px",
-                          marginTop: "8px",
-                          borderRadius: "8px",
-                        }}
-                        key={id}
-                      >
-                        <Typography>
-                          {sub?.name} <Chip size="small" label={cur?.name} />
-                        </Typography>
-                        <IconButton
-                          onClick={() => handleRemoveSubjectFromGroup(g.id, id)}
-                        >
-                          <DeleteIcon />
+                      {editGroupId === g.id ? (
+                        <IconButton onClick={() => saveEdit(g.id, "group")}>
+                          <SaveIcon />
                         </IconButton>
-                      </Box>
-                    );
-                  })}
-                </Box>
-              </Card>
-            ))}
+                      ) : (
+                        <IconButton
+                          onClick={() => startEdit(g.id, "group", g.name)}
+                        >
+                          <EditIcon />
+                        </IconButton>
+                      )}
+                      <IconButton onClick={() => openDeleteDialog("group", g)}>
+                        <DeleteIcon />
+                      </IconButton>
+                    </Box>
+                  </Box>
+
+                  <Stack direction="row" mt={2} spacing={2}>
+                    <Autocomplete
+                      fullWidth
+                      disableListWrap
+                      value={
+                        subjects.find(
+                          (s) => s.id === groupSubjectSelect[g.id]
+                        ) || null
+                      }
+                      options={subjects
+                        .filter((s) => !g.subjectIds.includes(s.id))
+                        .sort((a, b) => a.name.localeCompare(b.name))}
+                      getOptionLabel={(option) =>
+                        `${option.name} (${
+                          curriculums.find((c) => c.id === option.curriculumId)
+                            ?.name || "Unknown"
+                        })`
+                      }
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          label="Select subject..."
+                          variant="outlined"
+                        />
+                      )}
+                      onChange={(_, value) => {
+                        setGroupSubjectSelect((prev) => ({
+                          ...prev,
+                          [g.id]: value?.id || "",
+                        }));
+                      }}
+                      isOptionEqualToValue={(option, value) =>
+                        option.id === value.id
+                      }
+                      slotProps={{
+                        listbox: {
+                          component: VirtualizedAutoComplete,
+                        },
+                      }}
+                    />
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <Button
+                        disabled={!groupSubjectSelect[g.id]}
+                        variant="contained"
+                        onClick={() => {
+                          handleAddSubjectToGroup(g.id);
+                          setGroupSubjectSelect((prev) => ({
+                            ...prev,
+                            [g.id]: "",
+                          }));
+                        }}
+                      >
+                        Add
+                      </Button>
+                    </Box>
+                  </Stack>
+
+                  <Button
+                    size="small"
+                    sx={{ mt: "10px" }}
+                    variant="outlined"
+                    onClick={() => toggleShowGroupSubjects(g.id)}
+                  >
+                    {showGroupSubjectsMap[g.id]
+                      ? "Hide Subjects"
+                      : "Show Subjects"}
+                  </Button>
+
+                  {showGroupSubjectsMap[g.id] && (
+                    <List
+                      height={400}
+                      itemCount={g.subjectIds.length}
+                      itemSize={50}
+                      width="100%"
+                    >
+                      {({ index, style }) => {
+                        const sortedSubjectIds = [...g.subjectIds].sort(
+                          (a, b) => {
+                            const subA = subjects.find((s) => s.id === a);
+                            const subB = subjects.find((s) => s.id === b);
+                            if (!subA || !subB) return 0;
+                            return subA.name.localeCompare(subB.name);
+                          }
+                        );
+                        const id = sortedSubjectIds[index];
+                        const sub = subjects.find((s) => s.id === id);
+                        const cur = curriculums.find(
+                          (c) => c.id === sub?.curriculumId
+                        );
+                        return (
+                          <Box
+                            sx={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "center",
+                              padding: "8px 12px",
+                              marginTop: "8px",
+                              borderRadius: "8px",
+                            }}
+                            key={id}
+                            style={style}
+                          >
+                            <Typography>
+                              {sub?.name}{" "}
+                              <Chip size="small" label={cur?.name} />
+                            </Typography>
+                            <IconButton
+                              onClick={() =>
+                                handleRemoveSubjectFromGroup(g.id, id)
+                              }
+                            >
+                              <DeleteIcon />
+                            </IconButton>
+                          </Box>
+                        );
+                      }}
+                    </List>
+                  )}
+                </Card>
+              ))}
           </Box>
         </Box>
       )}
