@@ -79,7 +79,7 @@ const TutorProfileInfo = ({
 
   return (
     <Grid container spacing={2} alignItems="center">
-      <Grid item size={4} sx={{ display: "flex", justifyContent: "center" }}>
+      <Grid size={4} sx={{ display: "flex", justifyContent: "center" }}>
         <Stack spacing={2}>
           <Box
             style={{
@@ -163,7 +163,7 @@ const TutorProfileInfo = ({
           )}
         </Stack>
       </Grid>
-      <Grid item size={8}>
+      <Grid size={8}>
         <Stack spacing={2}>
           {isEdit ? (
             <>

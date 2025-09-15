@@ -54,9 +54,7 @@ const AvailabilitySelector = ({
             ? timeStringToDate(slot.start)
             : slot.start,
         end:
-          typeof slot.end === "string"
-            ? timeStringToDate(slot.end)
-            : slot.end,
+          typeof slot.end === "string" ? timeStringToDate(slot.end) : slot.end,
       }));
     }
 
@@ -75,8 +73,8 @@ const AvailabilitySelector = ({
       [day]: [
         ...(prev[day] || []),
         {
-          start: new Date().setHours(6, 0, 0, 0),
-          end: new Date().setHours(22, 0, 0, 0),
+          start: new Date(new Date().setHours(6, 0, 0, 0)),
+          end: new Date(new Date().setHours(22, 0, 0, 0)),
         },
       ],
     }));
@@ -133,7 +131,11 @@ const AvailabilitySelector = ({
                         onChange={(newValue) =>
                           handleTimeChange(day, index, "start", newValue)
                         }
-                        renderInput={(params) => <input {...params} />}
+                        slotProps={{
+                          textField: {
+                            variant: "outlined",
+                          },
+                        }}
                       />
                       <DesktopTimePicker
                         label="End Time"
@@ -142,7 +144,11 @@ const AvailabilitySelector = ({
                         onChange={(newValue) =>
                           handleTimeChange(day, index, "end", newValue)
                         }
-                        renderInput={(params) => <input {...params} />}
+                        slotProps={{
+                          textField: {
+                            variant: "outlined",
+                          },
+                        }}
                       />
                       {isEdit && (
                         <IconButton
@@ -160,11 +166,9 @@ const AvailabilitySelector = ({
                     <IconButton
                       sx={{ width: 55, height: 55 }}
                       color="secondary"
+                      onClick={() => addTimeSlot(day)}
                     >
-                      <AddCircleIcon
-                        sx={{ width: 30, height: 30 }}
-                        onClick={() => addTimeSlot(day)}
-                      />
+                      <AddCircleIcon sx={{ width: 30, height: 30 }} />
                     </IconButton>
                   )}
                 </TableCell>

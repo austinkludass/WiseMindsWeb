@@ -14,7 +14,7 @@ const NewEventDialog = ({ slot, onClose }) => {
   return (
     <Dialog open onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle sx={{ backgroundColor: "primary.main" }}>
-        <Typography variant="h4" color="white">
+        <Typography variant="h4" component="span" color="white">
           New Lesson
         </Typography>
       </DialogTitle>

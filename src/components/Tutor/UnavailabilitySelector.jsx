@@ -56,7 +56,11 @@ const UnavailabilitySelector = ({ unavailability, onChange, isEdit }) => {
             label="Select Date"
             value={selectedDate}
             onChange={(newDate) => setSelectedDate(newDate)}
-            renderInput={(params) => <TextField {...params} />}
+            slotProps={{
+              textField: {
+                label: "Select Date",
+              },
+            }}
           />
           <TextField
             label="Reason"

@@ -479,9 +479,6 @@ const LessonForm = ({ initialValues, onCreated, onUpdated, edit }) => {
           />
         )}
       />
-      {selectedStudents.length >= 3 && (
-        <Typography color="error">Limit reached (3 students)</Typography>
-      )}
 
       <Stack direction="row" spacing={2}>
         <Autocomplete
@@ -490,12 +487,13 @@ const LessonForm = ({ initialValues, onCreated, onUpdated, edit }) => {
           value={subjectGroups.find((g) => g.id === subjectGroup) || null}
           onChange={(e, val) => setSubjectGroup(val ? val.id : null)}
           renderOption={(props, option) => {
+            const { key, ...rest } = props;
             const subjectNames = option.subjectIds
               .map((id) => subjectsList.find((s) => s.id === id)?.name)
               .filter(Boolean);
 
             return (
-              <li {...props}>
+              <li key={key} {...rest}>
                 <Box>
                   <Typography variant="body1" fontWeight="bold">
                     {option.name}
