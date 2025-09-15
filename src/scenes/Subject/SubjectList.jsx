@@ -64,6 +64,8 @@ const SubjectList = () => {
   const [curriculumSearch, setCurriculumSearch] = useState("");
   const [showAddGroup, setShowAddGroup] = useState(false);
   const [groupSearch, setGroupSearch] = useState("");
+  const [curriculumSubjectSearch, setCurriculumSubjectSearch] = useState({});
+  const [subjectGrpSubjectSearch, setSubjectGrpSubjectSearch] = useState({});
 
   const tabMap = {
     0: "curriculums",
@@ -467,47 +469,78 @@ const SubjectList = () => {
                   </Button>
 
                   {showSubjectsMap[cur.id] && (
-                    <List
-                      height={400}
-                      itemCount={
-                        subjects.filter((s) => s.curriculumId === cur.id).length
-                      }
-                      itemSize={50}
-                      width="100%"
-                    >
-                      {({ index, style }) => {
-                        const filtered = subjects
-                          .filter((s) => s.curriculumId === cur.id)
-                          .sort((a, b) => a.name.localeCompare(b.name));
-                        const subject = filtered[index];
+                    <>
+                      <TextField
+                        fullWidth
+                        size="small"
+                        placeholder="Search subjects..."
+                        value={curriculumSubjectSearch[cur.id] || ""}
+                        onChange={(e) =>
+                          setCurriculumSubjectSearch((prev) => ({
+                            ...prev,
+                            [cur.id]: e.target.value,
+                          }))
+                        }
+                        sx={{ mb: 2, mt: 1 }}
+                      />
 
-                        return (
-                          <Box
-                            key={subject.id}
-                            sx={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                              alignItems: "center",
-                              padding: "8px 12px",
-                              marginTop: "8px",
-                              borderRadius: "8px",
-                            }}
-                            style={style}
-                            display="flex"
-                            justifyContent="space-between"
-                            alignItems="center"
-                            px={2}
-                          >
-                            <Typography>{subject.name}</Typography>
-                            <IconButton
-                              onClick={() => handleDeleteSubject(subject.id)}
+                      <List
+                        height={400}
+                        itemCount={
+                          subjects.filter(
+                            (s) =>
+                              s.curriculumId === cur.id &&
+                              s.name
+                                .toLowerCase()
+                                .includes(
+                                  (
+                                    curriculumSubjectSearch[cur.id] || ""
+                                  ).toLowerCase()
+                                )
+                          ).length
+                        }
+                        itemSize={50}
+                        width="100%"
+                      >
+                        {({ index, style }) => {
+                          const filtered = subjects
+                            .filter(
+                              (s) =>
+                                s.curriculumId === cur.id &&
+                                s.name
+                                  .toLowerCase()
+                                  .includes(
+                                    (
+                                      curriculumSubjectSearch[cur.id] || ""
+                                    ).toLowerCase()
+                                  )
+                            )
+                            .sort((a, b) => a.name.localeCompare(b.name));
+                          const subject = filtered[index];
+
+                          return (
+                            <Box
+                              key={subject.id}
+                              style={style}
+                              sx={{
+                                display: "flex",
+                                justifyContent: "space-between",
+                                alignItems: "center",
+                                px: 2,
+                                py: 1,
+                              }}
                             >
-                              <DeleteIcon />
-                            </IconButton>
-                          </Box>
-                        );
-                      }}
-                    </List>
+                              <Typography>{subject.name}</Typography>
+                              <IconButton
+                                onClick={() => handleDeleteSubject(subject.id)}
+                              >
+                                <DeleteIcon />
+                              </IconButton>
+                            </Box>
+                          );
+                        }}
+                      </List>
+                    </>
                   )}
                 </Card>
               ))}
@@ -712,54 +745,89 @@ const SubjectList = () => {
                   </Button>
 
                   {showGroupSubjectsMap[g.id] && (
-                    <List
-                      height={400}
-                      itemCount={g.subjectIds.length}
-                      itemSize={50}
-                      width="100%"
-                    >
-                      {({ index, style }) => {
-                        const sortedSubjectIds = [...g.subjectIds].sort(
-                          (a, b) => {
-                            const subA = subjects.find((s) => s.id === a);
-                            const subB = subjects.find((s) => s.id === b);
-                            if (!subA || !subB) return 0;
-                            return subA.name.localeCompare(subB.name);
-                          }
-                        );
-                        const id = sortedSubjectIds[index];
-                        const sub = subjects.find((s) => s.id === id);
-                        const cur = curriculums.find(
-                          (c) => c.id === sub?.curriculumId
-                        );
-                        return (
-                          <Box
-                            sx={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                              alignItems: "center",
-                              padding: "8px 12px",
-                              marginTop: "8px",
-                              borderRadius: "8px",
-                            }}
-                            key={id}
-                            style={style}
-                          >
-                            <Typography>
-                              {sub?.name}{" "}
-                              <Chip size="small" label={cur?.name} />
-                            </Typography>
-                            <IconButton
-                              onClick={() =>
-                                handleRemoveSubjectFromGroup(g.id, id)
-                              }
+                    <>
+                      <TextField
+                        fullWidth
+                        size="small"
+                        placeholder="Search subjects..."
+                        value={subjectGrpSubjectSearch[g.id] || ""}
+                        onChange={(e) =>
+                          setSubjectGrpSubjectSearch((prev) => ({
+                            ...prev,
+                            [g.id]: e.target.value,
+                          }))
+                        }
+                        sx={{ mb: 2, mt: 1 }}
+                      />
+
+                      <List
+                        height={400}
+                        itemCount={
+                          g.subjectIds.filter((id) => {
+                            const sub = subjects.find((s) => s.id === id);
+                            return (
+                              sub &&
+                              sub.name
+                                .toLowerCase()
+                                .includes(
+                                  (
+                                    subjectGrpSubjectSearch[g.id] || ""
+                                  ).toLowerCase()
+                                )
+                            );
+                          }).length
+                        }
+                        itemSize={50}
+                        width="100%"
+                      >
+                        {({ index, style }) => {
+                          const sortedSubjectIds = [...g.subjectIds]
+                            .map((id) => subjects.find((s) => s.id === id))
+                            .filter(
+                              (s) =>
+                                s &&
+                                s.name
+                                  .toLowerCase()
+                                  .includes(
+                                    (
+                                      subjectGrpSubjectSearch[g.id] || ""
+                                    ).toLowerCase()
+                                  )
+                            )
+                            .sort((a, b) => a.name.localeCompare(b.name));
+                          const sub = sortedSubjectIds[index];
+                          const cur = curriculums.find(
+                            (c) => c.id === sub?.curriculumId
+                          );
+
+                          return (
+                            <Box
+                              key={sub.id}
+                              style={style}
+                              sx={{
+                                display: "flex",
+                                justifyContent: "space-between",
+                                alignItems: "center",
+                                px: 2,
+                                py: 1,
+                              }}
                             >
-                              <DeleteIcon />
-                            </IconButton>
-                          </Box>
-                        );
-                      }}
-                    </List>
+                              <Typography>
+                                {sub?.name}{" "}
+                                <Chip size="small" label={cur?.name} />
+                              </Typography>
+                              <IconButton
+                                onClick={() =>
+                                  handleRemoveSubjectFromGroup(g.id, sub.id)
+                                }
+                              >
+                                <DeleteIcon />
+                              </IconButton>
+                            </Box>
+                          );
+                        }}
+                      </List>
+                    </>
                   )}
                 </Card>
               ))}
