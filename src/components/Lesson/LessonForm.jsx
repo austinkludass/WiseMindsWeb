@@ -334,7 +334,7 @@ const LessonForm = ({ initialValues, onCreated, onUpdated, edit }) => {
           templateId: null,
           startDateTime,
           endDateTime,
-          students: studentObjs.map((s) => ({
+          reports: studentObjs.map((s) => ({
             studentId: s.id,
             studentName: s.name,
             attendance: null,

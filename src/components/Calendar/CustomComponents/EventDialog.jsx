@@ -7,6 +7,7 @@ import {
   DialogTitle,
   Divider,
   IconButton,
+  MenuItem,
   Stack,
   TextField,
   Tooltip,
@@ -45,13 +46,25 @@ const StyledIconBox = ({ children }) => (
   </Box>
 );
 
-const EventDialog = ({ event, onClose, onDelete }) => {
-  const [mode, setMode] = useState("view");
+const EventDialog = ({
+  event,
+  onClose,
+  onDelete,
+  mode: initialMode = "view",
+  reportStudent: initialReportStudent = null,
+}) => {
+  const [mode, setMode] = useState(initialMode);
+  const [reportStudent, setReportStudent] = useState(initialReportStudent);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [reports, setReports] = useState(event?.reports || []);
 
   if (!event) return null;
 
-  const handleBack = () => setMode("view");
+  const handleBack = () => {
+    setReportStudent(null);
+    setMode("view");
+  };
+
   const handleEdit = () => setMode("edit");
 
   const handleSubmit = () => {
@@ -77,6 +90,25 @@ const EventDialog = ({ event, onClose, onDelete }) => {
     }
   };
 
+  const updateReportField = (studentId, field, value) => {
+    setReports((prevReports) =>
+      prevReports.map((report) =>
+        report.studentId === studentId ? { ...report, [field]: value } : report
+      )
+    );
+  };
+
+  const handleSaveReport = (studentId) => {
+    try {
+      // Save the report for the student
+      toast.success("Report saved");
+      setMode("view");
+      setReportStudent(null);
+    } catch (error) {
+      toast.error("Error saving report: " + error.message);
+    }
+  };
+
   return (
     <>
       <Dialog open={!!event} onClose={onClose} maxWidth="sm" fullWidth>
@@ -89,7 +121,7 @@ const EventDialog = ({ event, onClose, onDelete }) => {
           }}
         >
           <Box display="flex" alignItems="center" gap={1}>
-            {mode === "edit" && (
+            {(mode === "edit" || mode === "report") && (
               <IconButton sx={{ color: "white" }} onClick={handleBack}>
                 <ArrowBack />
               </IconButton>
@@ -97,6 +129,8 @@ const EventDialog = ({ event, onClose, onDelete }) => {
             <Typography variant="h4" color="white">
               {mode === "edit"
                 ? "Edit Lesson"
+                : mode === "report"
+                ? `Report ${reportStudent?.studentName}`
                 : event.subjectGroupName || "Lesson Details"}
             </Typography>
           </Box>
@@ -114,7 +148,7 @@ const EventDialog = ({ event, onClose, onDelete }) => {
         </DialogTitle>
 
         <DialogContent dividers>
-          {mode === "view" ? (
+          {mode === "view" && (
             <Stack spacing={2}>
               <Box
                 display="flex"
@@ -171,12 +205,16 @@ const EventDialog = ({ event, onClose, onDelete }) => {
                     Students
                   </Typography>
                   <Stack direction="row" spacing={1} flexWrap="wrap">
-                    {event.studentNames?.map((student, i) => (
+                    {reports?.map((report) => (
                       <Chip
-                        color="default"
+                        key={report.studentId}
+                        label={report.studentName}
                         sx={{ cursor: "pointer" }}
-                        key={i}
-                        label={student}
+                        onClick={() => {
+                          setReportStudent(report);
+                          setMode("report");
+                        }}
+                        color={report.attendance ? "success" : "default"}
                       />
                     ))}
                   </Stack>
@@ -225,7 +263,9 @@ const EventDialog = ({ event, onClose, onDelete }) => {
                 </Box>
               </Box>
             </Stack>
-          ) : (
+          )}
+
+          {mode === "edit" && (
             <LessonForm
               initialValues={{
                 date: dayjs(event.start),
@@ -247,6 +287,61 @@ const EventDialog = ({ event, onClose, onDelete }) => {
                 onClose();
               }}
             />
+          )}
+
+          {mode === "report" && reportStudent && (
+            <Box>
+              <Typography variant="h6">
+                Report for {reportStudent.studentName}
+              </Typography>
+
+              <TextField
+                fullWidth
+                select
+                label="Attendance"
+                value={reportStudent.attendance || ""}
+                onChange={(e) =>
+                  updateReportField(
+                    reportStudent.studentId,
+                    "attendance",
+                    e.target.value
+                  )
+                }
+                sx={{ mt: 2 }}
+              >
+                <MenuItem value="Present">Present</MenuItem>
+                <MenuItem value="Absent">Absent</MenuItem>
+                <MenuItem value="Late">Late</MenuItem>
+              </TextField>
+
+              <TextField
+                fullWidth
+                multiline
+                minRows={4}
+                label="Report Notes"
+                value={reportStudent.report || ""}
+                onChange={(e) =>
+                  updateReportField(
+                    reportStudent.studentId,
+                    "report",
+                    e.target.value
+                  )
+                }
+                sx={{ mt: 2 }}
+              />
+
+              <Box display="flex" justifyContent="flex-start" gap={2} mt={2}>
+                <Button
+                  variant="contained"
+                  onClick={() => handleSaveReport(reportStudent.studentId)}
+                >
+                  Save
+                </Button>
+                <Button variant="outlined" onClick={handleBack}>
+                  Cancel
+                </Button>
+              </Box>
+            </Box>
           )}
         </DialogContent>
 

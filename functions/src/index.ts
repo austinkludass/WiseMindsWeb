@@ -180,7 +180,7 @@ async function generateLessonsForTemplate(
         templateId,
         startDateTime,
         endDateTime,
-        students: template.studentIds.map((id: string, i: number) => ({
+        reports: template.studentIds.map((id: string, i: number) => ({
           studentId: id,
           studentName: template.studentNames[i],
           attendance: null,

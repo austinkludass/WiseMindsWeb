@@ -27,6 +27,8 @@ const localizer = dayjsLocalizer(dayjs);
 const BigCalendar = () => {
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [newLessonSlot, setNewLessonSlot] = useState(null);
+  const [dialogMode, setDialogMode] = useState("view");
+  const [reportStudent, setReportStudent] = useState(null);
   const [unsubscribe, setUnsubscribe] = useState(null);
   const [allEvents, setAllEvents] = useState([]);
   const [showFilters, setShowFilters] = useState(false);
@@ -110,7 +112,14 @@ const BigCalendar = () => {
   const components = useMemo(
     () => ({
       toolbar: Toolbar,
-      event: EventCard,
+      event: (props) => (
+        <EventCard
+          {...props}
+          onView={handleViewEvent}
+          onEdit={handleEditEvent}
+          onReport={handleReportStudent}
+        />
+      ),
       week: {
         header: WeekHeader,
       },
@@ -118,7 +127,10 @@ const BigCalendar = () => {
     []
   );
 
-  const handleSelectEvent = useCallback((event) => setSelectedEvent(event), []);
+  const handleSelectEvent = useCallback((event) => {
+    setDialogMode("view");
+    setSelectedEvent(event);
+  }, []);
 
   const subscribeWeek = useCallback(
     (startDate, endDate) => {
@@ -173,6 +185,22 @@ const BigCalendar = () => {
     };
   }, []);
 
+  const handleViewEvent = (event) => {
+    setSelectedEvent(event);
+    setDialogMode("view");
+  };
+
+  const handleEditEvent = (event) => {
+    setSelectedEvent(event);
+    setDialogMode("edit");
+  };
+
+  const handleReportStudent = (event, report) => {
+    setSelectedEvent(event);
+    setDialogMode("report");
+    setReportStudent(report);
+  };
+
   return (
     <Box>
       <Box display="flex" justifyContent="flex-end" mb={1}>
@@ -218,8 +246,16 @@ const BigCalendar = () => {
       {selectedEvent && (
         <EventDialog
           event={selectedEvent}
-          onClose={() => setSelectedEvent(null)}
-          onDelete={() => setSelectedEvent(null)}
+          mode={dialogMode}
+          reportStudent={reportStudent}
+          onClose={() => {
+            setSelectedEvent(null);
+            setReportStudent(null);
+          }}
+          onDelete={() => {
+            setSelectedEvent(null);
+            setReportStudent(null);
+          }}
         />
       )}
 
