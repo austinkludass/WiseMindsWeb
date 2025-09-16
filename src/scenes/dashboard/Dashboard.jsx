@@ -1,10 +1,11 @@
 import { Box, useTheme, useMediaQuery } from "@mui/material";
-import Header from "../../components/Global/Header";
 import { tokens } from "../../theme";
-import Noticeboard from "../../components/Dashboard/Noticeboard";
-import Summaryboard from "../../components/Dashboard/Summaryboard";
 import UpcomingLessons from "../../components/Dashboard/UpcomingLessons";
 import Notifications from "../../components/Dashboard/Notifications";
+import Summaryboard from "../../components/Dashboard/Summaryboard";
+import Noticeboard from "../../components/Dashboard/Noticeboard";
+import StatsCard from "../../components/Dashboard/StatsCard";
+import Header from "../../components/Global/Header";
 
 const Dashboard = () => {
   const theme = useTheme();
@@ -20,52 +21,39 @@ const Dashboard = () => {
       <Box
         display="grid"
         gridTemplateColumns={isMobile ? "1fr" : "repeat(12, 1fr)"}
-        gridTemplateRows={isMobile ? "repeat(5, 300px) 600px repeat(3, 300px)" : "200px 400px 200px"}
+        gridTemplateRows={
+          isMobile
+            ? "repeat(5, 300px) 600px repeat(3, 300px)"
+            : "200px 400px 200px"
+        }
         gap="20px"
       >
         {/* Row 1 */}
         <Box
-          gridColumn={isMobile ? "span 1" : "span 3"}
-          backgroundColor={colors.primary[400]}
-          display="flex"
-          alignItems="center"
-          justifyContent="center"
+          gridColumn={isMobile ? "span 1" : "span 4"}
+          bgcolor={colors.primary[400]}
           overflow="hidden"
+          height="100%"
         >
-          <Summaryboard />
+          <StatsCard field="lessons" color={colors.orangeAccent[700]} />
         </Box>
 
         <Box
-          gridColumn={isMobile ? "span 1" : "span 3"}
-          backgroundColor={colors.primary[400]}
-          display="flex"
-          alignItems="center"
-          justifyContent="center"
+          gridColumn={isMobile ? "span 1" : "span 4"}
+          bgcolor={colors.primary[400]}
           overflow="hidden"
+          height="100%"
         >
-          <Summaryboard />
+          <StatsCard field="students" color={colors.orangeAccent[700]} />
         </Box>
 
         <Box
-          gridColumn={isMobile ? "span 1" : "span 3"}
-          backgroundColor={colors.primary[400]}
-          display="flex"
-          alignItems="center"
-          justifyContent="center"
+          gridColumn={isMobile ? "span 1" : "span 4"}
+          bgcolor={colors.primary[400]}
           overflow="hidden"
+          height="100%"
         >
-          <Summaryboard />
-        </Box>
-
-        <Box
-          gridColumn={isMobile ? "span 1" : "span 3"}
-          backgroundColor={colors.primary[400]}
-          display="flex"
-          alignItems="center"
-          justifyContent="center"
-          overflow="hidden"
-        >
-          <Summaryboard />
+          <StatsCard field="tutors" color={colors.orangeAccent[700]} />
         </Box>
 
         {/* Row 2 */}

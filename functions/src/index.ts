@@ -155,9 +155,9 @@ async function generateLessonsForTemplate(
   const frequencyWeeks = template.frequency === "weekly" ? 1 : 2;
   let current = dayjs(template.startDate).startOf("day");
 
-  const hardEnd = template.endDate ?
-    dayjs(template.endDate).endOf("day") :
-    dayjs().add(weeksAhead, "week").startOf("day");
+  const hardEnd = template.endDate
+    ? dayjs(template.endDate).endOf("day")
+    : dayjs().add(weeksAhead, "week").startOf("day");
 
   while (current.isBefore(hardEnd)) {
     if (current.isSameOrAfter(dayjs().startOf("day"))) {
@@ -324,5 +324,37 @@ export const onTutorWrite = onDocumentWritten(
     }
 
     await evaluateTutorNotifications(tutorId, after);
+  }
+);
+
+export const generateWeeklyStats = onSchedule(
+  {
+    schedule: "every monday 02:00",
+    timeZone: "Australia/Sydney",
+  },
+  async () => {
+    logger.info("Running weekly stats generation...");
+
+    const collections = ["students", "tutors", "lessons", "subjects"];
+    const counts: Record<string, number> = {};
+
+    for (const col of collections) {
+      const agg = await db.collection(col).count().get();
+      counts[col] = agg.data().count;
+    }
+
+    const now = dayjs().tz(tz).startOf("day");
+    const docId = now.format("YYYY-MM-DD");
+
+    await db
+      .collection("stats")
+      .doc(docId)
+      .set({
+        ...counts,
+        timestamp: admin.firestore.Timestamp.fromDate(now.toDate()),
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+
+    logger.info("Saved stats snapshot:", counts);
   }
 );
