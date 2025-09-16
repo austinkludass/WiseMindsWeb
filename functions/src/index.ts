@@ -155,9 +155,9 @@ async function generateLessonsForTemplate(
   const frequencyWeeks = template.frequency === "weekly" ? 1 : 2;
   let current = dayjs(template.startDate).startOf("day");
 
-  const hardEnd = template.endDate
-    ? dayjs(template.endDate).endOf("day")
-    : dayjs().add(weeksAhead, "week").startOf("day");
+  const hardEnd = template.endDate ?
+    dayjs(template.endDate).endOf("day") :
+    dayjs().add(weeksAhead, "week").startOf("day");
 
   while (current.isBefore(hardEnd)) {
     if (current.isSameOrAfter(dayjs().startOf("day"))) {
