@@ -13,31 +13,21 @@ import {
   Radio,
   Chip,
 } from "@mui/material";
+import { collection, addDoc, getDocs, serverTimestamp, doc, getDoc, updateDoc } from "firebase/firestore";
+import { getFunctions, httpsCallable } from "firebase/functions";
 import { DatePicker, TimePicker } from "@mui/x-date-pickers";
-import dayjs from "dayjs";
-import { db } from "../../data/firebase";
-import {
-  collection,
-  addDoc,
-  getDocs,
-  serverTimestamp,
-  doc,
-  getDoc,
-  updateDoc,
-} from "firebase/firestore";
 import { toast } from "react-toastify";
+import { db, app } from "../../data/firebase";
+import dayjs from "dayjs";
 import ConfirmEventDialog from "../Calendar/CustomComponents/ConfirmEventDialog";
 
+const functions = getFunctions(app, "australia-southeast1");
 const lessonTypes = ["Normal", "Postpone", "Cancelled", "Trial", "Unconfirmed"];
 
 const LessonForm = ({ initialValues, onCreated, onUpdated, edit }) => {
   const [date, setDate] = useState(initialValues.date || dayjs());
-  const [startTime, setStartTime] = useState(
-    initialValues.startTime || dayjs()
-  );
-  const [endTime, setEndTime] = useState(
-    initialValues.endTime || dayjs().add(1, "hour")
-  );
+  const [startTime, setStartTime] = useState(initialValues.startTime || dayjs());
+  const [endTime, setEndTime] = useState(initialValues.endTime || dayjs().add(1, "hour"));
   const [subjectsList, setSubjectsList] = useState([]);
   const [subjectGroups, setSubjectGroups] = useState([]);
   const [locationList, setLocationList] = useState([]);
@@ -201,73 +191,47 @@ const LessonForm = ({ initialValues, onCreated, onUpdated, edit }) => {
   const handleEdit = async (applyToFuture = false) => {
     try {
       const tutorObj = tutorsList.find((t) => t.id === tutor);
-      const studentObjs = studentOptions.filter((s) =>
-        selectedStudents.includes(s.id)
-      );
+      const studentObjs = studentOptions.filter((s) => selectedStudents.includes(s.id));
       const subjectGroupObj = subjectGroups.find((g) => g.id === subjectGroup);
       const locationObj = locationList.find((l) => l.id === location);
 
       const updatedFields = {
-        startTime: startTime.format("HH:mm"),
-        endTime: endTime.format("HH:mm"),
+        startDateTime: dayjs(`${date.format("YYYY-MM-DD")}T${startTime.format("HH:mm")}`).toISOString(),
+        endDateTime: dayjs(`${date.format("YYYY-MM-DD")}T${endTime.format("HH:mm")}`).toISOString(),
+        studentIds: selectedStudents,
+        studentNames: studentObjs.map((s) => s.name),
+        tutorId: tutor,
+        tutorName: tutorObj?.name || "",
+        tutorColor: tutorObj?.tutorColor || "#888888",
+        subjectGroupId: subjectGroup,
+        subjectGroupName: subjectGroupObj?.name || "",
+        locationId: location,
+        locationName: locationObj?.name || "",
         type,
         notes,
-        tutorId: tutor,
-        studentIds: selectedStudents,
-        subjectGroupId: subjectGroup,
-        locationId: location,
-        tutorName: tutorObj ? tutorObj.name : "",
-        tutorColor: tutorObj?.tutorColor || "#888888",
-        studentNames: studentObjs.map((s) => s.name),
-        subjectGroupName: subjectGroupObj ? subjectGroupObj.name : "",
-        locationName: locationObj ? locationObj.name : "",
       };
 
-      if (applyToFuture && initialValues.templateId) {
-        const templateRef = doc(
-          db,
-          "lessonTemplates",
-          initialValues.templateId
-        );
-        const templateSnap = await getDoc(templateRef);
-        if (!templateSnap.exists()) return;
-
-        const oldTemplate = templateSnap.data();
-
-        await updateDoc(templateRef, {
-          endDate: dayjs(initialValues.startDateTime)
-            .subtract(1, "day")
-            .format("YYYY-MM-DD"),
-          updatedAt: serverTimestamp(),
+      if (applyToFuture) {
+        const updateRepeatingLessons = httpsCallable(functions, "updateRepeatingLessons");
+        const { startDateTime, endDateTime, ...rest } = updatedFields;
+        await updateRepeatingLessons({
+          repeatingId: initialValues.repeatingId,
+          updatedFields: rest,
+          currentLessonStart: initialValues.startDateTime,
         });
-
-        const newTemplate = {
-          ...oldTemplate,
-          ...updatedFields,
-          startDate: dayjs(initialValues.startDateTime).format("YYYY-MM-DD"),
-          endDate: null,
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-        };
-
-        await addDoc(collection(db, "lessonTemplates"), newTemplate);
       } else {
         const lessonRef = doc(db, "lessons", initialValues.id);
-        await updateDoc(lessonRef, {
-          ...updatedFields,
-          isException: true,
-          updatedAt: serverTimestamp(),
-        });
+        await updateDoc(lessonRef, updatedFields);
       }
 
-      toast.success("Lesson updated");
+      toast.success("Lesson(s) updated");
       onUpdated?.({
         ...updatedFields,
         id: initialValues.id,
         templateId: initialValues.templateId,
       });
     } catch (error) {
-      toast.error("Error updating lesson: " + error.message);
+      toast.error("Error updating lesson(s): " + error.message);
     }
   };
 
@@ -278,81 +242,48 @@ const LessonForm = ({ initialValues, onCreated, onUpdated, edit }) => {
     if (Object.keys(newErrors).length > 0) return;
 
     const tutorObj = tutorsList.find((t) => t.id === tutor);
-    const studentObjs = studentOptions.filter((s) =>
-      selectedStudents.includes(s.id)
-    );
+    const studentObjs = studentOptions.filter((s) => selectedStudents.includes(s.id));
     const subjectGroupObj = subjectGroups.find((g) => g.id === subjectGroup);
     const locationObj = locationList.find((l) => l.id === location);
 
     const lessonData = {
-      startTime: startTime.format("HH:mm"),
-      endTime: endTime.format("HH:mm"),
+      startDateTime: dayjs(`${date.format("YYYY-MM-DD")}T${startTime.format("HH:mm")}`).toISOString(),
+      endDateTime: dayjs(`${date.format("YYYY-MM-DD")}T${endTime.format("HH:mm")}`).toISOString(),
+      studentIds: selectedStudents,
+      studentNames: studentObjs.map((s) => s.name),
+      tutorId: tutor,
+      tutorName: tutorObj?.name || "",
+      tutorColor: tutorObj?.tutorColor || "#888888",
+      subjectGroupId: subjectGroup,
+      subjectGroupName: subjectGroupObj?.name || "",
+      locationId: location,
+      locationName: locationObj?.name || "",
+      reports: studentObjs.map((s) => ({
+        studentId: s.id,
+        studentName: s.name,
+        attendance: null,
+        report: "",
+      })),
+      frequency: repeat ? frequency : null,
+      repeatingId: repeat ? doc(collection(db, "repeatingLessons")).id : null,
       type,
       notes,
-      tutorId: tutor,
-      studentIds: selectedStudents,
-      subjectGroupId: subjectGroup,
-      locationId: location,
-      tutorName: tutorObj ? tutorObj.name : "",
-      tutorColor:
-        tutorObj && tutorObj.tutorColor ? tutorObj.tutorColor : "#888888",
-      studentNames: studentObjs.map((s) => s.name),
-      subjectGroupName: subjectGroupObj ? subjectGroupObj.name : "",
-      locationName: locationObj ? locationObj.name : "",
+      createdAt: serverTimestamp(),
     };
 
     try {
       if (repeat) {
-        await addDoc(collection(db, "lessonTemplates"), {
-          ...lessonData,
-          frequency,
-          startDate: date.format("YYYY-MM-DD"),
-          endDate: null,
-        });
+        const createRepeatingLessons = httpsCallable(functions, "createRepeatingLessons");
+        await createRepeatingLessons(lessonData);
       } else {
-        const lessonsCol = collection(db, "lessons");
-
-        const startDateTime = dayjs(
-          `${date.format("YYYY-MM-DD")}T${startTime.format("HH:mm")}`
-        ).toISOString();
-        const endDateTime = dayjs(
-          `${date.format("YYYY-MM-DD")}T${endTime.format("HH:mm")}`
-        ).toISOString();
-
-        const singleLessonData = {
-          type,
-          notes,
-          tutorId: tutor,
-          studentIds: selectedStudents,
-          subjectGroupId: subjectGroup,
-          locationId: location,
-          tutorName: tutorObj ? tutorObj.name : "",
-          tutorColor: tutorObj ? tutorObj.tutorColor : "#888888",
-          studentNames: studentObjs.map((s) => s.name),
-          subjectGroupName: subjectGroupObj ? subjectGroupObj.name : "",
-          locationName: locationObj ? locationObj.name : "",
-          templateId: null,
-          startDateTime,
-          endDateTime,
-          reports: studentObjs.map((s) => ({
-            studentId: s.id,
-            studentName: s.name,
-            attendance: null,
-            report: "",
-          })),
-          isException: false,
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-        };
-
-        await addDoc(lessonsCol, singleLessonData);
+        await addDoc(collection(db, "lessons"), lessonData);
       }
 
-      toast.success("Lesson created");
+      toast.success("Lesson(s) created");
       onCreated?.();
       handleReset();
     } catch (error) {
-      toast.error("Error creating lesson: " + error.message);
+      toast.error("Error creating lesson(s): " + error.message);
     }
   };
 
@@ -400,6 +331,12 @@ const LessonForm = ({ initialValues, onCreated, onUpdated, edit }) => {
       setNotes(initialValues.notes);
     }
   }, [initialValues.notes]);
+
+  useEffect(() => {
+    if (initialValues.type) {
+      setType(initialValues.type);
+    }
+  }, [initialValues.type]);
 
   return (
     <Stack spacing={3}>

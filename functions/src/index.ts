@@ -2,15 +2,15 @@ import * as admin from "firebase-admin";
 import {logger} from "firebase-functions";
 import {onSchedule} from "firebase-functions/v2/scheduler";
 import {onDocumentWritten} from "firebase-functions/v2/firestore";
-import {BigBatch} from "@qualdesk/firestore-big-batch";
+import {onCall} from "firebase-functions/https";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
-import isSameOrAfter from "dayjs/plugin/isSameOrAfter";
+import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
 
 admin.initializeApp();
 const db = admin.firestore();
-dayjs.extend(isSameOrAfter);
+dayjs.extend(isSameOrBefore);
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
@@ -144,134 +144,6 @@ async function evaluateTutorNotifications(tutorId: string, tutor: Tutor) {
   }
 }
 
-async function generateLessonsForTemplate(
-  templateId: string,
-  template: any,
-  weeksAhead = 26,
-  force = false
-) {
-  const batch = new BigBatch({firestore: db});
-
-  const frequencyWeeks = template.frequency === "weekly" ? 1 : 2;
-  let current = dayjs(template.startDate).startOf("day");
-
-  const hardEnd = template.endDate ?
-    dayjs(template.endDate).endOf("day") :
-    dayjs().add(weeksAhead, "week").startOf("day");
-
-  while (current.isBefore(hardEnd)) {
-    if (current.isSameOrAfter(dayjs().startOf("day"))) {
-      const lessonId = `${templateId}_${current.format("YYYYMMDD")}`;
-      const lessonRef = db.collection("lessons").doc(lessonId);
-
-      const startDateTime = dayjs
-        .tz(`${current.format("YYYY-MM-DD")}T${template.startTime}`, tz)
-        .toISOString();
-
-      const endDateTime = dayjs
-        .tz(`${current.format("YYYY-MM-DD")}T${template.endTime}`, tz)
-        .toISOString();
-
-      const {startDate, startTime, endTime, endDate, ...templateData} =
-        template;
-
-      const lessonData = {
-        ...templateData,
-        templateId,
-        startDateTime,
-        endDateTime,
-        reports: template.studentIds.map((id: string, i: number) => ({
-          studentId: id,
-          studentName: template.studentNames[i],
-          attendance: null,
-          report: "",
-        })),
-        isException: false,
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-      };
-
-      batch.set(lessonRef, lessonData, {merge: force});
-    }
-    current = current.add(frequencyWeeks, "week");
-  }
-
-  await batch.commit();
-}
-
-export const generateLessons = onSchedule(
-  {
-    schedule: "every monday 03:00",
-    timeZone: "Australia/Sydney",
-  },
-  async () => {
-    logger.info("Running weekly lesson generation...");
-    const snap = await db.collection("lessonTemplates").get();
-    for (const doc of snap.docs) {
-      await generateLessonsForTemplate(doc.id, doc.data(), 26, false);
-    }
-
-    logger.info("Finished weekly lesson generation.");
-  }
-);
-
-export const onLessonTemplateWrite = onDocumentWritten(
-  {
-    document: "lessonTemplates/{templateId}",
-    region: "australia-southeast1",
-  },
-  async (event) => {
-    const templateId = event.params.templateId as string;
-    const after = event.data?.after?.data();
-
-    if (!after) {
-      const snap = await db
-        .collection("lessons")
-        .where("templateId", "==", templateId)
-        .where("startDateTime", ">=", dayjs().toISOString())
-        .where("isException", "==", false)
-        .get();
-
-      if (!snap.empty) {
-        const batch = new BigBatch({firestore: db});
-        snap.docs.forEach((doc) => batch.delete(doc.ref));
-        await batch.commit();
-        logger.info(
-          `Deleted future lessons for removed template ${templateId}`
-        );
-      }
-      return;
-    }
-
-    const futureLessonsSnap = await db
-      .collection("lessons")
-      .where("templateId", "==", templateId)
-      .where("startDateTime", ">=", dayjs().toISOString())
-      .where("isException", "==", false)
-      .get();
-
-    if (!futureLessonsSnap.empty) {
-      const batch = new BigBatch({firestore: db});
-      futureLessonsSnap.docs.forEach((doc) => batch.delete(doc.ref));
-      await batch.commit();
-      logger.info(
-        `Deleted ${futureLessonsSnap.size} 
-        future lessons for template ${templateId}`
-      );
-    }
-
-    const {endDate, ...templateData} = after;
-
-    await generateLessonsForTemplate(
-      templateId,
-      {...templateData, endDate},
-      26,
-      true
-    );
-    logger.info(`Generated lessons for template ${templateId}`);
-  }
-);
-
 export const generateTutorNotifications = onSchedule(
   {
     schedule: "every 24 hours",
@@ -356,5 +228,112 @@ export const generateWeeklyStats = onSchedule(
       });
 
     logger.info("Saved stats snapshot:", counts);
+  }
+);
+
+export const createRepeatingLessons = onCall(
+  {
+    region: "australia-southeast1",
+    timeoutSeconds: 60,
+  },
+  async (request) => {
+    const data = request.data;
+    if (!data || !data.repeatingId || !data.startDateTime || !data.frequency) {
+      throw new Error(
+        "Missing required fields (repeatingId, startDateTime, frequency)"
+      );
+    }
+
+    const {
+      repeatingId,
+      startDateTime,
+      endDateTime,
+      frequency,
+      ...baseLessonData
+    } = data;
+
+    const start = dayjs(startDateTime).tz(tz);
+    const end = dayjs(endDateTime).tz(tz);
+    const endOfNextYear = dayjs().tz(tz).add(1, "year").endOf("year");
+    const lessonsToCreate: any[] = [];
+    const intervalDays = frequency === "weekly" ? 7 : 14;
+    let nextStart = start;
+    let nextEnd = end;
+
+    while (nextStart.isSameOrBefore(endOfNextYear)) {
+      lessonsToCreate.push({
+        ...baseLessonData,
+        startDateTime: nextStart.toISOString(),
+        endDateTime: nextEnd.toISOString(),
+        repeatingId,
+        frequency,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+
+      nextStart = nextStart.add(intervalDays, "day");
+      nextEnd = nextEnd.add(intervalDays, "day");
+    }
+
+    const batch = db.batch();
+    const lessonsCol = db.collection("lessons");
+
+    for (const lesson of lessonsToCreate) {
+      const docRef = lessonsCol.doc();
+      batch.set(docRef, lesson);
+    }
+
+    await batch.commit();
+
+    return {
+      success: true,
+      created: lessonsToCreate.length,
+    };
+  }
+);
+
+export const updateRepeatingLessons = onCall(
+  {
+    region: "australia-southeast1",
+    timeoutSeconds: 60,
+  },
+  async (request) => {
+    const {repeatingId, updatedFields, currentLessonStart} = request.data || {};
+    if (!repeatingId || !updatedFields) {
+      throw new Error("Missing required fields (repeatingId, updatedFields)");
+    }
+
+    try {
+      const lessonsRef = db.collection("lessons");
+      let query = lessonsRef.where("repeatingId", "==", repeatingId);
+      if (currentLessonStart) {
+        const startDate = dayjs(currentLessonStart).tz(tz).toDate();
+        query = query.where("startDateTime", ">=", startDate.toISOString());
+      }
+
+      const snapshot = await query.get();
+      if (snapshot.empty) {
+        return {success: false, message: "No lessons found with this ID."};
+      }
+
+      const batch = db.batch();
+      let opCount = 0;
+      const MAX_BATCH_SIZE = 500;
+      for (const doc of snapshot.docs) {
+        batch.update(doc.ref, {
+          ...updatedFields,
+        });
+        opCount++;
+
+        if (opCount === MAX_BATCH_SIZE) {
+          await batch.commit();
+          opCount = 0;
+        }
+      }
+
+      if (opCount > 0) await batch.commit();
+      return {success: true, updated: snapshot.size};
+    } catch (error: any) {
+      throw new Error("Error updating repeating lessons:" + error.message);
+    }
   }
 );

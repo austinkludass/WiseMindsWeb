@@ -278,7 +278,7 @@ const EventDialog = ({
                 notes: event.notes ?? "",
                 startTime: dayjs(event.start),
                 endTime: dayjs(event.end),
-                templateId: event.templateId,
+                repeatingId: event.repeatingId,
                 startDateTime: event.startDateTime,
                 id: event.id,
               }}
