@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   Box,
   Button,
@@ -25,10 +26,9 @@ import {
   RepeatOutlined,
   ArrowBack,
 } from "@mui/icons-material";
-import { useState } from "react";
-import LessonForm from "../../Lesson/LessonForm";
 import { toast } from "react-toastify";
 import ConfirmEventDialog from "./ConfirmEventDialog";
+import LessonForm from "../../Lesson/LessonForm";
 
 const StyledIconBox = ({ children }) => (
   <Box
@@ -76,18 +76,7 @@ const EventDialog = ({
   };
 
   const handleDelete = async (applyToFuture = false) => {
-    try {
-      if (applyToFuture) {
-        // Delete this and future lessons
-      } else {
-        // Delete only this lesson
-      }
-
-      toast.success("Lesson(s) deleted");
-      onDelete?.();
-    } catch (error) {
-      toast.error("Error deleting lesson(s): " + error.message);
-    }
+    onDelete?.(event, applyToFuture);
   };
 
   const updateReportField = (studentId, field, value) => {
@@ -280,6 +269,7 @@ const EventDialog = ({
                 endTime: dayjs(event.end),
                 repeatingId: event.repeatingId,
                 startDateTime: event.startDateTime,
+                endDateTime: event.endDateTime,
                 id: event.id,
               }}
               edit

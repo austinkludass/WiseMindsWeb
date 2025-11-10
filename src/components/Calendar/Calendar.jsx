@@ -1,10 +1,11 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
-import { collection, onSnapshot, query, where } from "firebase/firestore";
-import { Calendar, dayjsLocalizer } from "react-big-calendar";
-import { ToastContainer } from "react-toastify";
+import { collection, deleteDoc, doc, onSnapshot, query, where } from "firebase/firestore";
 import { Box, IconButton, Collapse, Badge } from "@mui/material";
+import { getFunctions, httpsCallable } from "firebase/functions";
+import { Calendar, dayjsLocalizer } from "react-big-calendar";
+import { ToastContainer, toast } from "react-toastify";
 import { FilterList } from "@mui/icons-material";
-import { db } from "../../data/firebase";
+import { app, db } from "../../data/firebase";
 import NewEventDialog from "./CustomComponents/NewEventDialog";
 import updateLocale from "dayjs/plugin/updateLocale";
 import EventDialog from "./CustomComponents/EventDialog";
@@ -23,6 +24,7 @@ dayjs.updateLocale("en", {
 });
 
 const localizer = dayjsLocalizer(dayjs);
+const functions = getFunctions(app, "australia-southeast1");
 
 const BigCalendar = () => {
   const [selectedEvent, setSelectedEvent] = useState(null);
@@ -118,6 +120,7 @@ const BigCalendar = () => {
           onView={handleViewEvent}
           onEdit={handleEditEvent}
           onReport={handleReportStudent}
+          onDelete={handleDeleteEvent}
         />
       ),
       week: {
@@ -201,6 +204,25 @@ const BigCalendar = () => {
     setReportStudent(report);
   };
 
+  const handleDeleteEvent = async (event, applyToFuture = false) => {
+    try {
+      if (applyToFuture) {
+        const deleteRepeatingLessons = httpsCallable(functions, "deleteRepeatingLessons");
+        await deleteRepeatingLessons({
+          repeatingId: event.repeatingId,
+          currentLessonStart: event.startDateTime,
+        });
+      } else {
+        const lessonRef = doc(db, "lessons", event.id);
+        await deleteDoc(lessonRef);
+      }
+
+      toast.success("Lesson(s) deleted");
+    } catch (error) {
+      toast.error("Error deleting lesson(s): " + error.message);
+    }
+  };
+
   return (
     <Box>
       <Box display="flex" justifyContent="flex-end" mb={1}>
@@ -252,7 +274,8 @@ const BigCalendar = () => {
             setSelectedEvent(null);
             setReportStudent(null);
           }}
-          onDelete={() => {
+          onDelete={(event, applyToFuture) => {
+            handleDeleteEvent(event, applyToFuture);
             setSelectedEvent(null);
             setReportStudent(null);
           }}

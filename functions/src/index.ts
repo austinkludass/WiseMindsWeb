@@ -297,7 +297,8 @@ export const updateRepeatingLessons = onCall(
     timeoutSeconds: 60,
   },
   async (request) => {
-    const {repeatingId, updatedFields, currentLessonStart} = request.data || {};
+    const {repeatingId, updatedFields, currentLessonStart,
+      startShiftMs, endShiftMs} = request.data || {};
     if (!repeatingId || !updatedFields) {
       throw new Error("Missing required fields (repeatingId, updatedFields)");
     }
@@ -312,19 +313,29 @@ export const updateRepeatingLessons = onCall(
 
       const snapshot = await query.get();
       if (snapshot.empty) {
-        return {success: false, message: "No lessons found with this ID."};
+        return {success: false, message: "No lessons found."};
       }
 
       const batch = db.batch();
       let opCount = 0;
       const MAX_BATCH_SIZE = 500;
+
       for (const doc of snapshot.docs) {
+        const data = doc.data();
+        const newStart = new Date(
+          new Date(data.startDateTime).getTime() + startShiftMs
+        );
+        const newEnd = new Date(
+          new Date(data.endDateTime).getTime() + endShiftMs
+        );
+
         batch.update(doc.ref, {
           ...updatedFields,
+          startDateTime: newStart.toISOString(),
+          endDateTime: newEnd.toISOString(),
         });
-        opCount++;
 
-        if (opCount === MAX_BATCH_SIZE) {
+        if (++opCount === MAX_BATCH_SIZE) {
           await batch.commit();
           opCount = 0;
         }
@@ -334,6 +345,55 @@ export const updateRepeatingLessons = onCall(
       return {success: true, updated: snapshot.size};
     } catch (error: any) {
       throw new Error("Error updating repeating lessons:" + error.message);
+    }
+  }
+);
+
+export const deleteRepeatingLessons = onCall(
+  {
+    region: "australia-southeast1",
+    timeoutSeconds: 60,
+  },
+  async (request) => {
+    const {repeatingId, currentLessonStart} = request.data || {};
+
+    if (!repeatingId || !currentLessonStart) {
+      throw new Error(
+        "Missing required fields (repeatingId, currentLessonStart)"
+      );
+    }
+
+    try {
+      const lessonsRef = db.collection("lessons");
+      const startDate = dayjs(currentLessonStart).tz(tz).toISOString();
+
+      const snapshot = await lessonsRef
+        .where("repeatingId", "==", repeatingId)
+        .where("startDateTime", ">=", startDate)
+        .get();
+
+      if (snapshot.empty) {
+        return {success: false, message: "No lessons found."};
+      }
+
+      let opCount = 0;
+      const MAX_BATCH_SIZE = 500;
+      let batch = db.batch();
+
+      for (const doc of snapshot.docs) {
+        batch.delete(doc.ref);
+
+        if (++opCount === MAX_BATCH_SIZE) {
+          await batch.commit();
+          batch = db.batch();
+          opCount = 0;
+        }
+      }
+
+      if (opCount > 0) await batch.commit();
+      return {success: true, deleted: snapshot.size};
+    } catch (error: any) {
+      throw new Error("Error deleting repeating lessons:" + error.message);
     }
   }
 );
