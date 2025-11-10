@@ -16,6 +16,7 @@ import {
 import { collection, addDoc, getDocs, serverTimestamp, doc, updateDoc } from "firebase/firestore";
 import { getFunctions, httpsCallable } from "firebase/functions";
 import { DatePicker, TimePicker } from "@mui/x-date-pickers";
+import { LoadingButton } from "@mui/lab";
 import { toast } from "react-toastify";
 import { db, app } from "../../data/firebase";
 import ConfirmEventDialog from "../Calendar/CustomComponents/ConfirmEventDialog";
@@ -43,6 +44,7 @@ const LessonForm = ({ initialValues, onCreated, onUpdated, edit }) => {
   const [notes, setNotes] = useState("");
   const [errors, setErrors] = useState({});
   const [editConfirmOpen, setEditConfirmOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const validate = () => {
     const newErrors = {};
@@ -189,6 +191,7 @@ const LessonForm = ({ initialValues, onCreated, onUpdated, edit }) => {
   };
 
   const handleEdit = async (applyToFuture = false) => {
+    setLoading(true);
     try {
       const tutorObj = tutorsList.find((t) => t.id === tutor);
       const studentObjs = studentOptions.filter((s) => selectedStudents.includes(s.id));
@@ -244,6 +247,8 @@ const LessonForm = ({ initialValues, onCreated, onUpdated, edit }) => {
       onUpdated?.();
     } catch (error) {
       toast.error("Error updating lesson(s): " + error.message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -283,6 +288,7 @@ const LessonForm = ({ initialValues, onCreated, onUpdated, edit }) => {
       createdAt: serverTimestamp(),
     };
 
+    setLoading(true);
     try {
       if (repeat) {
         const createRepeatingLessons = httpsCallable(functions, "createRepeatingLessons");
@@ -296,6 +302,8 @@ const LessonForm = ({ initialValues, onCreated, onUpdated, edit }) => {
       handleReset();
     } catch (error) {
       toast.error("Error creating lesson(s): " + error.message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -546,10 +554,15 @@ const LessonForm = ({ initialValues, onCreated, onUpdated, edit }) => {
       />
 
       <Stack direction="row" spacing={2}>
-        <Button variant="contained" onClick={handleSubmit}>
+        <LoadingButton
+          variant="contained"
+          onClick={handleSubmit}
+          loading={loading}
+          disabled={loading}
+        >
           {edit ? "Edit Lesson" : "Create Lesson"}
-        </Button>
-        <Button variant="outlined" onClick={handleReset}>
+        </LoadingButton>
+        <Button variant="outlined" onClick={handleReset} disabled={loading}>
           Reset
         </Button>
       </Stack>
