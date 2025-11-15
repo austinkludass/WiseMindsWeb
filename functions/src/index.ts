@@ -3,6 +3,7 @@ import {logger} from "firebase-functions";
 import {onSchedule} from "firebase-functions/v2/scheduler";
 import {onDocumentWritten} from "firebase-functions/v2/firestore";
 import {onCall} from "firebase-functions/https";
+import {onRequest} from "firebase-functions/https";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
@@ -142,6 +143,30 @@ async function evaluateTutorNotifications(tutorId: string, tutor: Tutor) {
       "missing_emergency_contact_fields"
     );
   }
+}
+
+function requireApiKey(req: any, res: any): boolean {
+  const key = req.headers["x-api-key"];
+  const envKey = process.env.API_KEY ||
+  (global as any).functions?.config?.api?.key;
+
+  if (!key || key !== envKey) {
+    res.status(401).json({error: "Unauthorized"});
+    return false;
+  }
+  return true;
+}
+
+async function sendCollection(
+  collectionName: string,
+  res: any
+) {
+  const snap = await db.collection(collectionName).get();
+  const arr = snap.docs.map((d) => ({
+    id: d.id,
+    ...d.data(),
+  }));
+  return res.json(arr);
 }
 
 export const generateTutorNotifications = onSchedule(
@@ -394,6 +419,42 @@ export const deleteRepeatingLessons = onCall(
       return {success: true, deleted: snapshot.size};
     } catch (error: any) {
       throw new Error("Error deleting repeating lessons:" + error.message);
+    }
+  }
+);
+
+export const api = onRequest(
+  {
+    region: "australia-southeast1",
+    cors: true,
+  },
+  async (req, res) => {
+    if (!requireApiKey(req, res)) return;
+
+    const path = req.path.replace(/^\/api/, "").toLowerCase();
+
+    try {
+      switch (path) {
+      case "/students":
+        return sendCollection("students", res);
+
+      case "/subjectgroups":
+        return sendCollection("subjectGroups", res);
+
+      case "/subjects":
+        return sendCollection("subjects", res);
+
+      case "/tutors":
+        return sendCollection("tutors", res);
+
+      case "/locations":
+        return sendCollection("locations", res);
+
+      default:
+        res.status(404).json({error: "Unknown endpoint"});
+      }
+    } catch (error: any) {
+      res.status(500).json({error: error.message});
     }
   }
 );
