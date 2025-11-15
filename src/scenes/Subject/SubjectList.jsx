@@ -841,7 +841,7 @@ const SubjectList = () => {
             <Typography>All Subjects are grouped.</Typography>
           ) : (
             <List
-              height={400}
+              height={600}
               itemCount={ungroupedSubjects.length}
               itemSize={50}
               width="100%"

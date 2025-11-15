@@ -198,6 +198,12 @@ const Sidebar = () => {
                   selected={selected}
                   setSelected={setSelected}
                 />
+                <Item
+                  title="Additional Hours"
+                  to="/additionalhours"
+                  selected={selected}
+                  setSelected={setSelected}
+                />
               </SubMenu>
               <SubMenu
                 title="Teaching"

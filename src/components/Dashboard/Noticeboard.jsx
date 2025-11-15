@@ -46,7 +46,7 @@ const Noticeboard = () => {
   useEffect(() => {
     const q = query(
       collection(db, "chatMessages"),
-      orderBy("timestamp", "asc"),
+      orderBy("timestamp", "desc"),
       limit(20)
     );
 
@@ -55,7 +55,7 @@ const Noticeboard = () => {
         id: doc.id,
         ...doc.data(),
       }));
-      setMessages(msgs);
+      setMessages([...msgs].reverse());
     });
 
     return () => unsubscribe();
