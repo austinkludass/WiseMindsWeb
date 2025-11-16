@@ -147,8 +147,7 @@ async function evaluateTutorNotifications(tutorId: string, tutor: Tutor) {
 
 function requireApiKey(req: any, res: any): boolean {
   const key = req.headers["x-api-key"];
-  const envKey = process.env.API_KEY ||
-  (global as any).functions?.config?.api?.key;
+  const envKey = process.env.API_KEY;
 
   if (!key || key !== envKey) {
     res.status(401).json({error: "Unauthorized"});
