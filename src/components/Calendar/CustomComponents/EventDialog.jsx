@@ -26,6 +26,7 @@ import {
   RepeatOutlined,
   ArrowBack,
 } from "@mui/icons-material";
+import { TypeColors } from "../../../utils/lessonTypeColors";
 import { toast } from "react-toastify";
 import ConfirmEventDialog from "./ConfirmEventDialog";
 import LessonForm from "../../Lesson/LessonForm";
@@ -156,11 +157,17 @@ const EventDialog = ({
                     </Typography>
                   </Box>
                 </Box>
-                {event.frequency && (
-                  <Tooltip title={`Repeats ${event.frequency ?? ""}`}>
-                    <RepeatOutlined />
-                  </Tooltip>
-                )}
+                <Box display="flex" alignItems="center" gap={2}>
+                  <Chip
+                    label={event.type}
+                    color={TypeColors[event.type] || "success"}
+                  />
+                  {event.frequency && (
+                    <Tooltip title={`Repeats ${event.frequency ?? ""}`}>
+                      <RepeatOutlined />
+                    </Tooltip>
+                  )}
+                </Box>
               </Box>
 
               <Divider />
@@ -201,7 +208,13 @@ const EventDialog = ({
                           setReportStudent(report);
                           setMode("report");
                         }}
-                        color={report.status ? report.status === "cancelled" ? "error" : "success" : "default"}
+                        color={
+                          report.status
+                            ? report.status === "cancelled"
+                              ? "error"
+                              : "success"
+                            : "default"
+                        }
                       />
                     ))}
                   </Stack>

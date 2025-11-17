@@ -18,6 +18,7 @@ import { LocalizationProvider } from "@mui/x-date-pickers";
 import { ToastContainer } from "react-toastify";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { FilterList } from "@mui/icons-material";
+import { TypeColors } from "../../utils/lessonTypeColors";
 import { DataGrid } from "@mui/x-data-grid";
 import { db } from "../../data/firebase";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
@@ -38,14 +39,6 @@ const initialState = {
   notes: "",
   startTime: dayjs().hour(12).minute(0),
   endTime: dayjs().hour(13).minute(0),
-};
-
-const typeColors = {
-  Normal: "success",
-  Trial: "primary",
-  Postpone: "warning",
-  Unconfirmed: "info",
-  Cancelled: "error",
 };
 
 const LessonList = () => {
@@ -204,7 +197,7 @@ const LessonList = () => {
       flex: 1,
       renderCell: (params) => {
         const type = params.value;
-        const color = typeColors[type] || "success";
+        const color = TypeColors[type] || "success";
         return <Chip label={type} color={color} size="small" />;
       },
     },
