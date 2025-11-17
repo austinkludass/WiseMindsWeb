@@ -201,7 +201,7 @@ const EventDialog = ({
                           setReportStudent(report);
                           setMode("report");
                         }}
-                        color={report.attendance ? "success" : "default"}
+                        color={report.status ? report.status === "cancelled" ? "error" : "success" : "default"}
                       />
                     ))}
                   </Stack>
@@ -279,19 +279,15 @@ const EventDialog = ({
 
           {mode === "report" && reportStudent && (
             <Box>
-              <Typography variant="h6">
-                Report for {reportStudent.studentName}
-              </Typography>
-
               <TextField
                 fullWidth
                 select
-                label="Attendance"
-                value={reportStudent.attendance || ""}
+                label="Status"
+                value={reportStudent.status || ""}
                 onChange={(e) =>
                   setReportStudent({
                     ...reportStudent,
-                    attendance: e.target.value,
+                    status: e.target.value,
                   })
                 }
                 sx={{ mt: 2 }}
@@ -299,6 +295,7 @@ const EventDialog = ({
                 <MenuItem value="present">Present</MenuItem>
                 <MenuItem value="partial">Partial</MenuItem>
                 <MenuItem value="noShow">No Show</MenuItem>
+                <MenuItem value="cancelled">Cancelled</MenuItem>
               </TextField>
 
               <TextField

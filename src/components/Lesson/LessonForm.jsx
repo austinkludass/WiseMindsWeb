@@ -23,7 +23,6 @@ import {
 } from "firebase/firestore";
 import { getFunctions, httpsCallable } from "firebase/functions";
 import { DatePicker, TimePicker } from "@mui/x-date-pickers";
-import { LoadingButton } from "@mui/lab";
 import { toast } from "react-toastify";
 import { db, app } from "../../data/firebase";
 import ConfirmEventDialog from "../Calendar/CustomComponents/ConfirmEventDialog";
@@ -225,7 +224,7 @@ const LessonForm = ({ initialValues, onCreated, onUpdated, edit }) => {
         reports: studentObjs.map((s) => ({
           studentId: s.id,
           studentName: s.name,
-          attendance: null,
+          status: null,
           topic: "",
           effort: 5,
           quality: 5,
@@ -294,7 +293,7 @@ const LessonForm = ({ initialValues, onCreated, onUpdated, edit }) => {
       reports: studentObjs.map((s) => ({
         studentId: s.id,
         studentName: s.name,
-        attendance: null,
+        status: null,
         topic: "",
         effort: 5,
         quality: 5,
@@ -577,14 +576,14 @@ const LessonForm = ({ initialValues, onCreated, onUpdated, edit }) => {
       />
 
       <Stack direction="row" spacing={2}>
-        <LoadingButton
+        <Button
           variant="contained"
           onClick={handleSubmit}
           loading={loading}
           disabled={loading}
         >
           {edit ? "Edit Lesson" : "Create Lesson"}
-        </LoadingButton>
+        </Button>
         <Button variant="outlined" onClick={handleReset} disabled={loading}>
           Reset
         </Button>
