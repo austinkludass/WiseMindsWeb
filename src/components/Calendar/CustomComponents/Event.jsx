@@ -3,7 +3,7 @@ import { Box, Menu, MenuItem, Typography } from "@mui/material";
 import ConfirmDialog from "../../Global/ConfirmDialog";
 
 const EventCard = React.memo(
-  ({ event, onView, onEdit, onReport, onDelete }) => {
+  ({ event, onView, onEdit, onReport, onDelete, onCancel }) => {
     const [anchorEl, setAnchorEl] = useState(null);
     const [reportAnchor, setReportAnchor] = useState(null);
     const [cancelAnchor, setCancelAnchor] = useState(null);
@@ -63,7 +63,12 @@ const EventCard = React.memo(
           role="button"
           tabIndex={0}
           height="100%"
-          sx={{ bgcolor: event.tutorColor ?? event.tutorColor, pl: 0.5, pt: 1 }}
+          sx={{
+            background:
+              event.type !== "Cancelled"
+                ? event.tutorColor ?? event.tutorColor
+                : "repeating-linear-gradient(45deg, #424242, #424242 15px, #990000 20px)",
+          }}
         >
           <Typography variant="subtitle2" noWrap>
             {event.subjectGroupName}
@@ -134,15 +139,15 @@ const EventCard = React.memo(
               anchorOrigin={{ vertical: "top", horizontal: "right" }}
               transformOrigin={{ vertical: "top", horizontal: "left" }}
             >
-              {event.studentNames?.map((student) => (
+              {event.reports?.map((report) => (
                 <MenuItem
-                  key={student}
+                  key={report.studentId}
                   onClick={() => {
-                    console.log("Cancel:", student, event);
+                    onCancel?.(event, report);
                     handleCloseMenu();
                   }}
                 >
-                  {student}
+                  {report.studentName}
                 </MenuItem>
               ))}
             </Menu>

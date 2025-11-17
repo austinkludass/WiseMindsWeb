@@ -129,6 +129,7 @@ const BigCalendar = () => {
           onEdit={handleEditEvent}
           onReport={handleReportStudent}
           onDelete={handleDeleteEvent}
+          onCancel={handleCancelEvent}
         />
       ),
       week: {
@@ -244,6 +245,27 @@ const BigCalendar = () => {
       toast.success("Report saved");
     } catch (error) {
       toast.error("Error saving report: " + error.message);
+    }
+  };
+
+  const handleCancelEvent = async (event, report) => {
+    try {
+      if (report.status === "cancelled") {
+        toast.warning("Student already cancelled");
+        return;
+      }
+      const lessonRef = doc(db, "lessons", event.id);
+      const updatedReports = event.reports.map((r) =>
+        r.studentId === report.studentId ? { ...r, status: "cancelled" } : r
+      );
+
+      await updateDoc(lessonRef, {
+        reports: updatedReports,
+      });
+
+      toast.success("Student status set to cancelled");
+    } catch (error) {
+      toast.error("Error cancelling student: " + error.message);
     }
   };
 
