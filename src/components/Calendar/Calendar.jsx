@@ -1,5 +1,13 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
-import { collection, deleteDoc, doc, onSnapshot, query, where } from "firebase/firestore";
+import {
+  collection,
+  deleteDoc,
+  doc,
+  onSnapshot,
+  query,
+  updateDoc,
+  where,
+} from "firebase/firestore";
 import { Box, IconButton, Collapse, Badge } from "@mui/material";
 import { getFunctions, httpsCallable } from "firebase/functions";
 import { Calendar, dayjsLocalizer } from "react-big-calendar";
@@ -207,7 +215,10 @@ const BigCalendar = () => {
   const handleDeleteEvent = async (event, applyToFuture = false) => {
     try {
       if (applyToFuture) {
-        const deleteRepeatingLessons = httpsCallable(functions, "deleteRepeatingLessons");
+        const deleteRepeatingLessons = httpsCallable(
+          functions,
+          "deleteRepeatingLessons"
+        );
         await deleteRepeatingLessons({
           repeatingId: event.repeatingId,
           currentLessonStart: event.startDateTime,
@@ -220,6 +231,19 @@ const BigCalendar = () => {
       toast.success("Lesson(s) deleted");
     } catch (error) {
       toast.error("Error deleting lesson(s): " + error.message);
+    }
+  };
+
+  const handleReportEditEvent = async (id, updatedReports) => {
+    try {
+      const lessonRef = doc(db, "lessons", id);
+      await updateDoc(lessonRef, {
+        reports: updatedReports,
+      });
+
+      toast.success("Report saved");
+    } catch (error) {
+      toast.error("Error saving report: " + error.message);
     }
   };
 
@@ -270,6 +294,9 @@ const BigCalendar = () => {
           event={selectedEvent}
           mode={dialogMode}
           reportStudent={reportStudent}
+          onReportEdit={(id, reports) => {
+            handleReportEditEvent(id, reports);
+          }}
           onClose={() => {
             setSelectedEvent(null);
             setReportStudent(null);

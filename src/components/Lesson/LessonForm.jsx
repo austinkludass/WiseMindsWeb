@@ -13,7 +13,14 @@ import {
   Radio,
   Chip,
 } from "@mui/material";
-import { collection, addDoc, getDocs, serverTimestamp, doc, updateDoc } from "firebase/firestore";
+import {
+  collection,
+  addDoc,
+  getDocs,
+  serverTimestamp,
+  doc,
+  updateDoc,
+} from "firebase/firestore";
 import { getFunctions, httpsCallable } from "firebase/functions";
 import { DatePicker, TimePicker } from "@mui/x-date-pickers";
 import { LoadingButton } from "@mui/lab";
@@ -219,18 +226,27 @@ const LessonForm = ({ initialValues, onCreated, onUpdated, edit }) => {
           studentId: s.id,
           studentName: s.name,
           attendance: null,
-          report: "",
+          topic: "",
+          effort: 5,
+          quality: 5,
+          satisfaction: 5,
+          notes: "",
         })),
         type,
         notes,
-        ...(applyToFuture ? {} : {
-          startDateTime: updatedStart.toISOString(),
-          endDateTime: updatedEnd.toISOString(),
-        }),
+        ...(applyToFuture
+          ? {}
+          : {
+              startDateTime: updatedStart.toISOString(),
+              endDateTime: updatedEnd.toISOString(),
+            }),
       };
 
       if (applyToFuture) {
-        const updateRepeatingLessons = httpsCallable(functions, "updateRepeatingLessons");
+        const updateRepeatingLessons = httpsCallable(
+          functions,
+          "updateRepeatingLessons"
+        );
         await updateRepeatingLessons({
           repeatingId: initialValues.repeatingId,
           updatedFields,
@@ -279,7 +295,11 @@ const LessonForm = ({ initialValues, onCreated, onUpdated, edit }) => {
         studentId: s.id,
         studentName: s.name,
         attendance: null,
-        report: "",
+        topic: "",
+        effort: 5,
+        quality: 5,
+        satisfaction: 5,
+        notes: "",
       })),
       frequency: repeat ? frequency : null,
       repeatingId: repeat ? doc(collection(db, "repeatingLessons")).id : null,
@@ -291,7 +311,10 @@ const LessonForm = ({ initialValues, onCreated, onUpdated, edit }) => {
     setLoading(true);
     try {
       if (repeat) {
-        const createRepeatingLessons = httpsCallable(functions, "createRepeatingLessons");
+        const createRepeatingLessons = httpsCallable(
+          functions,
+          "createRepeatingLessons"
+        );
         await createRepeatingLessons(lessonData);
       } else {
         await addDoc(collection(db, "lessons"), lessonData);

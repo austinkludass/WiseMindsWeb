@@ -29,6 +29,7 @@ import {
 import { toast } from "react-toastify";
 import ConfirmEventDialog from "./ConfirmEventDialog";
 import LessonForm from "../../Lesson/LessonForm";
+import CustomRating from "../../Global/Rating";
 
 const StyledIconBox = ({ children }) => (
   <Box
@@ -52,6 +53,7 @@ const EventDialog = ({
   onDelete,
   mode: initialMode = "view",
   reportStudent: initialReportStudent = null,
+  onReportEdit,
 }) => {
   const [mode, setMode] = useState(initialMode);
   const [reportStudent, setReportStudent] = useState(initialReportStudent);
@@ -79,18 +81,14 @@ const EventDialog = ({
     onDelete?.(event, applyToFuture);
   };
 
-  const updateReportField = (studentId, field, value) => {
-    setReports((prevReports) =>
-      prevReports.map((report) =>
-        report.studentId === studentId ? { ...report, [field]: value } : report
-      )
-    );
-  };
-
   const handleSaveReport = (studentId) => {
     try {
-      // Save the report for the student
-      toast.success("Report saved");
+      const updatedReports = reports.map((r) =>
+        r.studentId === studentId ? reportStudent : r
+      );
+      setReports(updatedReports);
+      onReportEdit?.(event.id, updatedReports);
+
       setMode("view");
       setReportStudent(null);
     } catch (error) {
@@ -291,31 +289,72 @@ const EventDialog = ({
                 label="Attendance"
                 value={reportStudent.attendance || ""}
                 onChange={(e) =>
-                  updateReportField(
-                    reportStudent.studentId,
-                    "attendance",
-                    e.target.value
-                  )
+                  setReportStudent({
+                    ...reportStudent,
+                    attendance: e.target.value,
+                  })
                 }
                 sx={{ mt: 2 }}
               >
-                <MenuItem value="Present">Present</MenuItem>
-                <MenuItem value="Absent">Absent</MenuItem>
-                <MenuItem value="Late">Late</MenuItem>
+                <MenuItem value="present">Present</MenuItem>
+                <MenuItem value="partial">Partial</MenuItem>
+                <MenuItem value="noShow">No Show</MenuItem>
               </TextField>
 
               <TextField
                 fullWidth
-                multiline
-                minRows={4}
-                label="Report Notes"
-                value={reportStudent.report || ""}
+                label="Topic"
+                value={reportStudent.topic || ""}
                 onChange={(e) =>
-                  updateReportField(
-                    reportStudent.studentId,
-                    "report",
-                    e.target.value
-                  )
+                  setReportStudent({
+                    ...reportStudent,
+                    topic: e.target.value,
+                  })
+                }
+                sx={{ mt: 2 }}
+              />
+
+              <Typography variant="h6" sx={{ mt: 2 }}>
+                Effort
+              </Typography>
+              <CustomRating
+                name="effort-er"
+                value={reportStudent.effort}
+                onChange={(value) =>
+                  setReportStudent({ ...reportStudent, effort: value })
+                }
+              />
+
+              <Typography variant="h6" sx={{ mt: 2 }}>
+                Quality
+              </Typography>
+              <CustomRating
+                name="quality-rating"
+                value={reportStudent.quality}
+                onChange={(value) =>
+                  setReportStudent({ ...reportStudent, quality: value })
+                }
+              />
+
+              <Typography variant="h6" sx={{ mt: 2 }}>
+                Satisfaction
+              </Typography>
+              <CustomRating
+                name="satisfaction-rating"
+                value={reportStudent.satisfaction}
+                onChange={(value) =>
+                  setReportStudent({ ...reportStudent, satisfaction: value })
+                }
+              />
+
+              <TextField
+                fullWidth
+                multiline
+                minRows={3}
+                label="Notes"
+                value={reportStudent.notes || ""}
+                onChange={(e) =>
+                  setReportStudent({ ...reportStudent, notes: e.target.value })
                 }
                 sx={{ mt: 2 }}
               />

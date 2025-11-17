@@ -47,7 +47,7 @@ const Noticeboard = () => {
     const q = query(
       collection(db, "chatMessages"),
       orderBy("timestamp", "desc"),
-      limit(20)
+      limit(100)
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
