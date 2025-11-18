@@ -88,11 +88,11 @@ function isBlank(v: any) {
   return false;
 }
 
-function daysUntil(ts?: admin.firestore.Timestamp | null): number | null {
+function daysUntil(ts?: any): number | null {
   if (!ts) return null;
-  const now = dayjs();
-  const d = dayjs(ts.toDate());
-  return d.diff(now, "day");
+  const d = dayjs(ts);
+  if (!d.isValid()) return null;
+  return d.diff(dayjs(), "day");
 }
 
 async function evaluateTutorNotifications(tutorId: string, tutor: Tutor) {
@@ -208,7 +208,8 @@ export const onTutorWrite = onDocumentWritten(
   },
   async (event) => {
     const tutorId = event.params.tutorId as string;
-    const after = event.data?.after?.data() as Tutor | undefined;
+    const before = event.data?.before?.data() as any | undefined;
+    const after = event.data?.after?.data() as any | undefined;
 
     if (!after) {
       await Promise.all([
@@ -216,7 +217,25 @@ export const onTutorWrite = onDocumentWritten(
         deleteNotificationIfExists(tutorId, "first_aid_expiring"),
         deleteNotificationIfExists(tutorId, "missing_emergency_contact_fields"),
       ]);
+
+      try {
+        await admin.auth().setCustomUserClaims(tutorId, null);
+      } catch (error) {
+        logger.error("Error clearing custom claims: ", error);
+      }
       return;
+    }
+
+    const newRole = after.role;
+    const oldRule = before?.role;
+
+    if (newRole && newRole !== oldRule) {
+      try {
+        await admin.auth().setCustomUserClaims(tutorId, {role: newRole});
+        logger.info(`Updated custom claims for ${tutorId} to role: ${newRole}`);
+      } catch (error) {
+        logger.error("Error setting custom claims: ", error);
+      }
     }
 
     await evaluateTutorNotifications(tutorId, after);

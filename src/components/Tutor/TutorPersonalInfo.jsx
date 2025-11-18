@@ -106,18 +106,6 @@ const TutorPersonalInfo = ({ formData, setFormData, isEdit }) => {
                   ))}
                 </Select>
               </FormControl>
-              <FormControl disabled fullWidth>
-                <InputLabel id="role-select-label">Role</InputLabel>
-                <Select
-                  name="role"
-                  label="Role"
-                  labelId="role-select-label"
-                  value={formData.role}
-                  onChange={handleChange}
-                >
-                  <MenuItem value={"tutor"}>Tutor</MenuItem>
-                </Select>
-              </FormControl>
               <Box sx={{ paddingLeft: 2, paddingRight: 2 }}>
                 <Typography gutterBottom>Hours</Typography>
                 <Slider

@@ -81,7 +81,7 @@ const NewTutor = () => {
     degree: "",
     position: "",
     homeLocation: "",
-    role: "tutor",
+    role: "Tutor",
     hours: [0, 20],
   });
 
