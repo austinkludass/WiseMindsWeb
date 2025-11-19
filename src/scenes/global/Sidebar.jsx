@@ -187,6 +187,12 @@ const Sidebar = () => {
                   setSelected={setSelected}
                 />
                 <Item
+                  title="Families"
+                  to="/families"
+                  selected={selected}
+                  setSelected={setSelected}
+                />
+                <Item
                   title="Invoices"
                   to="/invoices"
                   selected={selected}

@@ -7,7 +7,6 @@ import {
   TextField,
   IconButton,
   Divider,
-  Badge,
   Chip,
   useTheme,
   Dialog,
@@ -17,7 +16,6 @@ import {
   DialogActions,
 } from "@mui/material";
 import {
-  Add as AddIcon,
   Check as CheckIcon,
   Close as CloseIcon,
   Edit as EditIcon,

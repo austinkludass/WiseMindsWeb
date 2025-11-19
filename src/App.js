@@ -14,6 +14,7 @@ import LessonList from "./scenes/Lesson/LessonList";
 import Settings from "./scenes/Settings/Settings";
 import ReportBug from "./scenes/Other/ReportBug";
 import CalendarPage from "./scenes/Lesson/CalendarPage";
+import FamilyPage from "./scenes/Student/FamilyPage";
 import { ColorModeContext, useMode } from "./theme";
 import { CssBaseline, ThemeProvider } from "@mui/material";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
@@ -42,6 +43,7 @@ function App() {
                   <Route path="/students" element={<StudentList />} />
                   <Route path="/student/:studentId" element={<StudentProfile />} />
                   <Route path="/newstudent" element={<NewStudent />} />
+                  <Route path="/families" element={<FamilyPage />} />
                   <Route path="/subjects" element={<SubjectList />} />
                   <Route path="/tutoringbays" element={<TutoringBayList />} />
                   <Route path="/lessons" element={<LessonList />} />
