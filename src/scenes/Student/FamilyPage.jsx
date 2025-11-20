@@ -118,6 +118,9 @@ const FamilyPage = () => {
                 "Family information saved with email: " + e.parentEmail
               )
             }
+            isExisting={() =>
+              toast.error("A family with the same email already exists")
+            }
           />
         </Paper>
       </Box>

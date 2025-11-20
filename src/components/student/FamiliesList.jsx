@@ -10,10 +10,11 @@ import {
 } from "@mui/material";
 import { useState } from "react";
 import { db } from "../../data/firebase";
-import { updateDoc, doc } from "firebase/firestore";
+import { updateDoc, doc, collection, where, getDocs } from "firebase/firestore";
 import StudentSelector from "../student/StudentSelector";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
+import { query } from "firebase/database";
 
 const FamiliesList = ({
   families,
@@ -22,6 +23,7 @@ const FamiliesList = ({
   students,
   refresh,
   onEdit,
+  isExisting,
 }) => {
   const [editingId, setEditingId] = useState(null);
   const [editData, setEditData] = useState(null);
@@ -43,6 +45,19 @@ const FamiliesList = ({
 
   const saveEdit = async (id) => {
     if (!editData.parentEmail.trim()) return;
+
+    const q = query(
+      collection(db, "families"),
+      where("parentEmail", "==", editData.parentEmail.trim())
+    );
+
+    const existing = await getDocs(q);
+
+    if (!existing.empty) {
+      isExisting?.();
+      return;
+    }
+
     await updateDoc(doc(db, "families", id), editData);
     setEditingId(null);
     setEditData(null);
@@ -125,15 +140,13 @@ const FamiliesList = ({
                   <Typography variant="h6">{family.parentName}</Typography>
                   <Typography>{family.parentEmail}</Typography>
                   <Typography>{family.parentPhone}</Typography>
-                  <Typography variant="body2" sx={{ mt: 1 }}>
-                    <Box
-                      sx={{ display: "flex", flexWrap: "wrap", gap: 1, mt: 1 }}
-                    >
-                      {family.students.map((s) => (
-                        <Chip key={s.id} label={s.name} />
-                      ))}
-                    </Box>
-                  </Typography>
+                  <Box
+                    sx={{ display: "flex", flexWrap: "wrap", gap: 1, mt: 1 }}
+                  >
+                    {family.students.map((s) => (
+                      <Chip key={s.id} label={s.name} />
+                    ))}
+                  </Box>
                 </Box>
 
                 <Box>
