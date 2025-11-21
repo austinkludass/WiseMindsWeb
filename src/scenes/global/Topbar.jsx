@@ -23,7 +23,9 @@ import SearchIcon from "@mui/icons-material/Search";
 const searchOptions = [
   { label: "Calendar", task: "", path: "/calendar" },
   { label: "Dashboard", task: "", path: "/home" },
+  { label: "Families", task: "", path: "/families"},
   { label: "Home", task: "", path: "/home" },
+  { label: "Invoices", task: "", path: "/invoices"},
   { label: "Lessons", task: "", path: "/lessons" },
   { label: "Locations", task: "", path: "/tutoringbays" },
   { label: "Report Bug", task: "", path: "/reportbug" },
@@ -33,6 +35,7 @@ const searchOptions = [
   { label: "Subjects", task: "Curriculums", path: "/subjects?tab=curriculums" },
   { label: "Subjects", task: "Subject Groups", path: "/subjects?tab=groups" },
   { label: "Subjects", task: "Ungrouped Subjects", path: "/subjects?tab=ungrouped" },
+  { label: "Tutoring Bays", task: "", path: "/tutoringbays"},
   { label: "Tutors", task: "", path: "/tutors" },
   { label: "Tutors", task: "Add New", path: "/newtutor" },
 ];
