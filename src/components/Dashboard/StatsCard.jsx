@@ -12,7 +12,7 @@ const StatsCard = ({ field, color }) => {
     const fetchStats = async () => {
       const q = query(
         collection(db, "stats"),
-        orderBy("timestamp", "asc"),
+        orderBy("timestamp", "desc"),
         limit(12)
       );
 
@@ -24,7 +24,7 @@ const StatsCard = ({ field, color }) => {
           value: d[field] || 0,
         };
       });
-      setData(chartData);
+      setData(chartData.reverse());
     };
 
     fetchStats();
