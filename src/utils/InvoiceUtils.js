@@ -43,3 +43,28 @@ export const getUnreportedLessonsCount = (lessons) => {
 
   return count;
 };
+
+export const getReportedCount = (lessons) => {
+  let count = 0;
+  lessons.forEach((lesson) => {
+    lesson.reports.forEach((r) => {
+      if (r.status) count++;
+    });
+  });
+  return count;
+};
+
+export const getTotalReportsCount = (lessons) => {
+  let count = 0;
+  lessons.forEach((lesson) => {
+    count += lesson.reports.length;
+  });
+  return count;
+};
+
+export const fetchInvoicesForWeek = async (date) => {
+  const week = dayjs(date).startOf("day").format("YYYY-MM-DD");
+  const col = collection(db, `invoices/${week}/items`);
+  const snap = await getDocs(col);
+  return snap.docs.map((d) => ({ id: d.id, ...d.data()}));
+};

@@ -29,7 +29,7 @@ import ConfirmEventDialog from "../Calendar/CustomComponents/ConfirmEventDialog"
 import dayjs from "dayjs";
 
 const functions = getFunctions(app, "australia-southeast1");
-const lessonTypes = ["Normal", "Postpone", "Cancelled", "Trial", "Unconfirmed"];
+const lessonTypes = ["Normal", "Postpone", "Cancelled", "Student Trial", "Tutor Trial", "Unconfirmed"];
 
 const LessonForm = ({ initialValues, onCreated, onUpdated, edit }) => {
   const [date, setDate] = useState(initialValues.date || dayjs());

@@ -77,7 +77,7 @@ const FilterPanel = ({ filters, setFilters, options }) => {
 
       <Autocomplete
         multiple
-        options={["Normal", "Trial", "Unconfirmed", "Cancelled", "Postponed"]}
+        options={["Normal", "Student Trial", "Tutor Trial", "Unconfirmed", "Cancelled", "Postponed"]}
         value={filters.types}
         onChange={(e, value) => handleChange("types", value)}
         renderInput={(params) => <TextField {...params} label="Types" />}

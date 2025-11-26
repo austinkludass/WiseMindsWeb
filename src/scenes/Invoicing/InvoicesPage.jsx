@@ -4,15 +4,16 @@ import {
   Button,
   Typography,
   Stack,
-  Divider,
   IconButton,
-  Collapse,
+  CircularProgress,
+  Grid2 as Grid,
 } from "@mui/material";
 import { useState, useEffect } from "react";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
-import DownloadIcon from "@mui/icons-material/Download";
 import Header from "../../components/Global/Header";
+import { getFunctions, httpsCallable } from "firebase/functions";
+import { app } from "../../data/firebase";
 import dayjs from "dayjs";
 import {
   getWeekRange,
@@ -21,14 +22,18 @@ import {
   getCurrentWeekStart,
   fetchLessonsForWeek,
   getUnreportedLessonsCount,
+  getTotalReportsCount,
+  getReportedCount,
+  fetchInvoicesForWeek,
 } from "../../utils/InvoiceUtils";
+
+const functions = getFunctions(app, "australia-southeast1");
 
 const InvoicesPage = () => {
   const [weekStart, setWeekStart] = useState(getCurrentWeekStart());
   const [weekLessons, setWeekLessons] = useState([]);
-  const [invoices, setInvoices] = useState(null);
+  const [existingInvoices, setExistingInvoices] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [expanded, setExpanded] = useState({});
 
   const week = getWeekRange(weekStart);
 
@@ -43,13 +48,32 @@ const InvoicesPage = () => {
     load();
   }, [weekStart]);
 
+  useEffect(() => {
+    const loadInvoices = async () => {
+      const inv = await fetchInvoicesForWeek(week.start.format("YYYY-MM-DD"));
+      setExistingInvoices(inv);
+    };
+    loadInvoices();
+  }, [weekStart]);
+
   const unreportedCount = getUnreportedLessonsCount(weekLessons);
 
-  const generateInvoices = () => {};
+  const generateInvoices = async () => {
+    const generateFn = httpsCallable(functions, "generateWeeklyInvoices");
+    await generateFn({
+      start: week.start.format("YYYY-MM-DD"),
+      end: week.end.format("YYYY-MM-DD"),
+    });
 
-  const toggleExpand = (id) => {
-    setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
+    const inv = await fetchInvoicesForWeek(week.start.format("YYYY-MM-DD"));
+    setExistingInvoices(inv);
   };
+
+  const totalReports = getTotalReportsCount(weekLessons);
+  const reportedCount = getReportedCount(weekLessons);
+  const pendingCount = totalReports - reportedCount;
+  const percent =
+    totalReports > 0 ? Math.round((reportedCount / totalReports) * 100) : 0;
 
   return (
     <Box p={4}>
@@ -83,70 +107,134 @@ const InvoicesPage = () => {
         </IconButton>
       </Paper>
 
-      <Box mb={3}>
-        {unreportedCount > 0 ? (
-          <Paper sx={{ p: 2 }}>
-            <Typography>
-              {unreportedCount} lessons still need to be reported before
-              generating invoices.
-            </Typography>
-          </Paper>
-        ) : (
-          <Button variant="contained" onClick={generateInvoices}>
-            Generate Weekly Invoices
-          </Button>
-        )}
-      </Box>
-
-      {invoices && (
+      <Paper
+        sx={{
+          p: 3,
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          mb: 4,
+        }}
+      >
         <Box>
+          {weekLessons.length > 0 && (
+            <Button variant="contained" onClick={generateInvoices}>
+              Generate Weekly Invoices
+            </Button>
+          )}
+
+          <Box mt={2}>
+            <Typography variant="h6">
+              {weekLessons.length} Lesson(s) This Week
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              {reportedCount} {`reports • ${pendingCount} pending`}
+            </Typography>
+          </Box>
+        </Box>
+
+        <Stack direction="row" gap={1} spacing={1} alignItems="center">
+          <Stack spacing={2}>
+            <Paper sx={{ p: 1.5, width: 100 }}>
+              <Typography variant="body2" color="text.secondary">
+                Total Reports
+              </Typography>
+              <Typography variant="h6">{totalReports}</Typography>
+            </Paper>
+
+            <Paper sx={{ p: 1.5, width: 100 }}>
+              <Typography variant="body2" color="text.secondary">
+                Reported
+              </Typography>
+              <Typography variant="h6">{reportedCount}</Typography>
+            </Paper>
+
+            <Button variant="outlined">Remaining</Button>
+          </Stack>
+
+          <Box position="relative" display="inline-flex">
+            <CircularProgress
+              variant="determinate"
+              value={percent}
+              size={150}
+              thickness={4}
+            />
+
+            <Box
+              sx={{
+                top: 0,
+                left: 0,
+                bottom: 0,
+                right: 0,
+                position: "absolute",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Typography variant="h4" component="div">
+                {Math.round(percent)}%
+              </Typography>
+            </Box>
+          </Box>
+        </Stack>
+      </Paper>
+
+      {existingInvoices.length > 0 && (
+        <Paper sx={{ p: 3 }}>
           <Typography variant="h6" mb={2}>
-            Generated Invoices
+            Invoices
           </Typography>
 
-          {Object.entries(invoices).map(([id, inv]) => (
-            <Paper key={id} sx={{ p: 2, mb: 2 }}>
-              <Stack direction="row" justifyContent="space-between">
-                <Box>
-                  <Typography variant="subtitle1">{id}</Typography>
-                  <Typography variant="body2">{inv.familyName}</Typography>
-                  <Typography variant="body2">
-                    {inv.lessons.length} lessons
+          {existingInvoices.map((inv) => (
+            <Paper key={inv.id} sx={{ p: 2, mb: 2 }}>
+              <Grid
+                container
+                sx={{
+                  display: "grid",
+                  gridTemplateColumns: "2fr 1fr 0.5fr",
+                  gap: 2,
+                  width: "100%",
+                }}
+              >
+                <Grid xs={4}>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Family
                   </Typography>
-                </Box>
+                  <Typography variant="subtitle1">{inv.familyName}</Typography>
+                </Grid>
 
-                <Stack direction="row" spacing={2} alignItems="center">
-                  <Typography variant="h6" color="primary">
-                    ${inv.totalAmount.toFixed(2)}
+                <Grid xs={4}>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Email
                   </Typography>
-                  <Button
-                    startIcon={<DownloadIcon />}
-                    variant="contained"
-                    color="primary"
-                  >
-                    Download
-                  </Button>
-                </Stack>
-              </Stack>
+                  <Typography>{inv.parentEmail}</Typography>
+                </Grid>
 
-              <Button size="small" onClick={() => toggleExpand(id)}>
-                {expanded[id] ? "Hide details" : "View details"}
-              </Button>
+                <Grid xs={4}>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Total Amount
+                  </Typography>
+                  <Typography>{`$${inv.total.toFixed(2)}`}</Typography>
+                </Grid>
+              </Grid>
 
-              <Collapse in={expanded[id]}>
-                <Divider sx={{ my: 2 }} />
-                {inv.lessons.map((l) => (
-                  <Box key={l.lessonId} sx={{ mb: 1 }}>
-                    <Typography>
-                      {dayjs(l.date).format("MMM D")} - {l.subject}
+              <Box pt={1}>
+                {inv.lineItems.map((item, index) => (
+                  <Box px={2} key={index}>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      {`${item.duration} x ${item.studentName} with ${
+                        item.tutorName
+                      } - (${dayjs(item.date).format("MM/DD/YYYY")}) - ${
+                        item.subject
+                      } - $${item.price}`}
                     </Typography>
-                    <Typography>${l.price}</Typography>
                   </Box>
                 ))}
-              </Collapse>
+              </Box>
             </Paper>
           ))}
-        </Box>
+        </Paper>
       )}
     </Box>
   );

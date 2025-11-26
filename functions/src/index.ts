@@ -37,6 +37,40 @@ interface NotificationDoc {
   updatedAt: admin.firestore.FieldValue | admin.firestore.Timestamp;
 }
 
+export interface LessonReport {
+  effort: number | null;
+  notes: string | null;
+  quality: number | null;
+  satisfaction: number | null;
+  status: string | null;
+  studentId: string;
+  studentName: string;
+  topic: string | null;
+}
+
+export interface Lesson {
+  id: string;
+  startDateTime: string;
+  endDateTime: string;
+  duration?: number;
+  subjectGroupName: string;
+  tutorName: string;
+  type: string | null;
+  reports: { [id: string]: LessonReport };
+}
+
+export interface FamilyStudentRef {
+  id: string;
+  name: string;
+}
+
+export interface Family {
+  id: string;
+  parentName: string;
+  parentEmail: string;
+  students: FamilyStudentRef[];
+}
+
 const notifId = (userId: string, key: string) => `${userId}__${key}`;
 
 const tz = "Australia/Sydney";
@@ -476,3 +510,105 @@ export const api = onRequest(
     }
   }
 );
+
+export const generateWeeklyInvoices = onCall(
+  {
+    region: "australia-southeast1",
+    timeoutSeconds: 60,
+  },
+  async (request) => {
+    const {start, end} = request.data;
+    if (!start || !end) throw new Error("Missing dates");
+
+    const weekStart = dayjs(start).startOf("day").toISOString();
+    const weekEnd = dayjs(end).endOf("day").toISOString();
+    const weekKey = dayjs(start).startOf("day").format("YYYY-MM-DD");
+
+    const lessonsSnap = await db
+      .collection("lessons")
+      .where("startDateTime", ">=", weekStart)
+      .where("startDateTime", "<=", weekEnd)
+      .get();
+
+    const lessons: Lesson[] = lessonsSnap.docs.map((d) => ({
+      id: d.id,
+      ...(d.data() as Omit<Lesson, "id">),
+    }))
+      .filter((l) => l.type === "Normal" || l.type === "Tutor Trial");
+
+    if (lessons.length === 0) {
+      return {success: true};
+    }
+
+    const famSnap = await db.collection("families").get();
+    const families: Family[] = famSnap.docs.map((d) => ({
+      id: d.id,
+      ...(d.data() as Omit<Family, "id">),
+    }));
+
+    const findFamily = (studentId: string) =>
+      families.find((f) => f.students?.some((s) => s.id === studentId));
+
+    const familyMap = new Map<string, any[]>();
+
+    for (const lesson of lessons) {
+      const allReports = Object.values(lesson.reports || {}) as any[];
+
+      for (const rep of allReports) {
+        if (rep.status === "cancelled") continue;
+        const family = findFamily(rep.studentId);
+        if (!family) continue;
+
+        const duration = dayjs(lesson.endDateTime)
+          .diff(dayjs(lesson.startDateTime), "hours");
+
+        const item = {
+          lessonId: lesson.id,
+          studentId: rep.studentId,
+          studentName: rep.studentName,
+          date: lesson.startDateTime,
+          duration: duration,
+          price: 0,
+          subject: lesson.subjectGroupName || null,
+          tutorName: lesson.tutorName,
+          reported: rep.status,
+        };
+
+        if (!familyMap.has(family.id)) familyMap.set(family.id, []);
+        familyMap.get(family.id)!.push(item);
+      }
+    }
+
+    const weekCollection = db.collection(`invoices/${weekKey}/items`);
+    const batch = db.batch();
+
+    const existing = await weekCollection.get();
+    existing.forEach((doc) => batch.delete(doc.ref));
+
+    for (const [familyId, lineItems] of familyMap.entries()) {
+      const fam = families.find((f) => f.id === familyId);
+      if (!fam) continue;
+
+      const ref = weekCollection.doc();
+      const total = lineItems.reduce((sum, li) => sum + li.price, 0);
+
+      const invoice = {
+        familyId,
+        familyName: fam.parentName,
+        parentEmail: fam.parentEmail,
+        weekStart: weekStart,
+        weekEnd: weekEnd,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        total,
+        lineItems,
+      };
+
+      batch.set(ref, invoice);
+    }
+
+    await batch.commit();
+
+    return {success: true};
+  }
+);
+
