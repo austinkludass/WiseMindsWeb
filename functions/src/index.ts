@@ -580,6 +580,11 @@ export const generateWeeklyInvoices = onCall(
     }
 
     const weekCollection = db.collection(`invoices/${weekKey}/items`);
+    const weekDocRef = db.collection("invoices").doc(weekKey);
+    await weekDocRef.set({
+      locked: false,
+      lastGenerated: admin.firestore.FieldValue.serverTimestamp(),
+    }, {merge: true});
     const batch = db.batch();
 
     const existing = await weekCollection.get();
@@ -598,7 +603,6 @@ export const generateWeeklyInvoices = onCall(
         parentEmail: fam.parentEmail,
         weekStart: weekStart,
         weekEnd: weekEnd,
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
         total,
         lineItems,
       };
