@@ -9,6 +9,7 @@ import {
   CircularProgress,
   Grid2 as Grid,
   useTheme,
+  Tooltip,
 } from "@mui/material";
 import {
   getWeekRange,
@@ -26,6 +27,7 @@ import { app } from "../../data/firebase";
 import EditInvoiceDialog from "../../components/Invoice/EditInvoiceDialog";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import ErrorIcon from "@mui/icons-material/Error";
 import LockIcon from "@mui/icons-material/Lock";
 import Header from "../../components/Global/Header";
 import dayjs from "dayjs";
@@ -225,7 +227,17 @@ const InvoicesPage = () => {
                     )}`}</Typography>
                   </Grid>
 
-                  <Grid xs={4}>
+                  <Grid xs={4} display="flex" alignItems="center" gap={1}>
+                    <Tooltip
+                      sx={{
+                        visibility: inv.editedSinceGeneration
+                          ? "visible"
+                          : "hidden",
+                      }}
+                      title="This invoice has been modified since generation"
+                    >
+                      <ErrorIcon color="warning" fontSize="small" />
+                    </Tooltip>
                     <IconButton onClick={() => setEditingInvoice(inv)}>
                       <Edit />
                     </IconButton>

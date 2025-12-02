@@ -16,54 +16,58 @@ import ReportBug from "./scenes/Other/ReportBug";
 import CalendarPage from "./scenes/Lesson/CalendarPage";
 import FamilyPage from "./scenes/Student/FamilyPage";
 import InvoicesPage from "./scenes/Invoicing/InvoicesPage";
-import { ColorModeContext, useMode } from "./theme";
-import { CssBaseline, ThemeProvider } from "@mui/material";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { useContext } from "react";
+import { CssBaseline, ThemeProvider } from "@mui/material";
+import { ColorModeContext, useMode } from "./theme";
+import { LocalizationProvider } from "@mui/x-date-pickers";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { AuthContext } from "./context/AuthContext";
+import { useContext } from "react";
 
 function App() {
   const [theme, colorMode] = useMode();
   const { currentUser } = useContext(AuthContext);
 
   return (
-    <ColorModeContext.Provider value={colorMode}>
-      <ThemeProvider theme={theme}>
-        <CssBaseline />
-        <BrowserRouter>
-          {currentUser ? (
-            <div className="app">
-              <Sidebar />
-              <main className="content">
-                <Topbar />
-                <Routes>
-                  <Route path="/" element={<Dashboard />} />
-                  <Route path="/tutors" element={<TutorList />} />
-                  <Route path="/newtutor" element={<NewTutor />} />
-                  <Route path="/tutor/:tutorId" element={<TutorProfile />} />
-                  <Route path="/students" element={<StudentList />} />
-                  <Route path="/student/:studentId" element={<StudentProfile />} />
-                  <Route path="/newstudent" element={<NewStudent />} />
-                  <Route path="/families" element={<FamilyPage />} />
-                  <Route path="/subjects" element={<SubjectList />} />
-                  <Route path="/tutoringbays" element={<TutoringBayList />} />
-                  <Route path="/lessons" element={<LessonList />} />
-                  <Route path="/settings" element={<Settings />} />
-                  <Route path="/reportbug" element={<ReportBug />} />
-                  <Route path="/calendar" element={<CalendarPage />} />
-                  <Route path="/invoices" element={<InvoicesPage />} />
-                  <Route path="*" element={<Navigate to="/" />} />
-                </Routes>
-              </main>
-            </div>
-          ) : (
-            <Routes>
-              <Route path="*" element={<Login />} />
-            </Routes>
-          )}
-        </BrowserRouter>
-      </ThemeProvider>
-    </ColorModeContext.Provider>
+    <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="en-gb">
+      <ColorModeContext.Provider value={colorMode}>
+        <ThemeProvider theme={theme}>
+          <CssBaseline />
+          <BrowserRouter>
+            {currentUser ? (
+              <div className="app">
+                <Sidebar />
+                <main className="content">
+                  <Topbar />
+                  <Routes>
+                    <Route path="/" element={<Dashboard />} />
+                    <Route path="/tutors" element={<TutorList />} />
+                    <Route path="/newtutor" element={<NewTutor />} />
+                    <Route path="/tutor/:tutorId" element={<TutorProfile />} />
+                    <Route path="/students" element={<StudentList />} />
+                    <Route path="/student/:studentId" element={<StudentProfile />} />
+                    <Route path="/newstudent" element={<NewStudent />} />
+                    <Route path="/families" element={<FamilyPage />} />
+                    <Route path="/subjects" element={<SubjectList />} />
+                    <Route path="/tutoringbays" element={<TutoringBayList />} />
+                    <Route path="/lessons" element={<LessonList />} />
+                    <Route path="/settings" element={<Settings />} />
+                    <Route path="/reportbug" element={<ReportBug />} />
+                    <Route path="/calendar" element={<CalendarPage />} />
+                    <Route path="/invoices" element={<InvoicesPage />} />
+                    <Route path="*" element={<Navigate to="/" />} />
+                  </Routes>
+                </main>
+              </div>
+            ) : (
+              <Routes>
+                <Route path="*" element={<Login />} />
+              </Routes>
+            )}
+          </BrowserRouter>
+        </ThemeProvider>
+      </ColorModeContext.Provider>
+    </LocalizationProvider>
   );
 }
 

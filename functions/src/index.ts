@@ -605,6 +605,7 @@ export const generateWeeklyInvoices = onCall(
         weekEnd: weekEnd,
         total,
         lineItems,
+        editedSinceGeneration: false,
       };
 
       batch.set(ref, invoice);
