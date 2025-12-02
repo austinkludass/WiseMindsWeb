@@ -10,6 +10,7 @@ import {
   Grid2 as Grid,
   useTheme,
   Tooltip,
+  TextField,
 } from "@mui/material";
 import {
   getWeekRange,
@@ -45,6 +46,7 @@ const InvoicesPage = () => {
   const [existingInvoices, setExistingInvoices] = useState([]);
   const [editingInvoice, setEditingInvoice] = useState(null);
   const [statusBreakdown, setStatusBreakdown] = useState([]);
+  const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
 
   const statusColorMap = {
@@ -91,6 +93,18 @@ const InvoicesPage = () => {
 
   const filteredStatus = statusBreakdown.filter((item) => item.count > 0);
   const filteredColors = filteredStatus.map((s) => statusColorMap[s.label]);
+
+  const filteredInvoices = existingInvoices.filter((inv) => {
+    const term = search.toLowerCase();
+
+    const familyMatch = inv.familyName?.toLowerCase().includes(term);
+    const emailMatch = inv.parentEmail?.toLowerCase().includes(term);
+    const studentMatch = inv.lineItems?.some((li) =>
+      li.studentName?.toLowerCase().includes(term)
+    );
+
+    return familyMatch || emailMatch || studentMatch;
+  });
 
   return (
     <Box p={4}>
@@ -187,11 +201,26 @@ const InvoicesPage = () => {
       ) : (
         existingInvoices.length > 0 && (
           <Paper sx={{ p: 3 }}>
-            <Typography variant="h6" mb={2}>
-              Invoices ({existingInvoices.length})
-            </Typography>
+            <Box
+              display="flex"
+              justifyContent="space-between"
+              alignItems="center"
+            >
+              <Typography variant="h6" mb={2}>
+                Invoices ({existingInvoices.length})
+              </Typography>
 
-            {existingInvoices.map((inv) => (
+              <TextField
+                label="Search invoices"
+                variant="outlined"
+                size="small"
+                sx={{ mb: 2, width: 300 }}
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </Box>
+
+            {filteredInvoices.map((inv) => (
               <Paper key={inv.id} sx={{ p: 2, mb: 2 }}>
                 <Grid
                   container
