@@ -1,4 +1,12 @@
-import { collection, query, where, getDocs } from "firebase/firestore";
+import {
+  collection,
+  query,
+  where,
+  getDocs,
+  updateDoc,
+  doc,
+  getDoc,
+} from "firebase/firestore";
 import { db } from "../data/firebase";
 import dayjs from "dayjs";
 
@@ -35,7 +43,9 @@ export const fetchInvoicesForWeek = async (date) => {
   const week = dayjs(date).startOf("day").format("YYYY-MM-DD");
   const col = collection(db, `invoices/${week}/items`);
   const snap = await getDocs(col);
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  return snap.docs
+    .map((d) => ({ id: d.id, ...d.data() }))
+    .sort((a, b) => a.familyName.localeCompare(b.familyName));
 };
 
 export const getWeeklyReportStatusBreakdown = (lessons) => {
@@ -87,4 +97,25 @@ export const getWeeklyReportStatusBreakdown = (lessons) => {
   ];
 
   return data;
+};
+
+export const updateInvoice = async (weekDate, invoiceId, data) => {
+  const week = dayjs(weekDate).startOf("day").format("YYYY-MM-DD");
+  const ref = doc(db, `invoices/${week}/items/${invoiceId}`);
+  await updateDoc(ref, {
+    ...data,
+  });
+};
+
+export const fetchWeekMeta = async (weekDate) => {
+  const week = dayjs(weekDate).startOf("day").format("YYYY-MM-DD");
+  const ref = doc(db, "invoices", week);
+  const snap = await getDoc(ref);
+  return snap.exists() ? snap.data() : null;
+};
+
+export const updateWeekMeta = async (weekDate, data) => {
+  const week = dayjs(weekDate).startOf("day").format("YYYY-MM-DD");
+  const ref = doc(db, "invoices", week);
+  await updateDoc(ref, data);
 };

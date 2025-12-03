@@ -71,6 +71,11 @@ export interface Family {
   students: FamilyStudentRef[];
 }
 
+export interface Student {
+  id: string;
+  baseRate: string;
+}
+
 const notifId = (userId: string, key: string) => `${userId}__${key}`;
 
 const tz = "Australia/Sydney";
@@ -514,14 +519,16 @@ export const api = onRequest(
 export const generateWeeklyInvoices = onCall(
   {
     region: "australia-southeast1",
-    timeoutSeconds: 60,
+    timeoutSeconds: 120,
   },
   async (request) => {
     const {start, end} = request.data;
     if (!start || !end) throw new Error("Missing dates");
 
-    const weekStart = dayjs(start).startOf("day").toISOString();
-    const weekEnd = dayjs(end).endOf("day").toISOString();
+    const weekStart = dayjs.tz(start, "YYYY-MM-DD", "Australia/Sydney")
+      .startOf("day").toISOString();
+    const weekEnd = dayjs.tz(end, "YYYY-MM-DD", "Australia/Sydney")
+      .endOf("day").toISOString();
     const weekKey = dayjs(start).startOf("day").format("YYYY-MM-DD");
 
     const lessonsSnap = await db
@@ -540,11 +547,23 @@ export const generateWeeklyInvoices = onCall(
       return {success: true};
     }
 
-    const famSnap = await db.collection("families").get();
+    const [famSnap, studentSnap] = await Promise.all([
+      db.collection("families").get(),
+      db.collection("students").get(),
+    ]);
+
     const families: Family[] = famSnap.docs.map((d) => ({
       id: d.id,
       ...(d.data() as Omit<Family, "id">),
     }));
+
+    const students: Student[] = studentSnap.docs.map((d) => ({
+      id: d.id,
+      ...(d.data() as Omit<Student, "id">),
+    }));
+
+    const familyMapById = new Map(families.map((f) => [f.id, f]));
+    const studentMapById = new Map(students.map((s) => [s.id, s]));
 
     const findFamily = (studentId: string) =>
       families.find((f) => f.students?.some((s) => s.id === studentId));
@@ -559,6 +578,9 @@ export const generateWeeklyInvoices = onCall(
         const family = findFamily(rep.studentId);
         if (!family) continue;
 
+        const student = studentMapById.get(rep.studentId);
+        const baseRate = Number(student?.baseRate) || 0;
+
         const duration = dayjs(lesson.endDateTime)
           .diff(dayjs(lesson.startDateTime), "hours");
 
@@ -568,7 +590,7 @@ export const generateWeeklyInvoices = onCall(
           studentName: rep.studentName,
           date: lesson.startDateTime,
           duration: duration,
-          price: 0,
+          price: duration * baseRate,
           subject: lesson.subjectGroupName || null,
           tutorName: lesson.tutorName,
           reported: rep.status,
@@ -591,11 +613,11 @@ export const generateWeeklyInvoices = onCall(
     existing.forEach((doc) => batch.delete(doc.ref));
 
     for (const [familyId, lineItems] of familyMap.entries()) {
-      const fam = families.find((f) => f.id === familyId);
+      const fam = familyMapById.get(familyId);
       if (!fam) continue;
 
-      const ref = weekCollection.doc();
       const total = lineItems.reduce((sum, li) => sum + li.price, 0);
+      const ref = weekCollection.doc();
 
       const invoice = {
         familyId,

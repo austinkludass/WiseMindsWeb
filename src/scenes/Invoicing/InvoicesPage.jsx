@@ -20,6 +20,9 @@ import {
   fetchLessonsForWeek,
   fetchInvoicesForWeek,
   getWeeklyReportStatusBreakdown,
+  updateInvoice,
+  fetchWeekMeta,
+  updateWeekMeta,
 } from "../../utils/InvoiceUtils";
 import { getFunctions, httpsCallable } from "firebase/functions";
 import { PieChart } from "@mui/x-charts/PieChart";
@@ -29,6 +32,7 @@ import EditInvoiceDialog from "../../components/Invoice/EditInvoiceDialog";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import ErrorIcon from "@mui/icons-material/Error";
+import CloseIcon from "@mui/icons-material/Close";
 import LockIcon from "@mui/icons-material/Lock";
 import Header from "../../components/Global/Header";
 import dayjs from "dayjs";
@@ -47,6 +51,7 @@ const InvoicesPage = () => {
   const [editingInvoice, setEditingInvoice] = useState(null);
   const [statusBreakdown, setStatusBreakdown] = useState([]);
   const [search, setSearch] = useState("");
+  const [weekMeta, setWeekMeta] = useState(null);
   const [loading, setLoading] = useState(false);
 
   const statusColorMap = {
@@ -78,6 +83,14 @@ const InvoicesPage = () => {
     loadInvoices();
   }, [weekStart]);
 
+  useEffect(() => {
+    const loadMeta = async () => {
+      const meta = await fetchWeekMeta(week.start);
+      setWeekMeta(meta);
+    };
+    loadMeta();
+  }, [weekStart]);
+
   const generateInvoices = async () => {
     setLoading(true);
     const generateFn = httpsCallable(functions, "generateWeeklyInvoices");
@@ -88,7 +101,17 @@ const InvoicesPage = () => {
 
     const inv = await fetchInvoicesForWeek(week.start.format("YYYY-MM-DD"));
     setExistingInvoices(inv);
+
+    const meta = await fetchWeekMeta(week.start);
+    setWeekMeta(meta);
+
     setLoading(false);
+  };
+
+  const lockWeek = async () => {
+    await updateWeekMeta(week.start, { locked: true });
+    const meta = await fetchWeekMeta(week.start);
+    setWeekMeta(meta);
   };
 
   const filteredStatus = statusBreakdown.filter((item) => item.count > 0);
@@ -149,20 +172,26 @@ const InvoicesPage = () => {
       >
         <Box>
           {weekLessons.length > 0 && (
-            <Button
-              variant="contained"
-              loading={loading}
-              onClick={generateInvoices}
-            >
-              Generate Weekly Invoices
-            </Button>
+            <>
+              <Button
+                variant="contained"
+                loading={loading}
+                onClick={generateInvoices}
+              >
+                Generate Weekly Invoices
+              </Button>
+              {weekMeta?.lastGenerated && (
+                <Typography color="text.secondary" variant="subtitle2">
+                  Last generated at{" "}
+                  {dayjs(weekMeta?.lastGenerated.toDate()).format("MMM D, YYYY h:mm A")}
+                </Typography>
+              )}
+            </>
           )}
-
-          <Box mt={2}></Box>
 
           <Box mt={2}>
             {weekLessons.length > 0 && (
-              <Button variant="outlined" size="small">
+              <Button variant="outlined" size="small" onClick={lockWeek}>
                 Export to XERO
               </Button>
             )}
@@ -217,6 +246,19 @@ const InvoicesPage = () => {
                 sx={{ mb: 2, width: 300 }}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
+                slotProps={{
+                  input: {
+                    endAdornment: search && (
+                      <IconButton
+                        size="small"
+                        onClick={() => setSearch("")}
+                        edge="end"
+                      >
+                        <CloseIcon fontSize="small" />
+                      </IconButton>
+                    ),
+                  },
+                }}
               />
             </Box>
 
@@ -267,9 +309,16 @@ const InvoicesPage = () => {
                     >
                       <ErrorIcon color="warning" fontSize="small" />
                     </Tooltip>
-                    <IconButton onClick={() => setEditingInvoice(inv)}>
-                      <Edit />
-                    </IconButton>
+
+                    {weekMeta?.locked ? (
+                      <Tooltip title="This invoice cannot be modified as it has been exported to XERO">
+                        <LockIcon color="disabled" />
+                      </Tooltip>
+                    ) : (
+                      <IconButton onClick={() => setEditingInvoice(inv)}>
+                        <Edit />
+                      </IconButton>
+                    )}
                   </Grid>
                 </Grid>
 
@@ -296,8 +345,21 @@ const InvoicesPage = () => {
         open={Boolean(editingInvoice)}
         invoice={editingInvoice}
         onClose={() => setEditingInvoice(null)}
-        onSave={(updatedInvoice) => {
-          console.log("Saving invoice with details: ", updatedInvoice);
+        onSave={async (updatedInvoice) => {
+          try {
+            await updateInvoice(
+              week.start.format("YYYY-MM-DD"),
+              updatedInvoice.id,
+              updatedInvoice
+            );
+            const inv = await fetchInvoicesForWeek(
+              week.start.format("YYYY-MM-DD")
+            );
+            setExistingInvoices(inv);
+          } catch (error) {
+            console.error("Failed to save invoice: ", error);
+          }
+
           setEditingInvoice(null);
         }}
       />
