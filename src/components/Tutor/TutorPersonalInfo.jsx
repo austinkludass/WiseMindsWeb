@@ -106,6 +106,13 @@ const TutorPersonalInfo = ({ formData, setFormData, isEdit }) => {
                   ))}
                 </Select>
               </FormControl>
+              <TextField
+                name="rate"
+                type="number"
+                label="Rate ($)"
+                value={formData.rate}
+                onChange={handleChange}
+              />
               <Box sx={{ paddingLeft: 2, paddingRight: 2 }}>
                 <Typography gutterBottom>Hours</Typography>
                 <Slider
@@ -203,6 +210,19 @@ const TutorPersonalInfo = ({ formData, setFormData, isEdit }) => {
                 </Typography>
                 <Typography variant="h6" color={colors.grey[100]}>
                   {formData.hours[0]} - {formData.hours[1]}
+                </Typography>
+              </div>
+              <div style={{ display: "flex", gap: "10px" }}>
+                <Typography
+                  variant="h5"
+                  color={colors.orangeAccent[400]}
+                  fontWeight="bold"
+                  sx={{ mb: "5px" }}
+                >
+                  Rate ($)
+                </Typography>
+                <Typography variant="h6" color={colors.grey[100]}>
+                  {formData.rate}
                 </Typography>
               </div>
             </>

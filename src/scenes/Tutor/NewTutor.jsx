@@ -31,9 +31,9 @@ import TutorFirstAidInfo from "../../components/Tutor/TutorFirstAidInfo";
 import TutorPoliceCheckInfo from "../../components/Tutor/TutorPoliceCheckInfo";
 import TutorBlockedStudents from "../../components/Tutor/TutorBlockedStudents";
 import TutorCapabilities from "../../components/Tutor/TutorCapabilities";
+import AvailabilityFormatter from "../../utils/AvailabilityFormatter";
 import "react-toastify/dist/ReactToastify.css";
 import "dayjs/locale/en-gb";
-import AvailabilityFormatter from "../../utils/AvailabilityFormatter";
 
 const NewTutor = () => {
   const navigate = useNavigate();
@@ -83,6 +83,7 @@ const NewTutor = () => {
     homeLocation: "",
     role: "Tutor",
     hours: [0, 20],
+    rate: "",
   });
 
   const [emergencyInfo, setEmergencyInfo] = useState({
@@ -242,6 +243,7 @@ const NewTutor = () => {
         homeLocation: personalInfo.homeLocation,
         role: personalInfo.role,
         hours: personalInfo.hours,
+        rate: personalInfo.rate,
         emergencyName: emergencyInfo.emergencyName,
         emergencyRelationship: emergencyInfo.emergencyRelationship,
         emergencyPhone: emergencyInfo.emergencyPhone,

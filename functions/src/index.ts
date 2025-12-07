@@ -639,3 +639,303 @@ export const generateWeeklyInvoices = onCall(
   }
 );
 
+export const generateWeeklyPayroll = onCall(
+  {
+    region: "australia-southeast1",
+    timeoutSeconds: 120,
+  },
+  async (request) => {
+    const {weekStart, weekEnd} = request.data;
+
+    if (!weekStart || !weekEnd) {
+      throw new Error("Missing required fields (weekStart, weekEnd)");
+    }
+
+    const weekKey = weekStart;
+
+    const weekDocRef = db.collection("payroll").doc(weekKey);
+    const weekDocSnap = await weekDocRef.get();
+
+    if (weekDocSnap.exists) {
+      const existingData = weekDocSnap.data();
+      if (existingData?.generated) {
+        throw new Error("Payroll has already been generated for this week");
+      }
+    }
+
+    const startISO = dayjs.tz(weekStart, "YYYY-MM-DD", "Australia/Sydney")
+      .startOf("day").toISOString();
+    const endISO = dayjs.tz(weekEnd, "YYYY-MM-DD", "Australia/Sydney")
+      .endOf("day").toISOString();
+
+    const lessonsSnap = await db
+      .collection("lessons")
+      .where("startDateTime", ">=", startISO)
+      .where("startDateTime", "<=", endISO)
+      .get();
+
+    const lessons = lessonsSnap.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+
+    const tutorsSnap = await db.collection("tutors").get();
+    const tutors = tutorsSnap.docs.map((doc) => ({
+      id: doc.id,
+      firstName: doc.data().firstName,
+      lastName: doc.data().lastName,
+      avatar: doc.data().avatar,
+      tutorColor: doc.data().tutorColor,
+    }));
+
+    const tutorPayrollMap: Record<string, any> = {};
+
+    tutors.forEach((tutor) => {
+      tutorPayrollMap[tutor.id] = {
+        tutorId: tutor.id,
+        tutorName: `${tutor.firstName} ${tutor.lastName}`,
+        avatar: tutor.avatar || null,
+        tutorColor: tutor.tutorColor || "#888888",
+        lessonHours: 0,
+        lessonCount: 0,
+        additionalHours: 0,
+        totalHours: 0,
+        lessons: [],
+      };
+    });
+
+    lessons.forEach((lesson: any) => {
+      if (lesson.type !== "Normal" && lesson.type !== "Tutor Trial") {
+        return;
+      }
+
+      const tutorId = lesson.tutorId;
+      if (!tutorId) return;
+
+      const start = dayjs(lesson.startDateTime);
+      const end = dayjs(lesson.endDateTime);
+      const durationHours = end.diff(start, "hour", true);
+
+      if (tutorPayrollMap[tutorId]) {
+        tutorPayrollMap[tutorId].lessonHours += durationHours;
+        tutorPayrollMap[tutorId].lessonCount += 1;
+        tutorPayrollMap[tutorId].lessons.push({
+          id: lesson.id,
+          date: lesson.startDateTime,
+          duration: durationHours,
+          subjectGroupName: lesson.subjectGroupName || "",
+          studentNames: lesson.studentNames || [],
+          type: lesson.type,
+        });
+      } else {
+        tutorPayrollMap[tutorId] = {
+          tutorId,
+          tutorName: lesson.tutorName || "Unknown Tutor",
+          avatar: null,
+          tutorColor: lesson.tutorColor || "#888888",
+          lessonHours: durationHours,
+          lessonCount: 1,
+          additionalHours: 0,
+          totalHours: durationHours,
+          lessons: [
+            {
+              id: lesson.id,
+              date: lesson.startDateTime,
+              duration: durationHours,
+              subjectGroupName: lesson.subjectGroupName || "",
+              studentNames: lesson.studentNames || [],
+              type: lesson.type,
+            },
+          ],
+        };
+      }
+    });
+
+    Object.keys(tutorPayrollMap).forEach((tutorId) => {
+      tutorPayrollMap[tutorId].totalHours =
+        tutorPayrollMap[tutorId].lessonHours +
+        tutorPayrollMap[tutorId].additionalHours;
+    });
+
+    const batch = db.batch();
+
+    batch.set(
+      weekDocRef,
+      {
+        generated: true,
+        locked: false,
+        lastGenerated: admin.firestore.FieldValue.serverTimestamp(),
+        weekStart,
+        weekEnd,
+      },
+      {merge: true}
+    );
+
+    const existingItems = await db
+      .collection(`payroll/${weekKey}/items`)
+      .get();
+    existingItems.forEach((doc) => batch.delete(doc.ref));
+
+    Object.values(tutorPayrollMap).forEach((tutorData: any) => {
+      if (tutorData.lessonCount > 0 || tutorData.additionalHours > 0) {
+        const itemRef = db
+          .collection(`payroll/${weekKey}/items`)
+          .doc(tutorData.tutorId);
+        batch.set(itemRef, tutorData);
+      }
+    });
+
+    await batch.commit();
+
+    logger.info(`Generated payroll for week ${weekKey}`);
+
+    return {success: true, weekKey};
+  }
+);
+
+export const approveAdditionalHours = onCall(
+  {
+    region: "australia-southeast1",
+  },
+  async (request) => {
+    const {requestId, approved, reviewedBy} = request.data;
+
+    if (!requestId || approved === undefined) {
+      throw new Error("Missing required fields (requestId, approved)");
+    }
+
+    const requestRef = db.collection("additionalHoursRequests").doc(requestId);
+    const requestSnap = await requestRef.get();
+
+    if (!requestSnap.exists) {
+      throw new Error("Request not found");
+    }
+
+    const requestData = requestSnap.data();
+    if (!requestData) {
+      throw new Error("Request data is empty");
+    }
+
+    if (requestData.status !== "pending") {
+      throw new Error("Request has already been reviewed");
+    }
+
+    const newStatus = approved ? "approved" : "declined";
+
+    await requestRef.update({
+      status: newStatus,
+      reviewedAt: admin.firestore.FieldValue.serverTimestamp(),
+      reviewedBy: reviewedBy || null,
+    });
+
+    if (approved) {
+      const weekKey = requestData.weekStart;
+      const tutorId = requestData.tutorId;
+      const hours = requestData.hours || 0;
+
+      const payrollItemRef = db
+        .collection(`payroll/${weekKey}/items`)
+        .doc(tutorId);
+      const payrollItemSnap = await payrollItemRef.get();
+
+      if (payrollItemSnap.exists) {
+        const currentData = payrollItemSnap.data();
+        const newAdditionalHours =
+          (currentData?.additionalHours || 0) + hours;
+        const newTotalHours =
+          (currentData?.lessonHours || 0) + newAdditionalHours;
+
+        const additionalHoursDetails =
+          currentData?.additionalHoursDetails || [];
+        additionalHoursDetails.push({
+          requestId,
+          hours: requestData.hours,
+          description: requestData.description,
+          notes: requestData.notes,
+          approvedAt: new Date().toISOString(),
+        });
+
+        await payrollItemRef.update({
+          additionalHours: newAdditionalHours,
+          totalHours: newTotalHours,
+          additionalHoursDetails,
+        });
+      } else {
+        await payrollItemRef.set({
+          tutorId,
+          tutorName: requestData.tutorName,
+          avatar: null,
+          tutorColor: "#888888",
+          lessonHours: 0,
+          lessonCount: 0,
+          additionalHours: hours,
+          totalHours: hours,
+          lessons: [],
+          additionalHoursDetails: [
+            {
+              requestId,
+              hours: requestData.hours,
+              description: requestData.description,
+              notes: requestData.notes,
+              approvedAt: new Date().toISOString(),
+            },
+          ],
+        });
+      }
+    }
+
+    logger.info(`Additional hours request ${requestId} ${newStatus}`);
+
+    return {success: true, status: newStatus};
+  }
+);
+
+export const lockPayroll = onCall(
+  {
+    region: "australia-southeast1",
+  },
+  async (request) => {
+    const {weekStart} = request.data;
+
+    if (!weekStart) {
+      throw new Error("Missing required field (weekStart)");
+    }
+
+    const weekDocRef = db.collection("payroll").doc(weekStart);
+    const weekDocSnap = await weekDocRef.get();
+
+    if (!weekDocSnap.exists) {
+      throw new Error("Payroll not found for this week");
+    }
+
+    const data = weekDocSnap.data();
+    if (!data?.generated) {
+      throw new Error("Payroll must be generated before locking");
+    }
+
+    if (data?.locked) {
+      throw new Error("Payroll is already locked");
+    }
+
+    const pendingRequests = await db
+      .collection("additionalHoursRequests")
+      .where("weekStart", "==", weekStart)
+      .where("status", "==", "pending")
+      .get();
+
+    if (!pendingRequests.empty) {
+      throw new Error(
+        "Cannot lock payroll while there are pending additional hours requests"
+      );
+    }
+
+    await weekDocRef.update({
+      locked: true,
+      lockedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    logger.info(`Locked payroll for week ${weekStart}`);
+
+    return {success: true};
+  }
+);

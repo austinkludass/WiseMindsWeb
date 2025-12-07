@@ -79,7 +79,15 @@ const TutorProfile = () => {
     personal: {
       title: "",
       component: TutorPersonalInfo,
-      fields: ["career", "degree", "position", "homeLocation", "role", "hours"],
+      fields: [
+        "career",
+        "degree",
+        "position",
+        "homeLocation",
+        "role",
+        "hours",
+        "rate",
+      ],
     },
     emergency: {
       title: "",

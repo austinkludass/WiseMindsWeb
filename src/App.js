@@ -16,6 +16,8 @@ import ReportBug from "./scenes/Other/ReportBug";
 import CalendarPage from "./scenes/Lesson/CalendarPage";
 import FamilyPage from "./scenes/Student/FamilyPage";
 import InvoicesPage from "./scenes/Invoicing/InvoicesPage";
+import PayrollPage from "./scenes/Payroll/PayrollPage";
+import AdditionalHoursPage from "./scenes/Payroll/AdditionalHoursPage";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { CssBaseline, ThemeProvider } from "@mui/material";
 import { ColorModeContext, useMode } from "./theme";
@@ -55,6 +57,8 @@ function App() {
                     <Route path="/reportbug" element={<ReportBug />} />
                     <Route path="/calendar" element={<CalendarPage />} />
                     <Route path="/invoices" element={<InvoicesPage />} />
+                    <Route path="/payroll" element={<PayrollPage />} />
+                    <Route path="/additionalhours" element={<AdditionalHoursPage />} />
                     <Route path="*" element={<Navigate to="/" />} />
                   </Routes>
                 </main>
