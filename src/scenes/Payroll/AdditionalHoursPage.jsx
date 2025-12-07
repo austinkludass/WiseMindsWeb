@@ -40,6 +40,7 @@ const AdditionalHoursPage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [requests, setRequests] = useState([]);
   const [tutorData, setTutorData] = useState(null);
+  const [payrollMeta, setPayrollMeta] = useState(null);
   const [hours, setHours] = useState("");
   const [description, setDescription] = useState("");
   const [notes, setNotes] = useState("");
@@ -47,6 +48,8 @@ const AdditionalHoursPage = () => {
 
   const currentWeekStart = getCurrentWeekStart();
   const week = getWeekRange(currentWeekStart);
+
+  const isPayrollLocked = payrollMeta?.locked === true;
 
   useEffect(() => {
     const loadData = async () => {
@@ -63,6 +66,13 @@ const AdditionalHoursPage = () => {
             lastName: data.lastName,
             fullName: `${data.firstName} ${data.lastName}`,
           });
+        }
+
+        const payrollDoc = await getDoc(
+          doc(db, "payroll", getWeekKey(currentWeekStart))
+        );
+        if (payrollDoc.exists()) {
+          setPayrollMeta(payrollDoc.data());
         }
 
         const tutorRequests = await fetchTutorRequests(currentUser.uid);
@@ -208,10 +218,17 @@ const AdditionalHoursPage = () => {
           Submit Additional Hours Request
         </Typography>
 
-        <Alert severity="info" sx={{ mb: 2 }}>
-          Submit your additional hours request for this week. Your request will
-          be reviewed by an administrator when payroll is processed.
-        </Alert>
+        {isPayrollLocked ? (
+          <Alert severity="warning" sx={{ mb: 2 }}>
+            Payroll for this week has already been locked and exported. You
+            cannot submit additional hours requests for this week.
+          </Alert>
+        ) : (
+          <Alert severity="info" sx={{ mb: 2 }}>
+            Submit your additional hours request for this week. Your request
+            will be reviewed by an administrator when payroll is processed.
+          </Alert>
+        )}
 
         <Stack spacing={3}>
           <TextField
@@ -228,6 +245,7 @@ const AdditionalHoursPage = () => {
             helperText={errors.hours}
             inputProps={{ min: 0, step: 0.5 }}
             fullWidth
+            disabled={isPayrollLocked}
           />
 
           <TextField
@@ -245,6 +263,7 @@ const AdditionalHoursPage = () => {
               "Describe the work you did (e.g., Staff meeting, Training session, Admin work)"
             }
             fullWidth
+            disabled={isPayrollLocked}
           />
 
           <TextField
@@ -264,12 +283,13 @@ const AdditionalHoursPage = () => {
             multiline
             rows={3}
             fullWidth
+            disabled={isPayrollLocked}
           />
 
           <Button
             variant="contained"
             onClick={handleSubmit}
-            disabled={submitting}
+            disabled={submitting || isPayrollLocked}
             sx={{ alignSelf: "flex-start" }}
           >
             {submitting ? <CircularProgress size={24} sx={{ mr: 1 }} /> : null}
