@@ -525,11 +525,41 @@ export const generateWeeklyInvoices = onCall(
     const {start, end} = request.data;
     if (!start || !end) throw new Error("Missing dates");
 
+    const weekKey = dayjs(start).startOf("day").format("YYYY-MM-DD");
+
+    const todayInAU = dayjs().tz("Australia/Sydney");
+    const isFriday = todayInAU.day() === 5;
+
+    if (!isFriday) {
+      throw new Error("Invoices can only be generated on Fridays");
+    }
+
+    const weekEndDate = dayjs.tz(end, "YYYY-MM-DD", "Australia/Sydney");
+    const isCurrentWeekFriday = weekEndDate.isSame(todayInAU, "day");
+
+    if (!isCurrentWeekFriday) {
+      throw new Error(
+        "You can only generate invoices for the current week on its Friday"
+      );
+    }
+
+    const weekDocRef = db.collection("invoices").doc(weekKey);
+    const weekDocSnap = await weekDocRef.get();
+
+    if (weekDocSnap.exists) {
+      const weekData = weekDocSnap.data();
+      if (weekData?.generated === true) {
+        throw new Error("Invoices have already been generated for this week");
+      }
+      if (weekData?.locked === true) {
+        throw new Error("This week has been locked and cannot be regenerated");
+      }
+    }
+
     const weekStart = dayjs.tz(start, "YYYY-MM-DD", "Australia/Sydney")
       .startOf("day").toISOString();
     const weekEnd = dayjs.tz(end, "YYYY-MM-DD", "Australia/Sydney")
       .endOf("day").toISOString();
-    const weekKey = dayjs(start).startOf("day").format("YYYY-MM-DD");
 
     const lessonsSnap = await db
       .collection("lessons")
@@ -540,11 +570,15 @@ export const generateWeeklyInvoices = onCall(
     const lessons: Lesson[] = lessonsSnap.docs.map((d) => ({
       id: d.id,
       ...(d.data() as Omit<Lesson, "id">),
-    }))
-      .filter((l) => l.type === "Normal" || l.type === "Tutor Trial");
+    })).filter((l) => l.type === "Normal" || l.type === "Tutor Trial");
 
     if (lessons.length === 0) {
-      return {success: true};
+      await weekDocRef.set({
+        generated: true,
+        locked: false,
+        lastGenerated: admin.firestore.FieldValue.serverTimestamp(),
+      }, {merge: true});
+      return {success: true, message: "No lessons found for this week"};
     }
 
     const [famSnap, studentSnap] = await Promise.all([
@@ -557,20 +591,47 @@ export const generateWeeklyInvoices = onCall(
       ...(d.data() as Omit<Family, "id">),
     }));
 
-    const students: Student[] = studentSnap.docs.map((d) => ({
+    const students = studentSnap.docs.map((d) => ({
       id: d.id,
-      ...(d.data() as Omit<Student, "id">),
-    }));
+      ...d.data(),
+    })) as any[];
 
     const familyMapById = new Map(families.map((f) => [f.id, f]));
-    const studentMapById = new Map(students.map((s) => [s.id, s]));
+    const studentMapById = new Map(students.map((s: any) => [s.id, s]));
 
     const findFamily = (studentId: string) =>
       families.find((f) => f.students?.some((s) => s.id === studentId));
 
+    const studentUpdates = new Map<string, {
+      discountHoursRemaining?: number;
+      removeDiscount?: boolean;
+      creditBalance?: number;
+      creditHoursRemaining?: number;
+      removeCredit?: boolean;
+    }>();
+
+    const getStudentUpdate = (studentId: string) => {
+      if (!studentUpdates.has(studentId)) {
+        const student = studentMapById.get(studentId);
+        studentUpdates.set(studentId, {
+          discountHoursRemaining: Number(student?.discount?.hoursRemaining) ||
+            0,
+          creditBalance: student?.credit?.type === "dollars" ?
+            Number(student.credit.balance) || 0 : undefined,
+          creditHoursRemaining: student?.credit?.type === "hours" ?
+            Number(student.credit.hoursRemaining) || 0 : undefined,
+        });
+      }
+      return studentUpdates.get(studentId)!;
+    };
+
     const familyMap = new Map<string, any[]>();
 
-    for (const lesson of lessons) {
+    const sortedLessons = [...lessons].sort((a, b) =>
+      new Date(a.startDateTime).getTime() - new Date(b.startDateTime).getTime()
+    );
+
+    for (const lesson of sortedLessons) {
       const allReports = Object.values(lesson.reports || {}) as any[];
 
       for (const rep of allReports) {
@@ -580,17 +641,91 @@ export const generateWeeklyInvoices = onCall(
 
         const student = studentMapById.get(rep.studentId);
         const baseRate = Number(student?.baseRate) || 0;
-
         const duration = dayjs(lesson.endDateTime)
-          .diff(dayjs(lesson.startDateTime), "hours");
+          .diff(dayjs(lesson.startDateTime), "hour", true);
+
+        const originalPrice = duration * baseRate;
+        const studentUpdate = getStudentUpdate(rep.studentId);
+
+        let discountAmount = 0;
+        let discountDescription = "";
+        const discount = student?.discount;
+
+        if (discount?.type && discount?.value &&
+            studentUpdate.discountHoursRemaining &&
+            studentUpdate.discountHoursRemaining > 0) {
+          const discountableHours = Math.min(duration,
+            studentUpdate.discountHoursRemaining);
+
+          if (discount.type === "percentage") {
+            discountAmount = (discountableHours * baseRate) *
+              (Number(discount.value) / 100);
+            discountDescription =
+              `${discount.value}% off for ${discountableHours}h`;
+          } else if (discount.type === "fixed") {
+            discountAmount = discountableHours * Number(discount.value);
+            discountDescription =
+              `$${discount.value}/hr off for ${discountableHours}h`;
+          }
+
+          if (discount.reason) {
+            discountDescription += ` (${discount.reason})`;
+          }
+
+          studentUpdate.discountHoursRemaining -= discountableHours;
+          if (studentUpdate.discountHoursRemaining <= 0) {
+            studentUpdate.discountHoursRemaining = 0;
+            studentUpdate.removeDiscount = true;
+          }
+        }
+
+        const priceAfterDiscount = Math.max(0, originalPrice - discountAmount);
+
+        let creditApplied = 0;
+        let creditDescription = "";
+        const credit = student?.credit;
+
+        if (credit?.type === "dollars" &&
+            studentUpdate.creditBalance !== undefined &&
+            studentUpdate.creditBalance > 0) {
+          creditApplied = Math
+            .min(studentUpdate.creditBalance, priceAfterDiscount);
+          studentUpdate.creditBalance -= creditApplied;
+          creditDescription = "Credit applied";
+          if (studentUpdate.creditBalance <= 0) {
+            studentUpdate.creditBalance = 0;
+            studentUpdate.removeCredit = true;
+          }
+        } else if (credit?.type === "hours" &&
+                   studentUpdate.creditHoursRemaining !== undefined &&
+                   studentUpdate.creditHoursRemaining > 0) {
+          const hoursToUse = Math.min(duration,
+            studentUpdate.creditHoursRemaining);
+          const hourlyRateAfterDiscount = priceAfterDiscount / duration;
+          creditApplied = hoursToUse * hourlyRateAfterDiscount;
+          creditApplied = Math.min(creditApplied, priceAfterDiscount);
+          studentUpdate.creditHoursRemaining -= hoursToUse;
+          creditDescription = `${hoursToUse}h prepaid applied`;
+          if (studentUpdate.creditHoursRemaining <= 0) {
+            studentUpdate.creditHoursRemaining = 0;
+            studentUpdate.removeCredit = true;
+          }
+        }
+
+        const finalPrice = Math.max(0, priceAfterDiscount - creditApplied);
 
         const item = {
           lessonId: lesson.id,
           studentId: rep.studentId,
           studentName: rep.studentName,
           date: lesson.startDateTime,
-          duration: duration,
-          price: duration * baseRate,
+          duration,
+          originalPrice,
+          discountAmount,
+          discountDescription: discountDescription || null,
+          creditApplied,
+          creditDescription: creditDescription || null,
+          price: finalPrice,
           subject: lesson.subjectGroupName || null,
           tutorName: lesson.tutorName,
           reported: rep.status,
@@ -602,8 +737,9 @@ export const generateWeeklyInvoices = onCall(
     }
 
     const weekCollection = db.collection(`invoices/${weekKey}/items`);
-    const weekDocRef = db.collection("invoices").doc(weekKey);
+
     await weekDocRef.set({
+      generated: true,
       locked: false,
       lastGenerated: admin.firestore.FieldValue.serverTimestamp(),
     }, {merge: true});
@@ -616,25 +752,53 @@ export const generateWeeklyInvoices = onCall(
       const fam = familyMapById.get(familyId);
       if (!fam) continue;
 
+      const subtotal = lineItems
+        .reduce((sum, li) => sum + li.originalPrice, 0);
+      const totalDiscount = lineItems
+        .reduce((sum, li) => sum + li.discountAmount, 0);
+      const totalCredit = lineItems
+        .reduce((sum, li) => sum + li.creditApplied, 0);
       const total = lineItems.reduce((sum, li) => sum + li.price, 0);
-      const ref = weekCollection.doc();
 
+      const ref = weekCollection.doc();
       const invoice = {
         familyId,
         familyName: fam.parentName,
         parentEmail: fam.parentEmail,
-        weekStart: weekStart,
-        weekEnd: weekEnd,
+        weekStart,
+        weekEnd,
+        subtotal,
+        totalDiscount,
+        totalCredit,
         total,
         lineItems,
         editedSinceGeneration: false,
       };
-
       batch.set(ref, invoice);
     }
 
-    await batch.commit();
+    for (const [studentId, update] of studentUpdates.entries()) {
+      const studentRef = db.collection("students").doc(studentId);
 
+      if (update.removeDiscount) {
+        batch.update(studentRef,
+          {discount: admin.firestore.FieldValue.delete()});
+      } else if (update.discountHoursRemaining !== undefined) {
+        batch.update(studentRef,
+          {"discount.hoursRemaining": update.discountHoursRemaining});
+      }
+
+      if (update.removeCredit) {
+        batch.update(studentRef, {credit: admin.firestore.FieldValue.delete()});
+      } else if (update.creditBalance !== undefined) {
+        batch.update(studentRef, {"credit.balance": update.creditBalance});
+      } else if (update.creditHoursRemaining !== undefined) {
+        batch.update(studentRef,
+          {"credit.hoursRemaining": update.creditHoursRemaining});
+      }
+    }
+
+    await batch.commit();
     return {success: true};
   }
 );

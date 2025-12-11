@@ -100,7 +100,7 @@ const StudentProfile = () => {
     admin: {
       title: "Admin Information",
       component: StudentAdminInfo,
-      fields: ["homeLocation", "baseRate"],
+      fields: ["homeLocation", "baseRate", "discount", "credit"],
     },
   };
 
@@ -122,10 +122,13 @@ const StudentProfile = () => {
         initialForms[key] = {};
         formConfigs[key].fields.forEach((f) => {
           const value = data[f];
-          initialForms[key][f] =
-            f.toLowerCase().includes("date") && value
-              ? dayjs(value)
-              : value ?? "";
+          if (f === "discount" || f === "credit") {
+            initialForms[key][f] = value || null;
+          } else if (f.toLowerCase().includes("date") && value) {
+            initialForms[key][f] = dayjs(value);
+          } else {
+            initialForms[key][f] = value ?? "";
+          }
         });
       }
       setForms(initialForms);
@@ -151,6 +154,15 @@ const StudentProfile = () => {
       payload.availability = AvailabilityFormatter(availability);
     }
 
+    if (key === "admin") {
+      if (!payload.discount || !payload.discount.type) {
+        payload.discount = null;
+      }
+      if (!payload.credit || !payload.credit.type) {
+        payload.credit = null;
+      }
+    }
+
     try {
       await updateDoc(studentRef, payload);
       toast.success("Successfully updated student");
@@ -165,8 +177,13 @@ const StudentProfile = () => {
     const resetData = {};
     formConfigs[key].fields.forEach((f) => {
       const value = student[f];
-      resetData[f] =
-        dateFields.includes(f) && value ? dayjs(value) : value ?? "";
+      if (f === "discount" || f === "credit") {
+        resetData[f] = value || null;
+      } else if (dateFields.includes(f) && value) {
+        resetData[f] = dayjs(value);
+      } else {
+        resetData[f] = value ?? "";
+      }
     });
     setForm(key, resetData);
     toggleEdit(key, false);

@@ -14,6 +14,8 @@ import {
   TableHead,
   TableRow,
   Paper,
+  Chip,
+  Tooltip,
 } from "@mui/material";
 import { useState, useEffect } from "react";
 import { DatePicker } from "@mui/x-date-pickers";
@@ -43,6 +45,21 @@ const EditInvoiceDialog = ({ open, invoice, onClose, onSave }) => {
     0
   );
 
+  const invoiceSubtotal = form.lineItems.reduce(
+    (sum, li) => sum + Number(li.originalPrice || li.price || 0),
+    0
+  );
+
+  const totalDiscount = form.lineItems.reduce(
+    (sum, li) => sum + Number(li.discountAmount || 0),
+    0
+  );
+
+  const totalCredit = form.lineItems.reduce(
+    (sum, li) => sum + Number(li.creditApplied || 0),
+    0
+  );
+
   const updateLineItem = (index, field, value) => {
     const updated = [...form.lineItems];
     updated[index] = { ...updated[index], [field]: value };
@@ -54,6 +71,9 @@ const EditInvoiceDialog = ({ open, invoice, onClose, onSave }) => {
       ...invoice,
       ...form,
       total: invoiceTotal,
+      subtotal: invoiceSubtotal,
+      totalDiscount: totalDiscount,
+      totalCredit: totalCredit,
       editedSinceGeneration: true,
       lineItems: form.lineItems.map((li) => ({
         ...li,
@@ -120,7 +140,41 @@ const EditInvoiceDialog = ({ open, invoice, onClose, onSave }) => {
       );
     }
 
-    if (field === "price" && isEditing) {
+    if (field === "price") {
+      const lineItem = form.lineItems[rowIndex];
+      const hasDiscount = lineItem.discountAmount > 0;
+      const hasCredit = lineItem.creditApplied > 0;
+
+      if (!isEditing) {
+        return (
+          <Box
+            sx={{ cursor: "pointer" }}
+            onClick={() => setEditingCell({ rowIndex, field })}
+          >
+            {(hasDiscount || hasCredit) &&
+              lineItem.originalPrice &&
+              lineItem.originalPrice !== value && (
+                <Typography
+                  variant="body2"
+                  sx={{
+                    textDecoration: "line-through",
+                    color: "text.secondary",
+                    fontSize: "0.75rem",
+                  }}
+                >
+                  ${Number(lineItem.originalPrice).toFixed(2)}
+                </Typography>
+              )}
+            <Typography
+              color={hasDiscount || hasCredit ? "success.main" : "inherit"}
+              fontWeight={hasDiscount || hasCredit ? "bold" : "normal"}
+            >
+              ${Number(value).toFixed(2)}
+            </Typography>
+          </Box>
+        );
+      }
+
       return (
         <TextField
           variant="standard"
@@ -131,7 +185,7 @@ const EditInvoiceDialog = ({ open, invoice, onClose, onSave }) => {
             updateLineItem(rowIndex, "price", Number(e.target.value))
           }
           onBlur={() => setEditingCell(null)}
-          sx={{ width: 50 }}
+          sx={{ width: 80 }}
           slotProps={{
             htmlInput: {
               type: "number",
@@ -166,6 +220,52 @@ const EditInvoiceDialog = ({ open, invoice, onClose, onSave }) => {
     );
   };
 
+  const renderDiscountChips = (lineItem) => {
+    const chips = [];
+
+    if (lineItem.discountAmount > 0) {
+      chips.push(
+        <Tooltip
+          key="discount"
+          title={lineItem.discountDescription || "Discount applied"}
+          arrow
+        >
+          <Chip
+            size="small"
+            label={`-$${Number(lineItem.discountAmount).toFixed(2)}`}
+            color="success"
+            variant="outlined"
+            sx={{ fontSize: "0.7rem", height: 20 }}
+          />
+        </Tooltip>
+      );
+    }
+
+    if (lineItem.creditApplied > 0) {
+      chips.push(
+        <Tooltip
+          key="credit"
+          title={lineItem.creditDescription || "Credit applied"}
+          arrow
+        >
+          <Chip
+            size="small"
+            label={`-$${Number(lineItem.creditApplied).toFixed(2)}`}
+            color="primary"
+            variant="outlined"
+            sx={{ fontSize: "0.7rem", height: 20, ml: 0.5 }}
+          />
+        </Tooltip>
+      );
+    }
+
+    return chips.length > 0 ? (
+      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5, mt: 0.5 }}>
+        {chips}
+      </Box>
+    ) : null;
+  };
+
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
       <DialogTitle>Edit Invoice</DialogTitle>
@@ -187,10 +287,49 @@ const EditInvoiceDialog = ({ open, invoice, onClose, onSave }) => {
           </Box>
         </Stack>
 
-        <Typography variant="caption">Total Amount</Typography>
-        <Typography variant="h3" color="primary" sx={{ mb: 2 }}>
-          ${invoiceTotal.toFixed(2)}
-        </Typography>
+        <Paper variant="outlined" sx={{ p: 2, mb: 3 }}>
+          <Stack direction="row" spacing={4} justifyContent="space-between">
+            <Box>
+              <Typography variant="caption" color="text.secondary">
+                Subtotal
+              </Typography>
+              <Typography variant="h5">
+                ${invoiceSubtotal.toFixed(2)}
+              </Typography>
+            </Box>
+
+            {totalDiscount > 0 && (
+              <Box>
+                <Typography variant="caption" color="text.secondary">
+                  Discounts
+                </Typography>
+                <Typography variant="h5" color="success.main">
+                  -${totalDiscount.toFixed(2)}
+                </Typography>
+              </Box>
+            )}
+
+            {totalCredit > 0 && (
+              <Box>
+                <Typography variant="caption" color="text.secondary">
+                  Credits Applied
+                </Typography>
+                <Typography variant="h5" color="primary.main">
+                  -${totalCredit.toFixed(2)}
+                </Typography>
+              </Box>
+            )}
+
+            <Box>
+              <Typography variant="caption" color="text.secondary">
+                Total Due
+              </Typography>
+              <Typography variant="h4" color="primary">
+                ${invoiceTotal.toFixed(2)}
+              </Typography>
+            </Box>
+          </Stack>
+        </Paper>
 
         <Paper variant="outlined">
           <Table size="small">
@@ -201,14 +340,17 @@ const EditInvoiceDialog = ({ open, invoice, onClose, onSave }) => {
                 <TableCell>Tutor</TableCell>
                 <TableCell>Date</TableCell>
                 <TableCell>Subject</TableCell>
-                <TableCell>Total ($)</TableCell>
+                <TableCell align="right">Total ($)</TableCell>
               </TableRow>
             </TableHead>
 
             <TableBody>
               {form.lineItems.map((li, idx) => (
                 <TableRow key={idx} sx={{ height: "50px" }}>
-                  <TableCell>{li.studentName}</TableCell>
+                  <TableCell>
+                    <Typography>{li.studentName}</Typography>
+                    {renderDiscountChips(li)}
+                  </TableCell>
 
                   <TableCell>
                     {renderCell(idx, "duration", li.duration)}
@@ -224,7 +366,9 @@ const EditInvoiceDialog = ({ open, invoice, onClose, onSave }) => {
                     {renderCell(idx, "subject", li.subject)}
                   </TableCell>
 
-                  <TableCell>{renderCell(idx, "price", li.price)}</TableCell>
+                  <TableCell align="right">
+                    {renderCell(idx, "price", li.price)}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
