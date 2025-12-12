@@ -34,7 +34,6 @@ import EditInvoiceDialog from "../../components/Invoice/EditInvoiceDialog";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import ErrorIcon from "@mui/icons-material/Error";
-import CloseIcon from "@mui/icons-material/Close";
 import LockIcon from "@mui/icons-material/Lock";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import Header from "../../components/Global/Header";
@@ -66,16 +65,19 @@ const InvoicesPage = () => {
 
   const week = getWeekRange(weekStart);
 
-  const today = dayjs();
-  const isFriday = today.day() === 5;
-  const isSelectedWeekFriday = week.end.isSame(today, "day");
-  const canGenerateToday = isFriday && isSelectedWeekFriday;
+  const today = dayjs().startOf("day");
+  const weekEndFriday = week.end.startOf("day");
+
+  const isPastOrCurrentFriday =
+    today.isSame(weekEndFriday, "day") || today.isAfter(weekEndFriday, "day");
+
+  const isFutureWeek = today.isBefore(weekEndFriday, "day");
 
   const alreadyGenerated = weekMeta?.generated === true;
 
   const canGenerate =
     weekLessons.length > 0 &&
-    canGenerateToday &&
+    isPastOrCurrentFriday &&
     !alreadyGenerated &&
     !weekMeta?.locked;
 
@@ -111,18 +113,21 @@ const InvoicesPage = () => {
 
   const generateInvoices = async () => {
     setLoading(true);
-    const generateFn = httpsCallable(functions, "generateWeeklyInvoices");
-    await generateFn({
-      start: week.start.format("YYYY-MM-DD"),
-      end: week.end.format("YYYY-MM-DD"),
-    });
+    try {
+      const generateFn = httpsCallable(functions, "generateWeeklyInvoices");
+      await generateFn({
+        start: week.start.format("YYYY-MM-DD"),
+        end: week.end.format("YYYY-MM-DD"),
+      });
 
-    const inv = await fetchInvoicesForWeek(week.start.format("YYYY-MM-DD"));
-    setExistingInvoices(inv);
+      const inv = await fetchInvoicesForWeek(week.start.format("YYYY-MM-DD"));
+      setExistingInvoices(inv);
 
-    const meta = await fetchWeekMeta(week.start);
-    setWeekMeta(meta);
-
+      const meta = await fetchWeekMeta(week.start);
+      setWeekMeta(meta);
+    } catch (error) {
+      console.error("Failed to generate invoices:", error);
+    }
     setLoading(false);
   };
 
@@ -184,11 +189,10 @@ const InvoicesPage = () => {
     if (alreadyGenerated) {
       return "Invoices have already been generated for this week";
     }
-    if (!isFriday) {
-      return "Invoices can only be generated on Fridays";
-    }
-    if (!isSelectedWeekFriday) {
-      return "You can only generate invoices for the current week on its Friday";
+    if (isFutureWeek) {
+      return `Invoices can be generated from ${weekEndFriday.format(
+        "dddd, MMM D, YYYY"
+      )}`;
     }
     if (weekLessons.length === 0) {
       return "No lessons found for this week";
@@ -255,27 +259,38 @@ const InvoicesPage = () => {
             </Alert>
           )}
 
-          {weekLessons.length > 0 && !alreadyGenerated && !weekMeta?.locked && (
-            <Tooltip title={canGenerate ? "" : getGenerateDisabledReason()}>
-              <span>
-                <Button
-                  variant="contained"
-                  disabled={!canGenerate || loading}
-                  onClick={generateInvoices}
-                >
-                  {loading ? (
-                    <CircularProgress size={20} sx={{ mr: 1 }} />
-                  ) : null}
-                  Generate Weekly Invoices
-                </Button>
-              </span>
-            </Tooltip>
+          {isFutureWeek && !alreadyGenerated && !weekMeta?.locked && (
+            <Alert severity="warning" sx={{ mb: 2 }}>
+              Invoices can be generated from{" "}
+              {weekEndFriday.format("dddd, MMM D, YYYY")}
+            </Alert>
           )}
+
+          {weekLessons.length > 0 &&
+            !alreadyGenerated &&
+            !weekMeta?.locked &&
+            !isFutureWeek && (
+              <Tooltip title={canGenerate ? "" : getGenerateDisabledReason()}>
+                <span>
+                  <Button
+                    variant="contained"
+                    disabled={!canGenerate || loading}
+                    onClick={generateInvoices}
+                  >
+                    {loading ? (
+                      <CircularProgress size={20} sx={{ mr: 1 }} />
+                    ) : null}
+                    Generate Weekly Invoices
+                  </Button>
+                </span>
+              </Tooltip>
+            )}
 
           {weekLessons.length > 0 &&
             !canGenerate &&
             !alreadyGenerated &&
-            !weekMeta?.locked && (
+            !weekMeta?.locked &&
+            !isFutureWeek && (
               <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
                 {getGenerateDisabledReason()}
               </Typography>
@@ -342,248 +357,219 @@ const InvoicesPage = () => {
       </Paper>
 
       {loading ? (
-        <Box display="flex" justifyContent="center" mt={4}>
-          <CircularProgress size={60} />
+        <Box display="flex" justifyContent="center" py={4}>
+          <CircularProgress />
         </Box>
+      ) : existingInvoices.length === 0 ? (
+        <Paper sx={{ p: 4, textAlign: "center" }}>
+          <Typography variant="h6" color="text.secondary">
+            No invoices for this week
+          </Typography>
+          <Typography variant="body2" color="text.secondary" mt={1}>
+            {weekLessons.length > 0
+              ? "Generate invoices to see them here"
+              : "No lessons found for this week"}
+          </Typography>
+        </Paper>
       ) : (
-        existingInvoices.length > 0 && (
-          <Paper sx={{ p: 3 }}>
-            <Box
-              display="flex"
-              justifyContent="space-between"
-              alignItems="center"
+        <Paper sx={{ p: 2 }}>
+          <Box
+            display="flex"
+            justifyContent="space-between"
+            alignItems="center"
+            mb={2}
+          >
+            <Typography variant="h6">
+              Invoices ({filteredInvoices.length})
+            </Typography>
+            <TextField
+              size="small"
+              placeholder="Search invoices..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              sx={{ width: 250 }}
+            />
+          </Box>
+
+          {filteredInvoices.map((inv) => (
+            <Paper
+              key={inv.id}
+              variant="outlined"
+              sx={{ p: 2, mb: 2, borderRadius: 2 }}
             >
-              <Typography variant="h6" mb={2}>
-                Invoices ({existingInvoices.length})
-              </Typography>
-
-              <TextField
-                label="Search invoices"
-                variant="outlined"
-                size="small"
-                sx={{ mb: 2, width: 300 }}
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                slotProps={{
-                  input: {
-                    endAdornment: search && (
-                      <IconButton
-                        size="small"
-                        onClick={() => setSearch("")}
-                        edge="end"
-                      >
-                        <CloseIcon fontSize="small" />
-                      </IconButton>
-                    ),
-                  },
+              <Grid
+                container
+                sx={{
+                  display: "grid",
+                  gridTemplateColumns: "6fr 3fr 1fr",
+                  gap: 2,
+                  width: "100%",
                 }}
-              />
-            </Box>
-
-            {filteredInvoices.map((inv) => (
-              <Paper key={inv.id} sx={{ p: 2, mb: 2 }}>
-                <Grid
-                  container
-                  sx={{
-                    display: "grid",
-                    gridTemplateColumns: "6fr 4fr 3fr 1fr",
-                    gap: 2,
-                    width: "100%",
-                  }}
-                >
-                  <Grid xs={4}>
-                    <Typography variant="subtitle2" color="text.secondary">
-                      Family
-                    </Typography>
-                    <Typography variant="subtitle1">
-                      {inv.familyName}
-                    </Typography>
-                  </Grid>
-
-                  <Grid xs={4}>
-                    <Typography variant="subtitle2" color="text.secondary">
-                      Email
-                    </Typography>
-                    <Typography>{inv.parentEmail}</Typography>
-                  </Grid>
-
-                  <Grid xs={4}>
-                    <Typography variant="subtitle2" color="text.secondary">
-                      Total Amount
-                    </Typography>
-                    <Box display="flex" alignItems="center" gap={1}>
-                      {(inv.totalDiscount > 0 || inv.totalCredit > 0) &&
-                        inv.subtotal !== inv.total && (
-                          <Typography
-                            sx={{
-                              textDecoration: "line-through",
-                              color: "text.secondary",
-                              fontSize: "0.85rem",
-                            }}
-                          >
-                            ${(inv.subtotal || inv.total).toFixed(2)}
-                          </Typography>
-                        )}
-                      <Typography
-                        color="primary"
-                        fontWeight={
-                          inv.totalDiscount > 0 || inv.totalCredit > 0
-                            ? "bold"
-                            : "normal"
-                        }
-                      >
-                        ${inv.total.toFixed(2)}
-                      </Typography>
-                    </Box>
-                    <Box display="flex" gap={0.5} mt={0.5} flexWrap="wrap">
-                      {inv.totalDiscount > 0 && (
-                        <Chip
-                          size="small"
-                          label={`-$${inv.totalDiscount.toFixed(2)} discount`}
-                          color="success"
-                          variant="outlined"
-                          sx={{ fontSize: "0.7rem", height: 20 }}
-                        />
-                      )}
-                      {inv.totalCredit > 0 && (
-                        <Chip
-                          size="small"
-                          label={`-$${inv.totalCredit.toFixed(2)} credit`}
-                          color="primary"
-                          variant="outlined"
-                          sx={{ fontSize: "0.7rem", height: 20 }}
-                        />
-                      )}
-                    </Box>
-                  </Grid>
-
-                  <Grid xs={4} display="flex" alignItems="center" gap={1}>
-                    <Tooltip
-                      sx={{
-                        visibility: inv.editedSinceGeneration
-                          ? "visible"
-                          : "hidden",
-                      }}
-                      title="This invoice has been modified since generation"
-                    >
-                      <ErrorIcon color="warning" fontSize="small" />
-                    </Tooltip>
-
-                    {weekMeta?.locked ? (
-                      <Tooltip title="This invoice cannot be modified as it has been exported to XERO">
-                        <LockIcon color="disabled" />
-                      </Tooltip>
-                    ) : (
-                      <IconButton onClick={() => setEditingInvoice(inv)}>
-                        <Edit />
-                      </IconButton>
-                    )}
-                  </Grid>
+              >
+                <Grid xs={4}>
+                  <Typography variant="subtitle1" fontWeight="bold">
+                    {inv.familyName}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {inv.parentEmail}
+                  </Typography>
                 </Grid>
 
-                <Box pt={1}>
-                  {inv.lineItems.map((item, index) => {
-                    const formatted = formatLineItem(item);
-                    return (
-                      <Box px={2} key={index} py={0.5}>
-                        <Box
-                          display="flex"
-                          justifyContent="space-between"
-                          alignItems="flex-start"
+                <Grid xs={4}>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Total Amount
+                  </Typography>
+                  <Box display="flex" alignItems="center" gap={1}>
+                    {(inv.totalDiscount > 0 || inv.totalCredit > 0) &&
+                      inv.subtotal !== inv.total && (
+                        <Typography
+                          sx={{
+                            textDecoration: "line-through",
+                            color: "text.secondary",
+                            fontSize: "0.85rem",
+                          }}
                         >
+                          ${(inv.subtotal || inv.total).toFixed(2)}
+                        </Typography>
+                      )}
+                    <Typography color="primary" fontWeight="bold">
+                      ${inv.total.toFixed(2)}
+                    </Typography>
+                  </Box>
+                  <Box display="flex" gap={0.5} mt={0.5} flexWrap="wrap">
+                    {inv.totalDiscount > 0 && (
+                      <Chip
+                        size="small"
+                        label={`-$${inv.totalDiscount.toFixed(2)} discount`}
+                        color="success"
+                        variant="outlined"
+                        sx={{ fontSize: "0.7rem", height: 20 }}
+                      />
+                    )}
+                    {inv.totalCredit > 0 && (
+                      <Chip
+                        size="small"
+                        label={`-$${inv.totalCredit.toFixed(2)} credit`}
+                        color="primary"
+                        variant="outlined"
+                        sx={{ fontSize: "0.7rem", height: 20 }}
+                      />
+                    )}
+                  </Box>
+                </Grid>
+
+                <Grid
+                  xs={4}
+                  display="flex"
+                  alignItems="center"
+                  justifySelf="end"
+                  gap={1}
+                >
+                  <Tooltip
+                    sx={{
+                      visibility: inv.editedSinceGeneration
+                        ? "visible"
+                        : "hidden",
+                    }}
+                    title="This invoice has been modified since generation"
+                  >
+                    <ErrorIcon color="warning" fontSize="small" />
+                  </Tooltip>
+
+                  {weekMeta?.locked ? (
+                    <Tooltip title="This invoice cannot be modified as it has been exported to XERO">
+                      <LockIcon color="disabled" />
+                    </Tooltip>
+                  ) : (
+                    <IconButton onClick={() => setEditingInvoice(inv)}>
+                      <Edit />
+                    </IconButton>
+                  )}
+                </Grid>
+              </Grid>
+
+              <Box pt={1}>
+                {inv.lineItems.map((item, index) => {
+                  const formatted = formatLineItem(item);
+                  return (
+                    <Box px={2} key={index} py={0.5}>
+                      <Box
+                        display="flex"
+                        justifyContent="space-between"
+                        alignItems="flex-start"
+                      >
+                        <Typography
+                          variant="subtitle2"
+                          color="text.secondary"
+                          sx={{ flex: 1 }}
+                        >
+                          {formatted.baseText}
+                        </Typography>
+                        <Box display="flex" alignItems="center" gap={1} ml={2}>
+                          {(formatted.hasDiscount || formatted.hasCredit) &&
+                            formatted.originalPrice !==
+                              formatted.finalPrice && (
+                              <Typography
+                                variant="subtitle2"
+                                sx={{
+                                  textDecoration: "line-through",
+                                  color: "text.disabled",
+                                  fontSize: "0.75rem",
+                                }}
+                              >
+                                ${formatted.originalPrice.toFixed(2)}
+                              </Typography>
+                            )}
                           <Typography
                             variant="subtitle2"
-                            color="text.secondary"
-                            sx={{ flex: 1 }}
+                            color={
+                              formatted.hasDiscount || formatted.hasCredit
+                                ? "success.main"
+                                : "text.secondary"
+                            }
+                            fontWeight={
+                              formatted.hasDiscount || formatted.hasCredit
+                                ? "bold"
+                                : "normal"
+                            }
                           >
-                            {formatted.baseText}
+                            ${formatted.finalPrice.toFixed(2)}
                           </Typography>
-                          <Box
-                            display="flex"
-                            alignItems="center"
-                            gap={1}
-                            ml={2}
-                          >
-                            {(formatted.hasDiscount || formatted.hasCredit) &&
-                              formatted.originalPrice !==
-                                formatted.finalPrice && (
-                                <Typography
-                                  variant="subtitle2"
-                                  sx={{
-                                    textDecoration: "line-through",
-                                    color: "text.disabled",
-                                    fontSize: "0.75rem",
-                                  }}
-                                >
-                                  ${formatted.originalPrice.toFixed(2)}
-                                </Typography>
-                              )}
-                            <Typography
-                              variant="subtitle2"
-                              color={
-                                formatted.hasDiscount || formatted.hasCredit
-                                  ? "success.main"
-                                  : "text.secondary"
-                              }
-                              fontWeight={
-                                formatted.hasDiscount || formatted.hasCredit
-                                  ? "bold"
-                                  : "normal"
-                              }
-                            >
-                              ${formatted.finalPrice.toFixed(2)}
-                            </Typography>
-                          </Box>
+                          {formatted.hasDiscount && (
+                            <Tooltip title={formatted.discountDescription}>
+                              <Chip
+                                size="small"
+                                label={`-$${formatted.discountAmount.toFixed(
+                                  2
+                                )}`}
+                                color="success"
+                                variant="outlined"
+                                sx={{ fontSize: "0.65rem", height: 18 }}
+                              />
+                            </Tooltip>
+                          )}
+                          {formatted.hasCredit && (
+                            <Tooltip title={formatted.creditDescription}>
+                              <Chip
+                                size="small"
+                                label={`-$${formatted.creditApplied.toFixed(
+                                  2
+                                )}`}
+                                color="primary"
+                                variant="outlined"
+                                sx={{ fontSize: "0.65rem", height: 18 }}
+                              />
+                            </Tooltip>
+                          )}
                         </Box>
-                        {(formatted.hasDiscount || formatted.hasCredit) && (
-                          <Box
-                            display="flex"
-                            gap={0.5}
-                            mt={0.25}
-                            flexWrap="wrap"
-                          >
-                            {formatted.hasDiscount && (
-                              <Tooltip
-                                title={formatted.discountDescription || ""}
-                                arrow
-                              >
-                                <Chip
-                                  size="small"
-                                  label={`-$${formatted.discountAmount.toFixed(
-                                    2
-                                  )} discount`}
-                                  color="success"
-                                  variant="outlined"
-                                  sx={{ fontSize: "0.65rem", height: 18 }}
-                                />
-                              </Tooltip>
-                            )}
-                            {formatted.hasCredit && (
-                              <Tooltip
-                                title={formatted.creditDescription || ""}
-                                arrow
-                              >
-                                <Chip
-                                  size="small"
-                                  label={`-$${formatted.creditApplied.toFixed(
-                                    2
-                                  )} credit`}
-                                  color="primary"
-                                  variant="outlined"
-                                  sx={{ fontSize: "0.65rem", height: 18 }}
-                                />
-                              </Tooltip>
-                            )}
-                          </Box>
-                        )}
                       </Box>
-                    );
-                  })}
-                </Box>
-              </Paper>
-            ))}
-          </Paper>
-        )
+                    </Box>
+                  );
+                })}
+              </Box>
+            </Paper>
+          ))}
+        </Paper>
       )}
 
       <EditInvoiceDialog

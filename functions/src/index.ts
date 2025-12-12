@@ -528,18 +528,16 @@ export const generateWeeklyInvoices = onCall(
     const weekKey = dayjs(start).startOf("day").format("YYYY-MM-DD");
 
     const todayInAU = dayjs().tz("Australia/Sydney");
-    const isFriday = todayInAU.day() === 5;
+    const weekEndFriday = dayjs.tz(end, "YYYY-MM-DD", tz).startOf("day");
 
-    if (!isFriday) {
-      throw new Error("Invoices can only be generated on Fridays");
-    }
+    const isPastOrCurrentFriday =
+      todayInAU.isSame(weekEndFriday, "day") ||
+      todayInAU.isAfter(weekEndFriday, "day");
 
-    const weekEndDate = dayjs.tz(end, "YYYY-MM-DD", "Australia/Sydney");
-    const isCurrentWeekFriday = weekEndDate.isSame(todayInAU, "day");
-
-    if (!isCurrentWeekFriday) {
+    if (!isPastOrCurrentFriday) {
       throw new Error(
-        "You can only generate invoices for the current week on its Friday"
+        `Invoices can only be generated from 
+        ${weekEndFriday.format("dddd, MMM D, YYYY")}`
       );
     }
 
@@ -816,6 +814,18 @@ export const generateWeeklyPayroll = onCall(
     }
 
     const weekKey = weekStart;
+
+    const todayInAu = dayjs().tz(tz).startOf("day");
+    const weekEndFriday = dayjs.tz(weekEnd, "YYYY-MM-DD", tz).startOf("day");
+    const isPastOrCurrentFriday = todayInAu.isSame(weekEndFriday, "day") ||
+      todayInAu.isAfter(weekEndFriday, "day");
+
+    if (!isPastOrCurrentFriday) {
+      throw new Error(
+        `Payroll can only be generated from 
+        ${weekEndFriday.format("dddd, MMM D, YYYY")}`
+      );
+    }
 
     const weekDocRef = db.collection("payroll").doc(weekKey);
     const weekDocSnap = await weekDocRef.get();

@@ -6,6 +6,7 @@ import {
   Typography,
   IconButton,
   CircularProgress,
+  useTheme,
   Table,
   TableBody,
   TableCell,
@@ -17,7 +18,6 @@ import {
   Collapse,
   Stack,
   Tooltip,
-  useTheme,
   Alert,
 } from "@mui/material";
 import {
@@ -27,31 +27,31 @@ import {
   getCurrentWeekStart,
   fetchLessonsForWeek,
   fetchTutors,
-  calculateTutorHoursPreview,
   fetchPayrollMeta,
   fetchPayrollItems,
   fetchPendingRequests,
-  calculatePreviewTotals,
+  calculateTutorHoursPreview,
   calculatePayrollTotals,
+  calculatePreviewTotals,
 } from "../../utils/PayrollUtils";
 import { getFunctions, httpsCallable } from "firebase/functions";
-import { AuthContext } from "../../context/AuthContext";
-import { tokens } from "../../theme";
 import { app } from "../../data/firebase";
-import { toast, ToastContainer } from "react-toastify";
+import { tokens } from "../../theme";
+import { AuthContext } from "../../context/AuthContext";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
-import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import SchoolIcon from "@mui/icons-material/School";
+import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import LockIcon from "@mui/icons-material/Lock";
 import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
 import PendingIcon from "@mui/icons-material/Pending";
 import Header from "../../components/Global/Header";
-import dayjs from "dayjs";
+import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import dayjs from "dayjs";
 
 const functions = getFunctions(app, "australia-southeast1");
 
@@ -75,6 +75,17 @@ const PayrollPage = () => {
   const week = getWeekRange(weekStart);
   const isGenerated = payrollMeta?.generated === true;
   const isLocked = payrollMeta?.locked === true;
+
+  const today = dayjs().startOf("day");
+  const weekEndFriday = week.end.startOf("day");
+
+  const isPastOrCurrentFriday =
+    today.isSame(weekEndFriday, "day") || today.isAfter(weekEndFriday, "day");
+
+  const isFutureWeek = today.isBefore(weekEndFriday, "day");
+
+  const canGenerate =
+    lessons.length > 0 && isPastOrCurrentFriday && !isGenerated && !isLocked;
 
   useEffect(() => {
     const loadTutors = async () => {
@@ -241,6 +252,24 @@ const PayrollPage = () => {
     return `${wholeHours}h ${minutes}m`;
   };
 
+  const getGenerateDisabledReason = () => {
+    if (isLocked) {
+      return "Payroll has been exported to XERO and cannot be regenerated";
+    }
+    if (isGenerated) {
+      return "Payroll has already been generated for this week";
+    }
+    if (isFutureWeek) {
+      return `Payroll can be generated from ${weekEndFriday.format(
+        "dddd, MMM D, YYYY"
+      )}`;
+    }
+    if (lessons.length === 0) {
+      return "No lessons found for this week";
+    }
+    return "";
+  };
+
   return (
     <Box p={4}>
       <Header title="Payroll" subtitle="Generate and manage tutor payroll" />
@@ -287,6 +316,13 @@ const PayrollPage = () => {
         </Alert>
       )}
 
+      {isFutureWeek && !isGenerated && !isLocked && (
+        <Alert severity="warning" sx={{ mb: 3 }}>
+          Payroll can be generated from{" "}
+          {weekEndFriday.format("dddd, MMM D, YYYY")}
+        </Alert>
+      )}
+
       <Box
         display="grid"
         gridTemplateColumns="repeat(auto-fit, minmax(180px, 1fr))"
@@ -330,18 +366,22 @@ const PayrollPage = () => {
       <Paper sx={{ p: 2, mb: 3 }}>
         <Box display="flex" justifyContent="space-between" alignItems="center">
           <Box>
-            {!isGenerated ? (
-              <Button
-                variant="contained"
-                onClick={handleGeneratePayroll}
-                disabled={generating || lessons.length === 0}
-              >
-                {generating ? (
-                  <CircularProgress size={24} sx={{ mr: 1 }} />
-                ) : null}
-                Generate Weekly Payroll
-              </Button>
-            ) : !isLocked ? (
+            {!isGenerated && !isFutureWeek ? (
+              <Tooltip title={canGenerate ? "" : getGenerateDisabledReason()}>
+                <span>
+                  <Button
+                    variant="contained"
+                    onClick={handleGeneratePayroll}
+                    disabled={!canGenerate || generating}
+                  >
+                    {generating ? (
+                      <CircularProgress size={24} sx={{ mr: 1 }} />
+                    ) : null}
+                    Generate Weekly Payroll
+                  </Button>
+                </span>
+              </Tooltip>
+            ) : isGenerated && !isLocked ? (
               <Button
                 variant="outlined"
                 onClick={handleLockPayroll}
@@ -352,6 +392,12 @@ const PayrollPage = () => {
                 Export to XERO
               </Button>
             ) : null}
+
+            {!isGenerated && !isFutureWeek && !canGenerate && (
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                {getGenerateDisabledReason()}
+              </Typography>
+            )}
 
             {payrollMeta?.lastGenerated && (
               <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
@@ -570,10 +616,7 @@ const PayrollPage = () => {
                   <TableRow>
                     <TableCell
                       colSpan={isGenerated ? 7 : 6}
-                      sx={{
-                        py: 0,
-                        borderBottom: expandedTutor === tutor.tutorId ? 1 : 0,
-                      }}
+                      sx={{ py: 0, borderBottom: "none" }}
                     >
                       <Collapse
                         in={expandedTutor === tutor.tutorId}
@@ -581,20 +624,19 @@ const PayrollPage = () => {
                         unmountOnExit
                       >
                         <Box sx={{ py: 2, px: 4 }}>
-                          {/* Lessons */}
                           {tutor.lessons?.length > 0 && (
                             <Box mb={2}>
                               <Typography
                                 variant="subtitle2"
-                                color={colors.orangeAccent[400]}
+                                color="text.secondary"
                                 gutterBottom
                               >
-                                Lessons ({tutor.lessonCount})
+                                Lessons
                               </Typography>
                               <Stack spacing={1}>
-                                {tutor.lessons.map((lesson) => (
+                                {tutor.lessons.map((lesson, idx) => (
                                   <Paper
-                                    key={lesson.id}
+                                    key={idx}
                                     variant="outlined"
                                     sx={{ p: 1.5 }}
                                   >
