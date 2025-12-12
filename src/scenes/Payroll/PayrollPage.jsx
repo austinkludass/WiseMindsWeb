@@ -19,6 +19,10 @@ import {
   Stack,
   Tooltip,
   Alert,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from "@mui/material";
 import {
   getWeekRange,
@@ -48,6 +52,7 @@ import LockIcon from "@mui/icons-material/Lock";
 import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
 import PendingIcon from "@mui/icons-material/Pending";
+import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import Header from "../../components/Global/Header";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -63,7 +68,7 @@ const PayrollPage = () => {
   const [weekStart, setWeekStart] = useState(getCurrentWeekStart());
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
-  const [locking, setLocking] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [tutors, setTutors] = useState([]);
   const [lessons, setLessons] = useState([]);
   const [payrollMeta, setPayrollMeta] = useState(null);
@@ -71,6 +76,8 @@ const PayrollPage = () => {
   const [pendingRequests, setPendingRequests] = useState([]);
   const [expandedTutor, setExpandedTutor] = useState(null);
   const [processingRequest, setProcessingRequest] = useState(null);
+  const [exportResult, setExportResult] = useState(null);
+  const [showExportDialog, setShowExportDialog] = useState(false);
 
   const week = getWeekRange(weekStart);
   const isGenerated = payrollMeta?.generated === true;
@@ -191,27 +198,34 @@ const PayrollPage = () => {
     }
   };
 
-  const handleLockPayroll = async () => {
-    if (pendingRequests.length > 0) {
-      toast.error(
-        "Cannot lock payroll while there are pending additional hours requests"
-      );
-      return;
-    }
-
-    setLocking(true);
+  const handleExportToXero = async () => {
+    setExporting(true);
+    setExportResult(null);
     try {
-      const lockFn = httpsCallable(functions, "lockPayroll");
-      await lockFn({ weekStart: week.start.format("YYYY-MM-DD") });
+      const exportFn = httpsCallable(functions, "exportPayrollToXero");
+      const result = await exportFn({
+        weekStart: week.start.format("YYYY-MM-DD"),
+      });
+
+      setExportResult(result.data);
+      setShowExportDialog(true);
 
       const meta = await fetchPayrollMeta(week.start);
       setPayrollMeta(meta);
 
-      toast.success("Payroll locked and ready for export");
+      const items = await fetchPayrollItems(week.start);
+      setPayrollItems(items);
+
+      toast.success("Payroll exported to XERO");
     } catch (error) {
-      toast.error("Failed to lock payroll: " + error.message);
+      console.error("Failed to export to XERO:", error);
+      setExportResult({
+        success: false,
+        error: error.message || "Failed to export to XERO",
+      });
+      setShowExportDialog(true);
     } finally {
-      setLocking(false);
+      setExporting(false);
     }
   };
 
@@ -382,15 +396,30 @@ const PayrollPage = () => {
                 </span>
               </Tooltip>
             ) : isGenerated && !isLocked ? (
-              <Button
-                variant="outlined"
-                onClick={handleLockPayroll}
-                disabled={locking || pendingRequests.length > 0}
-                startIcon={<LockIcon />}
+              <Tooltip
+                title={
+                  pendingRequests.length > 0
+                    ? "Approve or decline all pending requests before exporting"
+                    : ""
+                }
               >
-                {locking ? <CircularProgress size={24} sx={{ mr: 1 }} /> : null}
-                Export to XERO
-              </Button>
+                <span>
+                  <Button
+                    variant="outlined"
+                    onClick={handleExportToXero}
+                    disabled={exporting || pendingRequests.length > 0}
+                    startIcon={
+                      exporting ? (
+                        <CircularProgress size={16} />
+                      ) : (
+                        <CloudUploadIcon />
+                      )
+                    }
+                  >
+                    {exporting ? "Exporting..." : "Export to XERO"}
+                  </Button>
+                </span>
+              </Tooltip>
             ) : null}
 
             {!isGenerated && !isFutureWeek && !canGenerate && (
@@ -542,6 +571,9 @@ const PayrollPage = () => {
                 <TableCell align="center">
                   {isGenerated ? "Total Hours" : "Hours"}
                 </TableCell>
+                {isGenerated && payrollItems.some((p) => p.xeroTimesheetId) && (
+                  <TableCell align="center">XERO</TableCell>
+                )}
               </TableRow>
             </TableHead>
             <TableBody>
@@ -572,7 +604,9 @@ const PayrollPage = () => {
                             height: 40,
                           }}
                         >
-                          {tutor.tutorName?.charAt(0)}
+                          <Typography variant="h6" color="white">
+                            {tutor.tutorName?.charAt(0)}
+                          </Typography>
                         </Avatar>
                         <Typography variant="body1">
                           {tutor.tutorName}
@@ -611,11 +645,32 @@ const PayrollPage = () => {
                         )}
                       </Typography>
                     </TableCell>
+                    {isGenerated &&
+                      payrollItems.some((p) => p.xeroTimesheetId) && (
+                        <TableCell align="center">
+                          {tutor.xeroTimesheetId ? (
+                            <Chip
+                              label="✓"
+                              size="small"
+                              color="success"
+                              variant="outlined"
+                            />
+                          ) : (
+                            "-"
+                          )}
+                        </TableCell>
+                      )}
                   </TableRow>
 
                   <TableRow>
                     <TableCell
-                      colSpan={isGenerated ? 7 : 6}
+                      colSpan={
+                        isGenerated
+                          ? payrollItems.some((p) => p.xeroTimesheetId)
+                            ? 8
+                            : 7
+                          : 6
+                      }
                       sx={{ py: 0, borderBottom: "none" }}
                     >
                       <Collapse
@@ -740,6 +795,52 @@ const PayrollPage = () => {
           </Table>
         </TableContainer>
       )}
+
+      <Dialog
+        open={showExportDialog}
+        onClose={() => setShowExportDialog(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          {exportResult?.success ? "Export Successful" : "Export Result"}
+        </DialogTitle>
+        <DialogContent>
+          {exportResult?.success ? (
+            <Box>
+              <Alert severity="success" sx={{ mb: 2 }}>
+                Successfully exported {exportResult.exported} timesheets to XERO
+              </Alert>
+
+              {exportResult.errors > 0 && (
+                <Alert severity="warning" sx={{ mb: 2 }}>
+                  {exportResult.errors} timesheets could not be exported
+                </Alert>
+              )}
+
+              {exportResult.errorDetails?.length > 0 && (
+                <Box>
+                  <Typography variant="subtitle2" gutterBottom>
+                    Errors:
+                  </Typography>
+                  {exportResult.errorDetails.map((err, idx) => (
+                    <Alert key={idx} severity="error" sx={{ mb: 1 }}>
+                      <strong>{err.tutorName}:</strong> {err.error}
+                    </Alert>
+                  ))}
+                </Box>
+              )}
+            </Box>
+          ) : (
+            <Alert severity="error">
+              {exportResult?.error || "Failed to export payroll"}
+            </Alert>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setShowExportDialog(false)}>Close</Button>
+        </DialogActions>
+      </Dialog>
 
       <ToastContainer position="top-right" autoClose={3000} />
     </Box>

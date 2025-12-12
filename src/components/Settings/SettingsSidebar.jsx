@@ -10,9 +10,15 @@ import SecurityIcon from "@mui/icons-material/Security";
 import SettingsIcon from "@mui/icons-material/Settings";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import PersonIcon from "@mui/icons-material/Person";
+import IntegrationInstructionsIcon from "@mui/icons-material/IntegrationInstructions";
 
 const tabs = [
   { key: "permissions", label: "Permissions", icon: <SecurityIcon /> },
+  {
+    key: "integrations",
+    label: "Integrations",
+    icon: <IntegrationInstructionsIcon />,
+  },
   { key: "general", label: "General", icon: <SettingsIcon /> },
   { key: "notifications", label: "Notifications", icon: <NotificationsIcon /> },
   { key: "profile", label: "Profile", icon: <PersonIcon /> },

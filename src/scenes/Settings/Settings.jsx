@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Box, useTheme } from "@mui/material";
 import Header from "../../components/Global/Header";
 import PermissionsTab from "../../components/Settings/PermissionsTab";
+import IntegrationsTab from "../../components/Settings/IntegrationsTab";
 import SettingsSidebar from "../../components/Settings/SettingsSidebar";
 import MobileSettingsTabs from "../../components/Settings/MobileSettingsTabs";
 
@@ -13,6 +14,8 @@ const Settings = () => {
     switch (selectedTab) {
       case "permissions":
         return <PermissionsTab />;
+      case "integrations":
+        return <IntegrationsTab />;
       case "general":
         return <Box></Box>;
       case "notifications":

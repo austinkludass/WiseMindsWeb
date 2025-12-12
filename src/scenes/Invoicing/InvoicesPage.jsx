@@ -13,6 +13,10 @@ import {
   TextField,
   Chip,
   Alert,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from "@mui/material";
 import {
   getWeekRange,
@@ -24,7 +28,6 @@ import {
   getWeeklyReportStatusBreakdown,
   updateInvoice,
   fetchWeekMeta,
-  updateWeekMeta,
 } from "../../utils/InvoiceUtils";
 import { getFunctions, httpsCallable } from "firebase/functions";
 import { PieChart } from "@mui/x-charts/PieChart";
@@ -36,6 +39,7 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import ErrorIcon from "@mui/icons-material/Error";
 import LockIcon from "@mui/icons-material/Lock";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import Header from "../../components/Global/Header";
 import dayjs from "dayjs";
 
@@ -55,6 +59,9 @@ const InvoicesPage = () => {
   const [search, setSearch] = useState("");
   const [weekMeta, setWeekMeta] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [exportResult, setExportResult] = useState(null);
+  const [showExportDialog, setShowExportDialog] = useState(false);
 
   const statusColorMap = {
     Present: theme.palette.success.main,
@@ -131,10 +138,32 @@ const InvoicesPage = () => {
     setLoading(false);
   };
 
-  const lockWeek = async () => {
-    await updateWeekMeta(week.start, { locked: true });
-    const meta = await fetchWeekMeta(week.start);
-    setWeekMeta(meta);
+  const exportToXero = async () => {
+    setExporting(true);
+    setExportResult(null);
+    try {
+      const exportFn = httpsCallable(functions, "exportInvoicesToXero");
+      const result = await exportFn({
+        weekStart: week.start.format("YYYY-MM-DD"),
+      });
+
+      setExportResult(result.data);
+      setShowExportDialog(true);
+
+      const meta = await fetchWeekMeta(week.start);
+      setWeekMeta(meta);
+
+      const inv = await fetchInvoicesForWeek(week.start.format("YYYY-MM-DD"));
+      setExistingInvoices(inv);
+    } catch (error) {
+      console.error("Failed to export to XERO:", error);
+      setExportResult({
+        success: false,
+        error: error.message || "Failed to export to XERO",
+      });
+      setShowExportDialog(true);
+    }
+    setExporting(false);
   };
 
   const filteredStatus = statusBreakdown.filter((item) => item.count > 0);
@@ -298,8 +327,20 @@ const InvoicesPage = () => {
 
           <Box mt={2}>
             {canExport && (
-              <Button variant="outlined" size="small" onClick={lockWeek}>
-                Export to XERO
+              <Button
+                variant="outlined"
+                size="small"
+                onClick={exportToXero}
+                disabled={exporting}
+                startIcon={
+                  exporting ? (
+                    <CircularProgress size={16} />
+                  ) : (
+                    <CloudUploadIcon />
+                  )
+                }
+              >
+                {exporting ? "Exporting..." : "Export to XERO"}
               </Button>
             )}
           </Box>
@@ -413,6 +454,15 @@ const InvoicesPage = () => {
                   <Typography variant="body2" color="text.secondary">
                     {inv.parentEmail}
                   </Typography>
+                  {inv.xeroInvoiceNumber && (
+                    <Chip
+                      label={`XERO #${inv.xeroInvoiceNumber}`}
+                      size="small"
+                      color="info"
+                      variant="outlined"
+                      sx={{ mt: 0.5 }}
+                    />
+                  )}
                 </Grid>
 
                 <Grid xs={4}>
@@ -594,6 +644,52 @@ const InvoicesPage = () => {
           setEditingInvoice(null);
         }}
       />
+
+      <Dialog
+        open={showExportDialog}
+        onClose={() => setShowExportDialog(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          {exportResult?.success ? "Export Successful" : "Export Result"}
+        </DialogTitle>
+        <DialogContent>
+          {exportResult?.success ? (
+            <Box>
+              <Alert severity="success" sx={{ mb: 2 }}>
+                Successfully exported {exportResult.exported} invoices to XERO
+              </Alert>
+
+              {exportResult.errors > 0 && (
+                <Alert severity="warning" sx={{ mb: 2 }}>
+                  {exportResult.errors} invoices could not be exported
+                </Alert>
+              )}
+
+              {exportResult.errorDetails?.length > 0 && (
+                <Box>
+                  <Typography variant="subtitle2" gutterBottom>
+                    Errors:
+                  </Typography>
+                  {exportResult.errorDetails.map((err, idx) => (
+                    <Alert key={idx} severity="error" sx={{ mb: 1 }}>
+                      <strong>{err.familyName}:</strong> {err.error}
+                    </Alert>
+                  ))}
+                </Box>
+              )}
+            </Box>
+          ) : (
+            <Alert severity="error">
+              {exportResult?.error || "Failed to export invoices"}
+            </Alert>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setShowExportDialog(false)}>Close</Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

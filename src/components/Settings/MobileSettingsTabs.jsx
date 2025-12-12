@@ -1,12 +1,15 @@
 import { Box, Tabs, Tab } from "@mui/material";
 
+const tabs = [
+  "permissions",
+  "integrations",
+  "general",
+  "notifications",
+  "profile",
+];
+
 const MobileSettingsTabs = ({ selected, onSelect }) => {
-  const tabIndex = [
-    "permissions",
-    "general",
-    "notifications",
-    "profile",
-  ].indexOf(selected);
+  const tabIndex = tabs.indexOf(selected);
 
   return (
     <Box
@@ -16,21 +19,16 @@ const MobileSettingsTabs = ({ selected, onSelect }) => {
       }}
     >
       <Tabs
-        value={tabIndex}
+        value={tabIndex >= 0 ? tabIndex : 0}
         onChange={(e, newIndex) => {
-          const mapping = [
-            "permissions",
-            "general",
-            "notifications",
-            "profile",
-          ];
-          onSelect(mapping[newIndex]);
+          onSelect(tabs[newIndex]);
         }}
         variant="scrollable"
         scrollButtons
         allowScrollButtonsMobile
       >
         <Tab label="Permissions" />
+        <Tab label="Integrations" />
         <Tab label="General" />
         <Tab label="Notifications" />
         <Tab label="Profile" />
