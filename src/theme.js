@@ -361,6 +361,19 @@ export const themeSettings = (mode) => {
           },
         },
       },
+      MuiToggleButton: {
+        styleOverrides: {
+          root: {
+            "&.Mui-selected": {
+              backgroundColor: colors.orangeAccent[700],
+              color: colors.primary[900],
+              "&:hover": {
+                backgroundColor: colors.orangeAccent[700],
+              },
+            },
+          },
+        },
+      },
     },
   };
 };

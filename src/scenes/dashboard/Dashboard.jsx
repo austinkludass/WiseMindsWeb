@@ -24,62 +24,11 @@ const Dashboard = () => {
         gridTemplateRows={
           isMobile
             ? "repeat(5, 300px) 600px repeat(3, 300px)"
-            : "200px 400px 200px"
+            : "200px 90vh 200px"
         }
         gap="20px"
       >
         {/* Row 1 */}
-        <Box
-          gridColumn={isMobile ? "span 1" : "span 4"}
-          bgcolor={colors.primary[400]}
-          overflow="hidden"
-          height="100%"
-        >
-          <StatsCard field="lessons" color={colors.orangeAccent[700]} />
-        </Box>
-
-        <Box
-          gridColumn={isMobile ? "span 1" : "span 4"}
-          bgcolor={colors.primary[400]}
-          overflow="hidden"
-          height="100%"
-        >
-          <StatsCard field="students" color={colors.orangeAccent[700]} />
-        </Box>
-
-        <Box
-          gridColumn={isMobile ? "span 1" : "span 4"}
-          bgcolor={colors.primary[400]}
-          overflow="hidden"
-          height="100%"
-        >
-          <StatsCard field="tutors" color={colors.orangeAccent[700]} />
-        </Box>
-
-        {/* Row 2 */}
-        <Box
-          gridColumn={isMobile ? "span 1" : "span 6"}
-          backgroundColor={colors.primary[400]}
-          display="flex"
-          alignItems="center"
-          justifyContent="center"
-          overflow="hidden"
-        >
-          <UpcomingLessons />
-        </Box>
-
-        <Box
-          gridColumn={isMobile ? "span 1" : "span 6"}
-          backgroundColor={colors.primary[400]}
-          display="flex"
-          alignItems="center"
-          justifyContent="center"
-          overflow="hidden"
-        >
-          <Noticeboard />
-        </Box>
-
-        {/* Row 3 */}
         <Box
           gridColumn={isMobile ? "span 1" : "span 4"}
           backgroundColor={colors.primary[400]}
@@ -111,6 +60,57 @@ const Dashboard = () => {
           overflow="hidden"
         >
           <Summaryboard />
+        </Box>
+
+        {/* Row 2 */}
+        <Box
+          gridColumn={isMobile ? "span 1" : "span 6"}
+          backgroundColor={colors.primary[400]}
+          display="flex"
+          alignItems="center"
+          justifyContent="center"
+          overflow="hidden"
+        >
+          <UpcomingLessons />
+        </Box>
+
+        <Box
+          gridColumn={isMobile ? "span 1" : "span 6"}
+          backgroundColor={colors.primary[400]}
+          display="flex"
+          alignItems="center"
+          justifyContent="center"
+          overflow="hidden"
+        >
+          <Noticeboard />
+        </Box>
+
+        {/* Row 3 */}
+        <Box
+          gridColumn={isMobile ? "span 1" : "span 4"}
+          bgcolor={colors.primary[400]}
+          overflow="hidden"
+          height="100%"
+        >
+          <StatsCard field="lessons" color={colors.orangeAccent[700]} />
+        </Box>
+
+        <Box
+          gridColumn={isMobile ? "span 1" : "span 4"}
+          bgcolor={colors.primary[400]}
+          overflow="hidden"
+          height="100%"
+        >
+          <StatsCard field="students" color={colors.orangeAccent[700]} />
+        </Box>
+
+        <Box
+          gridColumn={isMobile ? "span 1" : "span 4"}
+          bgcolor={colors.primary[400]}
+          overflow="hidden"
+          height="100%"
+        >
+          <StatsCard field="tutors" color={colors.orangeAccent[700]} />
         </Box>
       </Box>
     </Box>
