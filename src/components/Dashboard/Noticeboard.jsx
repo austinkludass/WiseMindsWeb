@@ -22,6 +22,7 @@ const Noticeboard = () => {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const [senderName, setSenderName] = useState("");
+  const [replyTo, setReplyTo] = useState(null);
   const messagesContainerRef = useRef(null);
 
   useEffect(() => {
@@ -94,9 +95,17 @@ const Noticeboard = () => {
       senderName: nameToUse,
       message: newMessage.trim(),
       timestamp: serverTimestamp(),
+      replyTo: replyTo
+        ? {
+            messageId: replyTo.messageId,
+            senderName: replyTo.senderName,
+            message: replyTo.message,
+          }
+        : null,
     });
 
     setNewMessage("");
+    setReplyTo(null);
   };
 
   return (
@@ -138,17 +147,81 @@ const Noticeboard = () => {
               color={colors.orangeAccent[400]}
               sx={{ fontWeight: "bold" }}
             >
-              {msg.senderName}{" "}
-              <span style={{ fontWeight: "normal", fontSize: "0.8em" }}>
+              {msg.senderName}
+            </Typography>
+
+            {msg.replyTo && (
+              <Box
+                sx={{
+                  borderLeft: `3px solid ${colors.orangeAccent[400]}`,
+                  pl: 1,
+                  mb: 0.5,
+                  opacity: 0.8,
+                }}
+              >
+                <Typography variant="caption">
+                  Replying to <b>{msg.replyTo.senderName}</b>{" "}
+                </Typography>
+                <Typography variant="caption" noWrap>
+                  "{msg.replyTo.message}"
+                </Typography>
+              </Box>
+            )}
+
+            <Typography variant="body1">{msg.message}</Typography>
+
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "end",
+              }}
+            >
+              <Typography fontSize={10} color="text.secondary">
                 {msg.timestamp?.toDate
                   ? format(msg.timestamp.toDate(), "dd MMM yyyy, h:mm a")
                   : "Sending..."}
-              </span>
-            </Typography>
-            <Typography variant="body1">{msg.message}</Typography>
+              </Typography>
+
+              <Button
+                size="small"
+                onClick={() =>
+                  setReplyTo({
+                    messageId: msg.id,
+                    senderName: msg.senderName,
+                    message: msg.message,
+                  })
+                }
+              >
+                Reply
+              </Button>
+            </Box>
           </Box>
         ))}
       </Box>
+
+      {replyTo && (
+        <Box
+          mb={1}
+          p={1}
+          bgcolor={colors.primary[500]}
+          borderRadius="6px"
+          display="flex"
+          justifyContent="space-between"
+          alignItems="center"
+        >
+          <Box>
+            <Typography variant="caption">
+              Replying to <b>{replyTo.senderName}</b>{" "}
+            </Typography>
+            <Typography variant="caption">“{replyTo.message}”</Typography>
+          </Box>
+
+          <Button size="small" color="error" onClick={() => setReplyTo(null)}>
+            Cancel
+          </Button>
+        </Box>
+      )}
 
       <Box display="flex" gap="8px">
         <TextField

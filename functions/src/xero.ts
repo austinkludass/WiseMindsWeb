@@ -19,7 +19,7 @@ const db = admin.firestore();
 const XERO_AUTH_URL = "https://login.xero.com/identity/connect/authorize";
 const XERO_TOKEN_URL = "https://identity.xero.com/connect/token";
 const XERO_API_URL = "https://api.xero.com/api.xro/2.0";
-const XERO_PAYROLL_URL = "https://api.xero.com/payroll.xro/2.0";
+const XERO_PAYROLL_URL = "https://api.xero.com/payroll.xro/1.0";
 const XERO_CONNECTIONS_URL = "https://api.xero.com/connections";
 
 const XERO_SCOPES = [
@@ -286,9 +286,9 @@ async function findXeroContact(
   tenantId: string,
   email: string
 ): Promise<any | null> {
+  logger.info("Finding Xero contact", {email, tenantId});
   const response = await fetch(
-    `${XERO_API_URL}/Contacts?where=EmailAddress="
-      ${encodeURIComponent(email)}"`,
+    `${XERO_API_URL}/Contacts`,
     {
       headers: {
         "Authorization": `Bearer ${accessToken}`,
@@ -299,12 +299,20 @@ async function findXeroContact(
   );
 
   if (!response.ok) {
-    logger.warn("Failed to find contact:", await response.text());
+    logger.warn("Failed to fetch contacts:", await response.text());
     return null;
   }
 
   const data = await response.json();
-  return data.Contacts?.[0] || null;
+  const lowerEmail = email.toLowerCase();
+
+  return (
+    data.Contacts?.find(
+      (c: any) =>
+        c.EmailAddress &&
+        c.EmailAddress.toLowerCase() === lowerEmail
+    ) || null
+  );
 }
 
 export const exportInvoicesToXero = onCall(
@@ -480,16 +488,31 @@ async function findXeroEmployee(
   );
 
   if (!response.ok) {
-    logger.warn("Failed to fetch employees:", await response.text());
+    const errorText = await response.text();
+    logger.error("Failed to fetch employees:", {
+      status: response.status,
+      statusText: response.statusText,
+      error: errorText,
+    });
     return null;
   }
 
   const data = await response.json();
   const employees = data.Employees || [];
 
-  return employees.find((emp: any) =>
-    emp.Email?.toLowerCase() === email.toLowerCase()
+  const lowerEmail = email.toLowerCase();
+  const found = employees.find((emp: any) =>
+    emp.Email?.toLowerCase() === lowerEmail
   ) || null;
+
+  if (!found) {
+    logger.warn("Employee not found by email match", {
+      searchEmail: email,
+      availableEmails: employees.map((emp: any) => emp.Email),
+    });
+  }
+
+  return found;
 }
 
 export const exportPayrollToXero = onCall(
@@ -530,9 +553,14 @@ export const exportPayrollToXero = onCall(
     }
 
     const tutorIds = payrollSnap.docs.map((d) => d.id);
-    const tutorsSnap = await db.collection("tutors")
-      .where(admin.firestore.FieldPath.documentId(), "in",
-        tutorIds.slice(0, 30))
+
+    const tutorsSnap = await db
+      .collection("tutors")
+      .where(
+        admin.firestore.FieldPath.documentId(),
+        "in",
+        tutorIds.slice(0, 30)
+      )
       .get();
 
     const tutorEmailMap = new Map<string, string>();

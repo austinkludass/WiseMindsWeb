@@ -88,7 +88,7 @@ const EventDialog = ({
         r.studentId === studentId ? reportStudent : r
       );
       setReports(updatedReports);
-      onReportEdit?.(event.id, updatedReports);
+      onReportEdit?.(event.id, updatedReports, event);
 
       setMode("view");
       setReportStudent(null);

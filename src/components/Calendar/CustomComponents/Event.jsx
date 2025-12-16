@@ -1,5 +1,6 @@
 import React, { useState, useRef } from "react";
 import { Box, Menu, MenuItem, Typography } from "@mui/material";
+import StudentRow from "./StudentRow";
 import ConfirmDialog from "../../Global/ConfirmDialog";
 
 const EventCard = React.memo(
@@ -66,20 +67,18 @@ const EventCard = React.memo(
           sx={{
             background:
               event.type !== "Cancelled"
-                ? event.tutorColor ?? event.tutorColor
+                ? event.tutorColor
                 : "repeating-linear-gradient(45deg, #424242, #424242 15px, #990000 20px)",
           }}
         >
           <Typography variant="subtitle2" noWrap>
             {event.subjectGroupName}
           </Typography>
-          <Typography variant="caption" noWrap>
+          <Typography variant="caption" noWrap sx={{ opacity: 0.8 }}>
             {event.tutorName}
           </Typography>
-          {event.studentNames?.map((student) => (
-            <Typography key={student} variant="caption" display="block" noWrap>
-              {student}
-            </Typography>
+          {event.reports?.map((report) => (
+            <StudentRow key={report.studentId} report={report} />
           ))}
 
           <Menu

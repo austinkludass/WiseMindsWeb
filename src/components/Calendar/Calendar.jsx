@@ -10,6 +10,7 @@ import {
 } from "firebase/firestore";
 import { Box, IconButton, Collapse, Badge } from "@mui/material";
 import { getFunctions, httpsCallable } from "firebase/functions";
+import { deriveLessonTypeFromReports } from "../../utils/checkLessonTypes";
 import { Calendar, dayjsLocalizer } from "react-big-calendar";
 import { ToastContainer, toast } from "react-toastify";
 import { FilterList } from "@mui/icons-material";
@@ -235,11 +236,15 @@ const BigCalendar = () => {
     }
   };
 
-  const handleReportEditEvent = async (id, updatedReports) => {
+  const handleReportEditEvent = async (id, updatedReports, event) => {
     try {
       const lessonRef = doc(db, "lessons", id);
+
+      const newType = deriveLessonTypeFromReports(event.type, updatedReports);
+
       await updateDoc(lessonRef, {
         reports: updatedReports,
+        type: newType,
       });
 
       toast.success("Report saved");
@@ -259,8 +264,11 @@ const BigCalendar = () => {
         r.studentId === report.studentId ? { ...r, status: "cancelled" } : r
       );
 
+      const newType = deriveLessonTypeFromReports(event.type, updatedReports);
+
       await updateDoc(lessonRef, {
         reports: updatedReports,
+        type: newType,
       });
 
       toast.success("Student status set to cancelled");
@@ -316,8 +324,8 @@ const BigCalendar = () => {
           event={selectedEvent}
           mode={dialogMode}
           reportStudent={reportStudent}
-          onReportEdit={(id, reports) => {
-            handleReportEditEvent(id, reports);
+          onReportEdit={(id, reports, event) => {
+            handleReportEditEvent(id, reports, event);
           }}
           onClose={() => {
             setSelectedEvent(null);
