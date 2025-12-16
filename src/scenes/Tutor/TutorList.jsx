@@ -25,6 +25,7 @@ const fetchTutors = async () => {
       firstName: doc.data().firstName,
       lastName: doc.data().lastName,
       wiseMindsEmail: doc.data().wiseMindsEmail,
+      role: doc.data().role,
     }));
   } catch (error) {
     toast.error("Failed to fetch tutors: " + error.message);
@@ -71,6 +72,7 @@ const TutorList = () => {
         `${row.firstName || ""} ${row.lastName || ""}`,
     },
     { field: "wiseMindsEmail", headerName: "Email", width: 200 },
+    { field: "role", headerName: "Role", width: 100 },
     {
       field: "edit",
       headerName: "",
@@ -115,9 +117,9 @@ const TutorList = () => {
             rows={rows}
             columns={columns}
             initialState={{
-              pagination: { paginationModel: { page: 0, pageSize: 10 } },
+              pagination: { paginationModel: { page: 0, pageSize: 50 } },
             }}
-            pageSizeOptions={[10]}
+            pageSizeOptions={[50]}
             sx={{ border: 0 }}
           />
         </Paper>

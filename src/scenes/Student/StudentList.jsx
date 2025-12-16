@@ -119,9 +119,9 @@ const StudentList = () => {
             rows={rows}
             columns={columns}
             initialState={{
-              pagination: { paginationModel: { page: 0, pageSize: 10 } },
+              pagination: { paginationModel: { page: 0, pageSize: 50 } },
             }}
-            pageSizeOptions={[10]}
+            pageSizeOptions={[50]}
             sx={{ border: 0 }}
           />
         </Paper>

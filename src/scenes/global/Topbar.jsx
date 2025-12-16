@@ -21,6 +21,7 @@ import ArrowForwardIosOutlinedIcon from "@mui/icons-material/ArrowForwardIosOutl
 import SearchIcon from "@mui/icons-material/Search";
 
 const searchOptions = [
+  { label: "Additional Hours", task: "", path: "/additionalhours" },
   { label: "Calendar", task: "", path: "/calendar" },
   { label: "Dashboard", task: "", path: "/home" },
   { label: "Families", task: "", path: "/families"},
@@ -28,6 +29,7 @@ const searchOptions = [
   { label: "Invoices", task: "", path: "/invoices"},
   { label: "Lessons", task: "", path: "/lessons" },
   { label: "Locations", task: "", path: "/tutoringbays" },
+  { label: "Payroll", task: "", path: "/payroll" },
   { label: "Report Bug", task: "", path: "/reportbug" },
   { label: "Settings", task: "", path: "/settings" },
   { label: "Students", task: "", path: "/students" },
