@@ -46,14 +46,17 @@ const FamiliesList = ({
   const saveEdit = async (id) => {
     if (!editData.parentEmail.trim()) return;
 
+    const email = editData.parentEmail.trim();
+
     const q = query(
       collection(db, "families"),
-      where("parentEmail", "==", editData.parentEmail.trim())
+      where("parentEmail", "==", email)
     );
 
-    const existing = await getDocs(q);
+    const snap = await getDocs(q);
+    const duplicate = snap.docs.find((doc) => doc.id !== id);
 
-    if (!existing.empty) {
+    if (duplicate) {
       isExisting?.();
       return;
     }

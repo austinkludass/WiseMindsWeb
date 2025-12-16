@@ -518,6 +518,9 @@ export const api = onRequest(
       case "/locations":
         return sendCollection("locations", res);
 
+      case "/families":
+        return sendCollection("families", res);
+
       default:
         res.status(404).json({error: "Unknown endpoint"});
       }
