@@ -3,6 +3,7 @@ import { Box, useTheme } from "@mui/material";
 import Header from "../../components/Global/Header";
 import PermissionsTab from "../../components/Settings/PermissionsTab";
 import IntegrationsTab from "../../components/Settings/IntegrationsTab";
+import ProfileTab from "../../components/Settings/ProfileTab";
 import SettingsSidebar from "../../components/Settings/SettingsSidebar";
 import MobileSettingsTabs from "../../components/Settings/MobileSettingsTabs";
 
@@ -21,7 +22,7 @@ const Settings = () => {
       case "notifications":
         return <Box></Box>;
       case "profile":
-        return <Box></Box>;
+        return <ProfileTab />;
       default:
         return null;
     }
