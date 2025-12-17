@@ -770,10 +770,9 @@ export const exportPayrollToXero = onCall(
           continue;
         }
 
-        const dailyUnits = [payroll.totalHours, 0, 0, 0, 0, 0, 0];
+        const dailyUnits = [0, 0, 0, 0, 0, 0, 0];
 
         if (payroll.lessons && Array.isArray(payroll.lessons)) {
-          dailyUnits.fill(0);
           for (const lesson of payroll.lessons) {
             const lessonDate = dayjs(lesson.date || lesson.startDateTime);
             const dayIndex = lessonDate.diff(weekStartDate, "day");
@@ -781,6 +780,16 @@ export const exportPayrollToXero = onCall(
               dailyUnits[dayIndex] += lesson.duration || lesson.hours || 0;
             }
           }
+        }
+
+        const additionalHours = payroll.additionalHours || 0;
+        if (additionalHours > 0) {
+          dailyUnits[6] += additionalHours;
+        }
+
+        const totalDistributed = dailyUnits.reduce((sum, h) => sum + h, 0);
+        if (totalDistributed === 0 && payroll.totalHours > 0) {
+          dailyUnits[0] = payroll.totalHours;
         }
 
         const timesheet = {
