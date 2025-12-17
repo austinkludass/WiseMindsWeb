@@ -19,7 +19,7 @@ const db = admin.firestore();
 const XERO_AUTH_URL = "https://login.xero.com/identity/connect/authorize";
 const XERO_TOKEN_URL = "https://identity.xero.com/connect/token";
 const XERO_API_URL = "https://api.xero.com/api.xro/2.0";
-const XERO_PAYROLL_URL = "https://api.xero.com/payroll.xro/1.0";
+const XERO_PAYROLL_AU_URL = "https://api.xero.com/payroll.xro/1.0";
 const XERO_CONNECTIONS_URL = "https://api.xero.com/connections";
 
 const XERO_SCOPES = [
@@ -30,14 +30,21 @@ const XERO_SCOPES = [
   "accounting.transactions",
   "accounting.contacts.read",
   "accounting.settings.read",
+  "payroll.employees",
   "payroll.employees.read",
   "payroll.timesheets",
   "payroll.payruns",
+  "payroll.settings",
   "payroll.settings.read",
 ].join(" ");
 
 const REDIRECT_URI =
   "https://australia-southeast1-wisemindsadmin.cloudfunctions.net/xeroCallback";
+
+function toXeroDate(date: Date | dayjs.Dayjs): string {
+  const ms = dayjs(date).valueOf();
+  return `/Date(${ms})/`;
+}
 
 export const getXeroAuthUrl = onCall(
   {
@@ -322,7 +329,7 @@ export const exportInvoicesToXero = onCall(
     secrets: [xeroClientId, xeroClientSecret],
   },
   async (request) => {
-    const {weekStart} = request.data;
+    const {weekStart, invoiceIds} = request.data;
 
     if (!weekStart) {
       throw new Error("Missing required field: weekStart");
@@ -342,14 +349,26 @@ export const exportInvoicesToXero = onCall(
 
     const tenantId = tokenData.tenantId;
 
-    const invoicesSnap = await db
-      .collection("invoices")
-      .doc(weekStart)
-      .collection("items")
-      .get();
+    let invoicesSnap;
+    if (invoiceIds && invoiceIds.length > 0) {
+      const invoiceRefs = invoiceIds.map((id: string) =>
+        db.collection("invoices").doc(weekStart).collection("items").doc(id)
+      );
+      const docs = await Promise.all(invoiceRefs.map((ref: any) => ref.get()));
+      invoicesSnap = {
+        empty: docs.every((d: any) => !d.exists),
+        docs: docs.filter((d: any) => d.exists),
+      };
+    } else {
+      invoicesSnap = await db
+        .collection("invoices")
+        .doc(weekStart)
+        .collection("items")
+        .get();
+    }
 
     if (invoicesSnap.empty) {
-      throw new Error("No invoices found for this week");
+      throw new Error("No invoices found to export");
     }
 
     const results: any[] = [];
@@ -357,6 +376,16 @@ export const exportInvoicesToXero = onCall(
 
     for (const invoiceDoc of invoicesSnap.docs) {
       const invoice = invoiceDoc.data();
+
+      if (!invoiceIds && invoice.exportedToXero) {
+        results.push({
+          invoiceId: invoiceDoc.id,
+          familyName: invoice.familyName,
+          skipped: true,
+          reason: "Already exported",
+        });
+        continue;
+      }
 
       try {
         const contact = await findXeroContact(
@@ -366,10 +395,17 @@ export const exportInvoicesToXero = onCall(
         );
 
         if (!contact) {
+          const errorMsg = `Contact not found for email:
+            ${invoice.parentEmail}`;
           errors.push({
             invoiceId: invoiceDoc.id,
             familyName: invoice.familyName,
-            error: `Contact not found for email: ${invoice.parentEmail}`,
+            error: errorMsg,
+          });
+
+          await invoiceDoc.ref.update({
+            xeroExportError: errorMsg,
+            xeroExportAttemptedAt: admin.firestore.FieldValue.serverTimestamp(),
           });
           continue;
         }
@@ -412,6 +448,11 @@ export const exportInvoicesToXero = onCall(
             familyName: invoice.familyName,
             error: errorText,
           });
+
+          await invoiceDoc.ref.update({
+            xeroExportError: errorText,
+            xeroExportAttemptedAt: admin.firestore.FieldValue.serverTimestamp(),
+          });
           continue;
         }
 
@@ -423,6 +464,7 @@ export const exportInvoicesToXero = onCall(
           xeroInvoiceNumber: createdInvoice?.InvoiceNumber,
           exportedToXero: true,
           exportedAt: admin.firestore.FieldValue.serverTimestamp(),
+          xeroExportError: admin.firestore.FieldValue.delete(),
         });
 
         results.push({
@@ -437,24 +479,38 @@ export const exportInvoicesToXero = onCall(
           familyName: invoice.familyName,
           error: err.message,
         });
+
+        await invoiceDoc.ref.update({
+          xeroExportError: err.message,
+          xeroExportAttemptedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
       }
     }
 
     await db.collection("xeroExportHistory").add({
       type: "invoices",
       weekStart,
+      isRetry: !!invoiceIds,
       exportedAt: admin.firestore.FieldValue.serverTimestamp(),
-      successCount: results.length,
+      successCount: results.filter((r) => !r.skipped).length,
       errorCount: errors.length,
       results,
       errors,
     });
 
-    await db.collection("invoices").doc(weekStart).update({
-      locked: true,
-      lockedAt: admin.firestore.FieldValue.serverTimestamp(),
-      exportedToXero: true,
-    });
+    if (errors.length === 0) {
+      await db.collection("invoices").doc(weekStart).update({
+        locked: true,
+        lockedAt: admin.firestore.FieldValue.serverTimestamp(),
+        exportedToXero: true,
+      });
+    } else {
+      await db.collection("invoices").doc(weekStart).update({
+        exportedToXero: false,
+        hasExportErrors: true,
+        lastExportAttempt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+    }
 
     logger.info(`Exported ${results.length} invoices to XERO`, {
       weekStart,
@@ -462,11 +518,13 @@ export const exportInvoicesToXero = onCall(
     });
 
     return {
-      success: true,
-      exported: results.length,
+      success: errors.length === 0,
+      exported: results.filter((r) => !r.skipped).length,
+      skipped: results.filter((r) => r.skipped).length,
       errors: errors.length,
       results,
       errorDetails: errors,
+      allExported: errors.length === 0,
     };
   }
 );
@@ -476,29 +534,37 @@ async function findXeroEmployee(
   tenantId: string,
   email: string
 ): Promise<any | null> {
-  const response = await fetch(
-    `${XERO_PAYROLL_URL}/Employees`,
-    {
-      headers: {
-        "Authorization": `Bearer ${accessToken}`,
-        "Xero-tenant-id": tenantId,
-        "Accept": "application/json",
-      },
-    }
-  );
+  const url = `${XERO_PAYROLL_AU_URL}/Employees`;
+
+  logger.info("Fetching Xero employees", {url, tenantId});
+
+  const response = await fetch(url, {
+    headers: {
+      "Authorization": `Bearer ${accessToken}`,
+      "Xero-tenant-id": tenantId,
+      "Accept": "application/json",
+    },
+  });
 
   if (!response.ok) {
     const errorText = await response.text();
-    logger.error("Failed to fetch employees:", {
+    logger.error("Failed to fetch employees", {
       status: response.status,
       statusText: response.statusText,
-      error: errorText,
+      errorBody: errorText,
+      url,
+      tenantId,
     });
     return null;
   }
 
   const data = await response.json();
   const employees = data.Employees || [];
+
+  logger.info("Xero employees fetched", {
+    count: employees.length,
+    emails: employees.map((emp: any) => emp.Email),
+  });
 
   const lowerEmail = email.toLowerCase();
   const found = employees.find((emp: any) =>
@@ -515,6 +581,41 @@ async function findXeroEmployee(
   return found;
 }
 
+async function getEarningsRateId(
+  accessToken: string,
+  tenantId: string,
+  employee: any
+): Promise<string | null> {
+  const templateEarningsRateId =
+    employee.PayTemplate?.EarningsLines?.[0]?.EarningsRateID;
+
+  if (templateEarningsRateId) {
+    return templateEarningsRateId;
+  }
+
+  try {
+    const response = await fetch(`${XERO_PAYROLL_AU_URL}/PayItems`, {
+      headers: {
+        "Authorization": `Bearer ${accessToken}`,
+        "Xero-tenant-id": tenantId,
+        "Accept": "application/json",
+      },
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      const ordinaryEarnings = data.PayItems?.EarningsRates?.find(
+        (rate: any) => rate.EarningsType === "ORDINARYTIMEEARNINGS"
+      );
+      return ordinaryEarnings?.EarningsRateID || null;
+    }
+  } catch (err) {
+    logger.warn("Failed to fetch PayItems for earnings rate", err);
+  }
+
+  return null;
+}
+
 export const exportPayrollToXero = onCall(
   {
     region: "australia-southeast1",
@@ -522,7 +623,7 @@ export const exportPayrollToXero = onCall(
     secrets: [xeroClientId, xeroClientSecret],
   },
   async (request) => {
-    const {weekStart} = request.data;
+    const {weekStart, tutorIds} = request.data;
 
     if (!weekStart) {
       throw new Error("Missing required field: weekStart");
@@ -542,24 +643,35 @@ export const exportPayrollToXero = onCall(
 
     const tenantId = tokenData.tenantId;
 
-    const payrollSnap = await db
-      .collection("payroll")
-      .doc(weekStart)
-      .collection("items")
-      .get();
-
-    if (payrollSnap.empty) {
-      throw new Error("No payroll data found for this week");
+    let payrollSnap;
+    if (tutorIds && tutorIds.length > 0) {
+      const payrollRefs = tutorIds.map((id: string) =>
+        db.collection("payroll").doc(weekStart).collection("items").doc(id)
+      );
+      const docs = await Promise.all(payrollRefs.map((ref: any) => ref.get()));
+      payrollSnap = {
+        empty: docs.every((d: any) => !d.exists),
+        docs: docs.filter((d: any) => d.exists),
+      };
+    } else {
+      payrollSnap = await db
+        .collection("payroll")
+        .doc(weekStart)
+        .collection("items")
+        .get();
     }
 
-    const tutorIds = payrollSnap.docs.map((d) => d.id);
+    if (payrollSnap.empty) {
+      throw new Error("No payroll data found to export");
+    }
 
+    const allTutorIds = payrollSnap.docs.map((d: any) => d.id);
     const tutorsSnap = await db
       .collection("tutors")
       .where(
         admin.firestore.FieldPath.documentId(),
         "in",
-        tutorIds.slice(0, 30)
+        allTutorIds.slice(0, 30)
       )
       .get();
 
@@ -572,50 +684,62 @@ export const exportPayrollToXero = onCall(
     const results: any[] = [];
     const errors: any[] = [];
 
+    const weekStartDate = dayjs(weekStart);
+    const weekEndDate = weekStartDate.add(6, "day");
+
     for (const payrollDoc of payrollSnap.docs) {
       const payroll = payrollDoc.data();
       const tutorEmail = tutorEmailMap.get(payrollDoc.id);
 
+      if (!tutorIds && payroll.exportedToXero) {
+        results.push({
+          tutorId: payrollDoc.id,
+          tutorName: payroll.tutorName,
+          skipped: true,
+          reason: "Already exported",
+        });
+        continue;
+      }
+
       if (!tutorEmail) {
+        const errorMsg = "Tutor email not found";
         errors.push({
           tutorId: payrollDoc.id,
           tutorName: payroll.tutorName,
-          error: "Tutor email not found",
+          error: errorMsg,
+        });
+
+        await payrollDoc.ref.update({
+          xeroExportError: errorMsg,
+          xeroExportAttemptedAt: admin.firestore.FieldValue.serverTimestamp(),
         });
         continue;
       }
 
       try {
-        const employee = await findXeroEmployee(accessToken,
-          tenantId, tutorEmail);
+        const employee = await findXeroEmployee(
+          accessToken,
+          tenantId,
+          tutorEmail
+        );
 
         if (!employee) {
+          const errorMsg = `Employee not found in XERO for email:
+            ${tutorEmail}`;
           errors.push({
             tutorId: payrollDoc.id,
             tutorName: payroll.tutorName,
-            error: `Employee not found in XERO for email: ${tutorEmail}`,
+            error: errorMsg,
+          });
+
+          await payrollDoc.ref.update({
+            xeroExportError: errorMsg,
+            xeroExportAttemptedAt: admin.firestore.FieldValue.serverTimestamp(),
           });
           continue;
         }
 
-        const weekEndDate = dayjs(weekStart).add(6, "day");
-        const timesheetLines: any[] = [];
-
-        if (payroll.totalHours > 0) {
-          const earningsRateId =
-            employee.PayTemplate?.EarningsLines?.[0]?.EarningsRateID;
-
-          if (earningsRateId) {
-            timesheetLines.push({
-              EarningsRateID: earningsRateId,
-              NumberOfUnits: [{
-                NumberOfUnits: payroll.totalHours,
-              }],
-            });
-          }
-        }
-
-        if (timesheetLines.length === 0) {
+        if (payroll.totalHours <= 0) {
           results.push({
             tutorId: payrollDoc.id,
             tutorName: payroll.tutorName,
@@ -625,42 +749,116 @@ export const exportPayrollToXero = onCall(
           continue;
         }
 
-        const timesheet = {
-          EmployeeID: employee.EmployeeID,
-          StartDate: dayjs(weekStart).format("YYYY-MM-DD"),
-          EndDate: weekEndDate.format("YYYY-MM-DD"),
-          Status: "DRAFT",
-          TimesheetLines: timesheetLines,
-        };
+        const earningsRateId = await getEarningsRateId(
+          accessToken,
+          tenantId,
+          employee
+        );
 
-        const createResponse = await fetch(`${XERO_PAYROLL_URL}/Timesheets`, {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${accessToken}`,
-            "Xero-tenant-id": tenantId,
-            "Content-Type": "application/json",
-            "Accept": "application/json",
-          },
-          body: JSON.stringify({Timesheets: [timesheet]}),
-        });
-
-        if (!createResponse.ok) {
-          const errorText = await createResponse.text();
+        if (!earningsRateId) {
+          const errorMsg = "No earnings rate found for employee";
           errors.push({
             tutorId: payrollDoc.id,
             tutorName: payroll.tutorName,
-            error: errorText,
+            error: errorMsg,
+          });
+
+          await payrollDoc.ref.update({
+            xeroExportError: errorMsg,
+            xeroExportAttemptedAt: admin.firestore.FieldValue.serverTimestamp(),
           });
           continue;
         }
 
-        const createData = await createResponse.json();
-        const createdTimesheet = createData.Timesheets?.[0];
+        const dailyUnits = [payroll.totalHours, 0, 0, 0, 0, 0, 0];
+
+        if (payroll.lessons && Array.isArray(payroll.lessons)) {
+          dailyUnits.fill(0);
+          for (const lesson of payroll.lessons) {
+            const lessonDate = dayjs(lesson.date || lesson.startDateTime);
+            const dayIndex = lessonDate.diff(weekStartDate, "day");
+            if (dayIndex >= 0 && dayIndex < 7) {
+              dailyUnits[dayIndex] += lesson.duration || lesson.hours || 0;
+            }
+          }
+        }
+
+        const timesheet = {
+          EmployeeID: employee.EmployeeID,
+          StartDate: toXeroDate(weekStartDate),
+          EndDate: toXeroDate(weekEndDate),
+          Status: "Draft",
+          TimesheetLines: [
+            {
+              EarningsRateID: earningsRateId,
+              NumberOfUnits: dailyUnits,
+            },
+          ],
+        };
+
+        logger.info("Creating timesheet", {
+          employeeId: employee.EmployeeID,
+          tutorName: payroll.tutorName,
+          totalHours: payroll.totalHours,
+          dailyUnits,
+        });
+
+        const createResponse = await fetch(
+          `${XERO_PAYROLL_AU_URL}/Timesheets`,
+          {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${accessToken}`,
+              "Xero-tenant-id": tenantId,
+              "Content-Type": "application/json",
+              "Accept": "application/json",
+            },
+            body: JSON.stringify([timesheet]),
+          }
+        );
+
+        const responseText = await createResponse.text();
+
+        if (!createResponse.ok) {
+          logger.error("Failed to create timesheet", {
+            status: createResponse.status,
+            response: responseText,
+          });
+
+          let errorMsg = responseText;
+          try {
+            const errorData = JSON.parse(responseText);
+            errorMsg = errorData.Message || responseText;
+          } catch {
+            // ignore JSON parse errors
+          }
+
+          errors.push({
+            tutorId: payrollDoc.id,
+            tutorName: payroll.tutorName,
+            error: errorMsg,
+          });
+
+          await payrollDoc.ref.update({
+            xeroExportError: errorMsg,
+            xeroExportAttemptedAt: admin.firestore.FieldValue.serverTimestamp(),
+          });
+          continue;
+        }
+
+        let createdTimesheet: any = null;
+        try {
+          const createData = JSON.parse(responseText);
+          createdTimesheet = createData.Timesheets?.[0];
+        } catch {
+          logger.warn("Could not parse timesheet response", {responseText});
+        }
 
         await payrollDoc.ref.update({
-          xeroTimesheetId: createdTimesheet?.TimesheetID,
+          xeroTimesheetId: createdTimesheet?.TimesheetID || null,
           exportedToXero: true,
           exportedAt: admin.firestore.FieldValue.serverTimestamp(),
+          xeroExportError: admin.firestore.FieldValue.delete(),
         });
 
         results.push({
@@ -670,10 +868,18 @@ export const exportPayrollToXero = onCall(
           hours: payroll.totalHours,
         });
       } catch (err: any) {
+        logger.error("Error processing payroll", {
+          tutorId: payrollDoc.id,
+          error: err.message,
+        });
         errors.push({
           tutorId: payrollDoc.id,
           tutorName: payroll.tutorName,
           error: err.message,
+        });
+        await payrollDoc.ref.update({
+          xeroExportError: err.message,
+          xeroExportAttemptedAt: admin.firestore.FieldValue.serverTimestamp(),
         });
       }
     }
@@ -681,18 +887,27 @@ export const exportPayrollToXero = onCall(
     await db.collection("xeroExportHistory").add({
       type: "payroll",
       weekStart,
+      isRetry: !!tutorIds,
       exportedAt: admin.firestore.FieldValue.serverTimestamp(),
-      successCount: results.length,
+      successCount: results.filter((r) => !r.skipped).length,
       errorCount: errors.length,
       results,
       errors,
     });
 
-    await db.collection("payroll").doc(weekStart).update({
-      locked: true,
-      lockedAt: admin.firestore.FieldValue.serverTimestamp(),
-      exportedToXero: true,
-    });
+    if (errors.length === 0) {
+      await db.collection("payroll").doc(weekStart).update({
+        locked: true,
+        lockedAt: admin.firestore.FieldValue.serverTimestamp(),
+        exportedToXero: true,
+      });
+    } else {
+      await db.collection("payroll").doc(weekStart).update({
+        exportedToXero: false,
+        hasExportErrors: true,
+        lastExportAttempt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+    }
 
     logger.info(`Exported ${results.length} timesheets to XERO`, {
       weekStart,
@@ -700,11 +915,13 @@ export const exportPayrollToXero = onCall(
     });
 
     return {
-      success: true,
-      exported: results.length,
+      success: errors.length === 0,
+      exported: results.filter((r) => !r.skipped).length,
+      skipped: results.filter((r) => r.skipped).length,
       errors: errors.length,
       results,
       errorDetails: errors,
+      allExported: errors.length === 0,
     };
   }
 );

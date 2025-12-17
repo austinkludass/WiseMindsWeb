@@ -4,9 +4,14 @@ import {
   Paper,
   Button,
   Typography,
+  Stack,
   IconButton,
   CircularProgress,
+  Chip,
+  Alert,
   useTheme,
+  Tooltip,
+  Collapse,
   Table,
   TableBody,
   TableCell,
@@ -14,49 +19,41 @@ import {
   TableHead,
   TableRow,
   Avatar,
-  Chip,
-  Collapse,
-  Stack,
-  Tooltip,
-  Alert,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
 } from "@mui/material";
 import {
   getWeekRange,
   nextWeek,
   prevWeek,
   getCurrentWeekStart,
-  fetchLessonsForWeek,
-  fetchTutors,
   fetchPayrollMeta,
   fetchPayrollItems,
   fetchPendingRequests,
   calculateTutorHoursPreview,
   calculatePayrollTotals,
   calculatePreviewTotals,
+  fetchTutors,
 } from "../../utils/PayrollUtils";
+import { fetchLessonsForWeek } from "../../utils/InvoiceUtils";
 import { getFunctions, httpsCallable } from "firebase/functions";
 import { app } from "../../data/firebase";
 import { tokens } from "../../theme";
 import { AuthContext } from "../../context/AuthContext";
+import XeroExportResultsDialog from "../../components/Invoice/XeroExportResultsDialog";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import LockIcon from "@mui/icons-material/Lock";
+import PendingIcon from "@mui/icons-material/Pending";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
-import SchoolIcon from "@mui/icons-material/School";
-import AccessTimeIcon from "@mui/icons-material/AccessTime";
-import LockIcon from "@mui/icons-material/Lock";
 import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
-import PendingIcon from "@mui/icons-material/Pending";
-import CloudUploadIcon from "@mui/icons-material/CloudUpload";
+import WarningIcon from "@mui/icons-material/Warning";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import ErrorIcon from "@mui/icons-material/Error";
+import RefreshIcon from "@mui/icons-material/Refresh";
 import Header from "../../components/Global/Header";
-import { ToastContainer, toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
 import dayjs from "dayjs";
+import { toast } from "react-toastify";
 
 const functions = getFunctions(app, "australia-southeast1");
 
@@ -68,7 +65,6 @@ const PayrollPage = () => {
   const [weekStart, setWeekStart] = useState(getCurrentWeekStart());
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
-  const [exporting, setExporting] = useState(false);
   const [tutors, setTutors] = useState([]);
   const [lessons, setLessons] = useState([]);
   const [payrollMeta, setPayrollMeta] = useState(null);
@@ -76,8 +72,10 @@ const PayrollPage = () => {
   const [pendingRequests, setPendingRequests] = useState([]);
   const [expandedTutor, setExpandedTutor] = useState(null);
   const [processingRequest, setProcessingRequest] = useState(null);
-  const [exportResult, setExportResult] = useState(null);
-  const [showExportDialog, setShowExportDialog] = useState(false);
+
+  const [exporting, setExporting] = useState(false);
+  const [exportResults, setExportResults] = useState(null);
+  const [showExportResults, setShowExportResults] = useState(false);
 
   const week = getWeekRange(weekStart);
   const isGenerated = payrollMeta?.generated === true;
@@ -93,6 +91,17 @@ const PayrollPage = () => {
 
   const canGenerate =
     lessons.length > 0 && isPastOrCurrentFriday && !isGenerated && !isLocked;
+
+  const hasExportErrors = payrollItems.some((item) => item.xeroExportError);
+  const failedPayrollItems = payrollItems.filter(
+    (item) => item.xeroExportError
+  );
+  const allExported =
+    payrollItems.length > 0 &&
+    payrollItems.every((item) => item.exportedToXero);
+
+  const canExport = isGenerated && !isLocked && pendingRequests.length === 0;
+  const canRetryExport = isGenerated && hasExportErrors && !isLocked;
 
   useEffect(() => {
     const loadTutors = async () => {
@@ -198,35 +207,55 @@ const PayrollPage = () => {
     }
   };
 
-  const handleExportToXero = async () => {
+  const handleExportToXero = async (tutorIds = null) => {
+    if (pendingRequests.length > 0 && !tutorIds) {
+      toast.error(
+        "Cannot export payroll while there are pending additional hours requests"
+      );
+      return;
+    }
+
     setExporting(true);
-    setExportResult(null);
     try {
       const exportFn = httpsCallable(functions, "exportPayrollToXero");
       const result = await exportFn({
         weekStart: week.start.format("YYYY-MM-DD"),
+        tutorIds: tutorIds,
       });
 
-      setExportResult(result.data);
-      setShowExportDialog(true);
+      setExportResults(result.data);
+      setShowExportResults(true);
 
-      const meta = await fetchPayrollMeta(week.start);
+      const [meta, items] = await Promise.all([
+        fetchPayrollMeta(week.start),
+        fetchPayrollItems(week.start),
+      ]);
       setPayrollMeta(meta);
-
-      const items = await fetchPayrollItems(week.start);
       setPayrollItems(items);
 
-      toast.success("Payroll exported to XERO");
+      if (result.data.allExported) {
+        toast.success(
+          `Successfully exported ${result.data.exported} timesheets to XERO`
+        );
+      } else {
+        toast.warning(
+          `Exported ${result.data.exported} timesheets, ${result.data.errors} failed`
+        );
+      }
     } catch (error) {
-      console.error("Failed to export to XERO:", error);
-      setExportResult({
-        success: false,
-        error: error.message || "Failed to export to XERO",
-      });
-      setShowExportDialog(true);
+      toast.error("Failed to export payroll: " + error.message);
     } finally {
       setExporting(false);
     }
+  };
+
+  const handleRetryAllFailed = async () => {
+    const failedIds = failedPayrollItems.map((item) => item.id);
+    await handleExportToXero(failedIds);
+  };
+
+  const handleRetryItem = async (item) => {
+    await handleExportToXero([item.tutorId]);
   };
 
   const handleApproveRequest = async (requestId, approved) => {
@@ -330,6 +359,14 @@ const PayrollPage = () => {
         </Alert>
       )}
 
+      {hasExportErrors && !isLocked && (
+        <Alert severity="warning" icon={<WarningIcon />} sx={{ mb: 3 }}>
+          {failedPayrollItems.length} timesheet
+          {failedPayrollItems.length > 1 ? "s" : ""} failed to export to XERO.
+          Fix the issues and retry.
+        </Alert>
+      )}
+
       {isFutureWeek && !isGenerated && !isLocked && (
         <Alert severity="warning" sx={{ mb: 3 }}>
           Payroll can be generated from{" "}
@@ -396,30 +433,38 @@ const PayrollPage = () => {
                 </span>
               </Tooltip>
             ) : isGenerated && !isLocked ? (
-              <Tooltip
-                title={
-                  pendingRequests.length > 0
-                    ? "Approve or decline all pending requests before exporting"
-                    : ""
-                }
-              >
-                <span>
+              <Box display="flex" gap={1}>
+                {!allExported && (
                   <Button
                     variant="outlined"
-                    onClick={handleExportToXero}
+                    onClick={() => handleExportToXero()}
                     disabled={exporting || pendingRequests.length > 0}
                     startIcon={
-                      exporting ? (
-                        <CircularProgress size={16} />
-                      ) : (
-                        <CloudUploadIcon />
-                      )
+                      exporting ? <CircularProgress size={20} /> : <LockIcon />
                     }
                   >
                     {exporting ? "Exporting..." : "Export to XERO"}
                   </Button>
-                </span>
-              </Tooltip>
+                )}
+
+                {canRetryExport && (
+                  <Button
+                    variant="outlined"
+                    color="warning"
+                    onClick={handleRetryAllFailed}
+                    disabled={exporting}
+                    startIcon={
+                      exporting ? (
+                        <CircularProgress size={20} />
+                      ) : (
+                        <RefreshIcon />
+                      )
+                    }
+                  >
+                    Retry Failed ({failedPayrollItems.length})
+                  </Button>
+                )}
+              </Box>
             ) : null}
 
             {!isGenerated && !isFutureWeek && !canGenerate && (
@@ -466,17 +511,23 @@ const PayrollPage = () => {
             </Alert>
           )}
 
-          <Stack spacing={2}>
+          <Stack spacing={1}>
             {pendingRequests.map((request) => (
-              <Paper key={request.id} variant="outlined" sx={{ p: 2 }}>
+              <Paper
+                key={request.id}
+                sx={{
+                  p: 2,
+                  bgcolor: "background.default",
+                }}
+              >
                 <Box
                   display="flex"
                   justifyContent="space-between"
-                  alignItems="flex-start"
+                  alignItems="center"
                 >
-                  <Box flex={1}>
+                  <Box>
                     <Typography variant="subtitle1" fontWeight="bold">
-                      {request.tutorName}
+                      {request.tutorName} - {request.hours}h
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
                       {request.description}
@@ -485,22 +536,13 @@ const PayrollPage = () => {
                       <Typography
                         variant="body2"
                         color="text.secondary"
-                        sx={{ mt: 1, fontStyle: "italic" }}
+                        sx={{ fontStyle: "italic" }}
                       >
-                        Reason: {request.notes}
+                        {request.notes}
                       </Typography>
                     )}
-                    <Typography variant="body2" color="text.secondary">
-                      Submitted:{" "}
-                      {dayjs(request.createdAt).format("MMM D, YYYY h:mm A")}
-                    </Typography>
                   </Box>
-                  <Box display="flex" alignItems="center" gap={2}>
-                    <Chip
-                      label={formatHours(request.hours)}
-                      color="primary"
-                      icon={<AccessTimeIcon />}
-                    />
+                  <Box display="flex" gap={1}>
                     {isGenerated && (
                       <>
                         <Tooltip title="Approve">
@@ -571,8 +613,8 @@ const PayrollPage = () => {
                 <TableCell align="center">
                   {isGenerated ? "Total Hours" : "Hours"}
                 </TableCell>
-                {isGenerated && payrollItems.some((p) => p.xeroTimesheetId) && (
-                  <TableCell align="center">XERO</TableCell>
+                {isGenerated && (
+                  <TableCell align="center">XERO Status</TableCell>
                 )}
               </TableRow>
             </TableHead>
@@ -580,14 +622,21 @@ const PayrollPage = () => {
               {displayData.map((tutor) => (
                 <>
                   <TableRow
-                    key={tutor.tutorId}
+                    key={tutor.tutorId || tutor.id}
                     hover
-                    sx={{ cursor: "pointer" }}
-                    onClick={() => toggleExpand(tutor.tutorId)}
+                    sx={{
+                      cursor: "pointer",
+                      borderLeft: tutor.xeroExportError
+                        ? `4px solid ${theme.palette.warning.main}`
+                        : tutor.exportedToXero
+                        ? `4px solid ${theme.palette.success.main}`
+                        : "4px solid transparent",
+                    }}
+                    onClick={() => toggleExpand(tutor.tutorId || tutor.id)}
                   >
                     <TableCell>
                       <IconButton size="small">
-                        {expandedTutor === tutor.tutorId ? (
+                        {expandedTutor === (tutor.tutorId || tutor.id) ? (
                           <ExpandLessIcon />
                         ) : (
                           <ExpandMoreIcon />
@@ -595,195 +644,148 @@ const PayrollPage = () => {
                       </IconButton>
                     </TableCell>
                     <TableCell>
-                      <Box display="flex" alignItems="center" gap={2}>
+                      <Box display="flex" alignItems="center" gap={1}>
                         <Avatar
                           src={tutor.avatar}
                           sx={{
-                            bgcolor: tutor.tutorColor,
-                            width: 40,
-                            height: 40,
+                            width: 32,
+                            height: 32,
+                            bgcolor:
+                              tutor.tutorColor || colors.orangeAccent[400],
                           }}
                         >
-                          <Typography variant="h6" color="white">
-                            {tutor.tutorName?.charAt(0)}
-                          </Typography>
+                          {tutor.tutorName?.charAt(0)}
                         </Avatar>
-                        <Typography variant="body1">
-                          {tutor.tutorName}
-                        </Typography>
+                        <Typography>{tutor.tutorName}</Typography>
                       </Box>
                     </TableCell>
-                    <TableCell align="center">
-                      <Chip
-                        icon={<SchoolIcon />}
-                        label={tutor.lessonCount}
-                        size="small"
-                        variant="outlined"
-                      />
-                    </TableCell>
+                    <TableCell align="center">{tutor.lessonCount}</TableCell>
                     <TableCell align="center">
                       {formatHours(tutor.lessonHours)}
                     </TableCell>
                     {isGenerated && (
                       <TableCell align="center">
-                        {tutor.additionalHours > 0 ? (
-                          <Chip
-                            icon={<AccessTimeIcon />}
-                            label={formatHours(tutor.additionalHours)}
-                            size="small"
-                            color="primary"
-                          />
-                        ) : (
-                          "-"
-                        )}
+                        {formatHours(tutor.additionalHours || 0)}
                       </TableCell>
                     )}
                     <TableCell align="center">
-                      <Typography variant="body1" fontWeight="bold">
-                        {formatHours(
-                          isGenerated ? tutor.totalHours : tutor.lessonHours
-                        )}
+                      <Typography fontWeight="bold">
+                        {formatHours(tutor.totalHours || tutor.lessonHours)}
                       </Typography>
                     </TableCell>
-                    {isGenerated &&
-                      payrollItems.some((p) => p.xeroTimesheetId) && (
-                        <TableCell align="center">
-                          {tutor.xeroTimesheetId ? (
+                    {isGenerated && (
+                      <TableCell align="center">
+                        {tutor.exportedToXero ? (
+                          <Tooltip title="Exported to XERO">
+                            <CheckCircleIcon color="success" />
+                          </Tooltip>
+                        ) : tutor.xeroExportError ? (
+                          <Tooltip title={tutor.xeroExportError}>
                             <Chip
-                              label="✓"
                               size="small"
-                              color="success"
-                              variant="outlined"
+                              icon={<ErrorIcon />}
+                              label="Failed"
+                              color="warning"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleExportToXero([tutor.id]);
+                              }}
+                              sx={{ cursor: "pointer" }}
                             />
-                          ) : (
-                            "-"
-                          )}
-                        </TableCell>
-                      )}
+                          </Tooltip>
+                        ) : (
+                          <Typography variant="body2" color="text.secondary">
+                            Pending
+                          </Typography>
+                        )}
+                      </TableCell>
+                    )}
                   </TableRow>
-
                   <TableRow>
                     <TableCell
-                      colSpan={
-                        isGenerated
-                          ? payrollItems.some((p) => p.xeroTimesheetId)
-                            ? 8
-                            : 7
-                          : 6
-                      }
-                      sx={{ py: 0, borderBottom: "none" }}
+                      colSpan={isGenerated ? 7 : 5}
+                      sx={{ p: 0, border: 0 }}
                     >
                       <Collapse
-                        in={expandedTutor === tutor.tutorId}
+                        in={expandedTutor === (tutor.tutorId || tutor.id)}
                         timeout="auto"
                         unmountOnExit
                       >
-                        <Box sx={{ py: 2, px: 4 }}>
-                          {tutor.lessons?.length > 0 && (
-                            <Box mb={2}>
-                              <Typography
-                                variant="subtitle2"
-                                color="text.secondary"
-                                gutterBottom
-                              >
-                                Lessons
-                              </Typography>
-                              <Stack spacing={1}>
-                                {tutor.lessons.map((lesson, idx) => (
-                                  <Paper
-                                    key={idx}
-                                    variant="outlined"
-                                    sx={{ p: 1.5 }}
+                        <Box sx={{ p: 2, bgcolor: "background.default" }}>
+                          <Typography
+                            variant="subtitle2"
+                            color={colors.orangeAccent[400]}
+                            gutterBottom
+                          >
+                            Lessons
+                          </Typography>
+                          {tutor.lessons?.length > 0 ? (
+                            <Stack spacing={1}>
+                              {tutor.lessons.map((lesson, idx) => (
+                                <Box
+                                  key={idx}
+                                  display="flex"
+                                  justifyContent="space-between"
+                                  alignItems="center"
+                                >
+                                  <Typography variant="body2">
+                                    {lesson.subjectGroupName || lesson.subject}{" "}
+                                    -{" "}
+                                    {lesson.studentNames?.join(", ") ||
+                                      lesson.studentName}
+                                  </Typography>
+                                  <Typography
+                                    variant="body2"
+                                    color="text.secondary"
                                   >
-                                    <Box
-                                      display="flex"
-                                      justifyContent="space-between"
-                                      alignItems="center"
-                                    >
-                                      <Box>
-                                        <Typography variant="body2">
-                                          {dayjs(lesson.date).format(
-                                            "ddd, MMM D @ h:mm A"
-                                          )}
-                                        </Typography>
-                                        <Typography
-                                          variant="body2"
-                                          color="text.secondary"
-                                        >
-                                          {lesson.subjectGroupName} •{" "}
-                                          {lesson.studentNames?.join(", ")}
-                                        </Typography>
-                                      </Box>
-                                      <Chip
-                                        label={formatHours(lesson.duration)}
-                                        size="small"
-                                      />
-                                    </Box>
-                                  </Paper>
-                                ))}
-                              </Stack>
-                            </Box>
+                                    {dayjs(
+                                      lesson.startDateTime || lesson.date
+                                    ).format("ddd DD/MM")}{" "}
+                                    • {formatHours(lesson.duration)}
+                                  </Typography>
+                                </Box>
+                              ))}
+                            </Stack>
+                          ) : (
+                            <Typography variant="body2" color="text.secondary">
+                              No lesson details available
+                            </Typography>
                           )}
 
                           {isGenerated &&
                             tutor.additionalHoursDetails?.length > 0 && (
-                              <Box>
+                              <>
                                 <Typography
                                   variant="subtitle2"
                                   color={colors.orangeAccent[400]}
                                   gutterBottom
+                                  sx={{ mt: 2 }}
                                 >
                                   Additional Hours
                                 </Typography>
                                 <Stack spacing={1}>
                                   {tutor.additionalHoursDetails.map(
-                                    (entry, idx) => (
-                                      <Paper
+                                    (detail, idx) => (
+                                      <Box
                                         key={idx}
-                                        variant="outlined"
-                                        sx={{ p: 1.5 }}
+                                        display="flex"
+                                        justifyContent="space-between"
+                                        alignItems="center"
                                       >
-                                        <Box
-                                          display="flex"
-                                          justifyContent="space-between"
-                                          alignItems="center"
+                                        <Typography variant="body2">
+                                          {detail.description}
+                                        </Typography>
+                                        <Typography
+                                          variant="body2"
+                                          color="text.secondary"
                                         >
-                                          <Box>
-                                            <Typography variant="body2">
-                                              {entry.description}
-                                            </Typography>
-                                            {entry.notes && (
-                                              <Typography
-                                                variant="body2"
-                                                color="text.secondary"
-                                                fontStyle="italic"
-                                              >
-                                                {entry.notes}
-                                              </Typography>
-                                            )}
-                                          </Box>
-                                          <Chip
-                                            label={formatHours(entry.hours)}
-                                            size="small"
-                                            color="primary"
-                                          />
-                                        </Box>
-                                      </Paper>
+                                          {formatHours(detail.hours)}
+                                        </Typography>
+                                      </Box>
                                     )
                                   )}
                                 </Stack>
-                              </Box>
-                            )}
-
-                          {tutor.lessons?.length === 0 &&
-                            (!tutor.additionalHoursDetails ||
-                              tutor.additionalHoursDetails.length === 0) && (
-                              <Typography
-                                variant="body2"
-                                color="text.secondary"
-                              >
-                                No details to display
-                              </Typography>
+                              </>
                             )}
                         </Box>
                       </Collapse>
@@ -796,53 +798,15 @@ const PayrollPage = () => {
         </TableContainer>
       )}
 
-      <Dialog
-        open={showExportDialog}
-        onClose={() => setShowExportDialog(false)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>
-          {exportResult?.success ? "Export Successful" : "Export Result"}
-        </DialogTitle>
-        <DialogContent>
-          {exportResult?.success ? (
-            <Box>
-              <Alert severity="success" sx={{ mb: 2 }}>
-                Successfully exported {exportResult.exported} timesheets to XERO
-              </Alert>
-
-              {exportResult.errors > 0 && (
-                <Alert severity="warning" sx={{ mb: 2 }}>
-                  {exportResult.errors} timesheets could not be exported
-                </Alert>
-              )}
-
-              {exportResult.errorDetails?.length > 0 && (
-                <Box>
-                  <Typography variant="subtitle2" gutterBottom>
-                    Errors:
-                  </Typography>
-                  {exportResult.errorDetails.map((err, idx) => (
-                    <Alert key={idx} severity="error" sx={{ mb: 1 }}>
-                      <strong>{err.tutorName}:</strong> {err.error}
-                    </Alert>
-                  ))}
-                </Box>
-              )}
-            </Box>
-          ) : (
-            <Alert severity="error">
-              {exportResult?.error || "Failed to export payroll"}
-            </Alert>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setShowExportDialog(false)}>Close</Button>
-        </DialogActions>
-      </Dialog>
-
-      <ToastContainer position="top-right" autoClose={3000} />
+      <XeroExportResultsDialog
+        open={showExportResults}
+        onClose={() => setShowExportResults(false)}
+        results={exportResults}
+        type="payroll"
+        onRetryAll={handleRetryAllFailed}
+        onRetryItem={handleRetryItem}
+        retrying={exporting}
+      />
     </Box>
   );
 };

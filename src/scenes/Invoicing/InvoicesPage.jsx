@@ -13,10 +13,6 @@ import {
   TextField,
   Chip,
   Alert,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
 } from "@mui/material";
 import {
   getWeekRange,
@@ -31,17 +27,19 @@ import {
 } from "../../utils/InvoiceUtils";
 import { getFunctions, httpsCallable } from "firebase/functions";
 import { PieChart } from "@mui/x-charts/PieChart";
-import { Edit } from "@mui/icons-material";
+import { Edit, Refresh } from "@mui/icons-material";
 import { app } from "../../data/firebase";
 import EditInvoiceDialog from "../../components/Invoice/EditInvoiceDialog";
+import XeroExportResultsDialog from "../../components/Invoice/XeroExportResultsDialog";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import ErrorIcon from "@mui/icons-material/Error";
 import LockIcon from "@mui/icons-material/Lock";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import CloudUploadIcon from "@mui/icons-material/CloudUpload";
+import WarningIcon from "@mui/icons-material/Warning";
 import Header from "../../components/Global/Header";
 import dayjs from "dayjs";
+import { toast } from "react-toastify";
 
 const functions = getFunctions(app, "australia-southeast1");
 const valueFormatter = (item) =>
@@ -59,9 +57,10 @@ const InvoicesPage = () => {
   const [search, setSearch] = useState("");
   const [weekMeta, setWeekMeta] = useState(null);
   const [loading, setLoading] = useState(false);
+
   const [exporting, setExporting] = useState(false);
-  const [exportResult, setExportResult] = useState(null);
-  const [showExportDialog, setShowExportDialog] = useState(false);
+  const [exportResults, setExportResults] = useState(null);
+  const [showExportResults, setShowExportResults] = useState(false);
 
   const statusColorMap = {
     Present: theme.palette.success.main,
@@ -82,6 +81,12 @@ const InvoicesPage = () => {
 
   const alreadyGenerated = weekMeta?.generated === true;
 
+  const hasExportErrors = existingInvoices.some((inv) => inv.xeroExportError);
+  const failedInvoices = existingInvoices.filter((inv) => inv.xeroExportError);
+  const allExported =
+    existingInvoices.length > 0 &&
+    existingInvoices.every((inv) => inv.exportedToXero);
+
   const canGenerate =
     weekLessons.length > 0 &&
     isPastOrCurrentFriday &&
@@ -89,6 +94,8 @@ const InvoicesPage = () => {
     !weekMeta?.locked;
 
   const canExport = alreadyGenerated && !weekMeta?.locked;
+  const canRetryExport =
+    alreadyGenerated && hasExportErrors && !weekMeta?.locked;
 
   const load = async () => {
     setLoading(true);
@@ -132,38 +139,56 @@ const InvoicesPage = () => {
 
       const meta = await fetchWeekMeta(week.start);
       setWeekMeta(meta);
+
+      toast.success("Invoices generated successfully");
     } catch (error) {
       console.error("Failed to generate invoices:", error);
+      toast.error("Failed to generate invoices: " + error.message);
     }
     setLoading(false);
   };
 
-  const exportToXero = async () => {
+  const handleExportToXero = async (invoiceIds = null) => {
     setExporting(true);
-    setExportResult(null);
     try {
       const exportFn = httpsCallable(functions, "exportInvoicesToXero");
       const result = await exportFn({
         weekStart: week.start.format("YYYY-MM-DD"),
+        invoiceIds: invoiceIds,
       });
 
-      setExportResult(result.data);
-      setShowExportDialog(true);
+      setExportResults(result.data);
+      setShowExportResults(true);
+
+      const inv = await fetchInvoicesForWeek(week.start.format("YYYY-MM-DD"));
+      setExistingInvoices(inv);
 
       const meta = await fetchWeekMeta(week.start);
       setWeekMeta(meta);
 
-      const inv = await fetchInvoicesForWeek(week.start.format("YYYY-MM-DD"));
-      setExistingInvoices(inv);
+      if (result.data.allExported) {
+        toast.success(
+          `Successfully exported ${result.data.exported} invoices to XERO`
+        );
+      } else {
+        toast.warning(
+          `Exported ${result.data.exported} invoices, ${result.data.errors} failed`
+        );
+      }
     } catch (error) {
-      console.error("Failed to export to XERO:", error);
-      setExportResult({
-        success: false,
-        error: error.message || "Failed to export to XERO",
-      });
-      setShowExportDialog(true);
+      console.error("Failed to export invoices:", error);
+      toast.error("Failed to export invoices: " + error.message);
     }
     setExporting(false);
+  };
+
+  const handleRetryAllFailed = async () => {
+    const failedIds = failedInvoices.map((inv) => inv.id);
+    await handleExportToXero(failedIds);
+  };
+
+  const handleRetryItem = async (item) => {
+    await handleExportToXero([item.invoiceId]);
   };
 
   const filteredStatus = statusBreakdown.filter((item) => item.count > 0);
@@ -284,7 +309,15 @@ const InvoicesPage = () => {
 
           {weekMeta?.locked && (
             <Alert severity="info" icon={<LockIcon />} sx={{ mb: 2 }}>
-              Invoices have been exported to XERO
+              All invoices have been exported to XERO
+            </Alert>
+          )}
+
+          {hasExportErrors && !weekMeta?.locked && (
+            <Alert severity="warning" icon={<WarningIcon />} sx={{ mb: 2 }}>
+              {failedInvoices.length} invoice
+              {failedInvoices.length > 1 ? "s" : ""} failed to export to XERO.
+              Fix the issues and retry.
             </Alert>
           )}
 
@@ -325,22 +358,31 @@ const InvoicesPage = () => {
               </Typography>
             )}
 
-          <Box mt={2}>
-            {canExport && (
+          <Box mt={2} display="flex" gap={1}>
+            {canExport && !allExported && (
               <Button
                 variant="outlined"
                 size="small"
-                onClick={exportToXero}
+                onClick={() => handleExportToXero()}
                 disabled={exporting}
-                startIcon={
-                  exporting ? (
-                    <CircularProgress size={16} />
-                  ) : (
-                    <CloudUploadIcon />
-                  )
-                }
+                startIcon={exporting ? <CircularProgress size={16} /> : null}
               >
                 {exporting ? "Exporting..." : "Export to XERO"}
+              </Button>
+            )}
+
+            {canRetryExport && (
+              <Button
+                variant="outlined"
+                size="small"
+                color="warning"
+                onClick={handleRetryAllFailed}
+                disabled={exporting}
+                startIcon={
+                  exporting ? <CircularProgress size={16} /> : <Refresh />
+                }
+              >
+                Retry Failed ({failedInvoices.length})
               </Button>
             )}
           </Box>
@@ -401,18 +443,7 @@ const InvoicesPage = () => {
         <Box display="flex" justifyContent="center" py={4}>
           <CircularProgress />
         </Box>
-      ) : existingInvoices.length === 0 ? (
-        <Paper sx={{ p: 4, textAlign: "center" }}>
-          <Typography variant="h6" color="text.secondary">
-            No invoices for this week
-          </Typography>
-          <Typography variant="body2" color="text.secondary" mt={1}>
-            {weekLessons.length > 0
-              ? "Generate invoices to see them here"
-              : "No lessons found for this week"}
-          </Typography>
-        </Paper>
-      ) : (
+      ) : existingInvoices.length > 0 ? (
         <Paper sx={{ p: 2 }}>
           <Box
             display="flex"
@@ -421,11 +452,11 @@ const InvoicesPage = () => {
             mb={2}
           >
             <Typography variant="h6">
-              Invoices ({filteredInvoices.length})
+              Invoices ({existingInvoices.length})
             </Typography>
             <TextField
               size="small"
-              placeholder="Search invoices..."
+              label="Search invoices"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               sx={{ width: 250 }}
@@ -435,86 +466,56 @@ const InvoicesPage = () => {
           {filteredInvoices.map((inv) => (
             <Paper
               key={inv.id}
-              variant="outlined"
-              sx={{ p: 2, mb: 2, borderRadius: 2 }}
+              sx={{
+                p: 2,
+                mb: 2,
+                border: inv.xeroExportError
+                  ? `2px solid ${theme.palette.warning.main}`
+                  : inv.exportedToXero
+                  ? `1px solid ${theme.palette.success.main}`
+                  : "1px solid transparent",
+              }}
             >
               <Grid
                 container
-                sx={{
-                  display: "grid",
-                  gridTemplateColumns: "6fr 3fr 1fr",
-                  gap: 2,
-                  width: "100%",
-                }}
+                justifyContent="space-between"
+                alignItems="center"
               >
-                <Grid xs={4}>
-                  <Typography variant="subtitle1" fontWeight="bold">
-                    {inv.familyName}
-                  </Typography>
+                <Grid>
+                  <Box display="flex" alignItems="center" gap={1}>
+                    <Typography variant="h6">{inv.familyName}</Typography>
+                    {inv.exportedToXero && (
+                      <Tooltip
+                        title={`Exported to XERO (Invoice #${
+                          inv.xeroInvoiceNumber || "N/A"
+                        })`}
+                      >
+                        <CheckCircleIcon color="success" fontSize="small" />
+                      </Tooltip>
+                    )}
+                    {inv.xeroExportError && (
+                      <Tooltip title={inv.xeroExportError}>
+                        <Chip
+                          size="small"
+                          icon={<ErrorIcon />}
+                          label="Export Failed"
+                          color="warning"
+                          onClick={() => handleExportToXero([inv.id])}
+                          sx={{ cursor: "pointer" }}
+                        />
+                      </Tooltip>
+                    )}
+                  </Box>
                   <Typography variant="body2" color="text.secondary">
                     {inv.parentEmail}
                   </Typography>
-                  {inv.xeroInvoiceNumber && (
-                    <Chip
-                      label={`XERO #${inv.xeroInvoiceNumber}`}
-                      size="small"
-                      color="info"
-                      variant="outlined"
-                      sx={{ mt: 0.5 }}
-                    />
-                  )}
                 </Grid>
 
-                <Grid xs={4}>
-                  <Typography variant="subtitle2" color="text.secondary">
-                    Total Amount
+                <Grid display="flex" alignItems="center" gap={1}>
+                  <Typography variant="h6" color="primary">
+                    ${inv.total?.toFixed(2)}
                   </Typography>
-                  <Box display="flex" alignItems="center" gap={1}>
-                    {(inv.totalDiscount > 0 || inv.totalCredit > 0) &&
-                      inv.subtotal !== inv.total && (
-                        <Typography
-                          sx={{
-                            textDecoration: "line-through",
-                            color: "text.secondary",
-                            fontSize: "0.85rem",
-                          }}
-                        >
-                          ${(inv.subtotal || inv.total).toFixed(2)}
-                        </Typography>
-                      )}
-                    <Typography color="primary" fontWeight="bold">
-                      ${inv.total.toFixed(2)}
-                    </Typography>
-                  </Box>
-                  <Box display="flex" gap={0.5} mt={0.5} flexWrap="wrap">
-                    {inv.totalDiscount > 0 && (
-                      <Chip
-                        size="small"
-                        label={`-$${inv.totalDiscount.toFixed(2)} discount`}
-                        color="success"
-                        variant="outlined"
-                        sx={{ fontSize: "0.7rem", height: 20 }}
-                      />
-                    )}
-                    {inv.totalCredit > 0 && (
-                      <Chip
-                        size="small"
-                        label={`-$${inv.totalCredit.toFixed(2)} credit`}
-                        color="primary"
-                        variant="outlined"
-                        sx={{ fontSize: "0.7rem", height: 20 }}
-                      />
-                    )}
-                  </Box>
-                </Grid>
 
-                <Grid
-                  xs={4}
-                  display="flex"
-                  alignItems="center"
-                  justifySelf="end"
-                  gap={1}
-                >
                   <Tooltip
                     sx={{
                       visibility: inv.editedSinceGeneration
@@ -534,6 +535,19 @@ const InvoicesPage = () => {
                     <IconButton onClick={() => setEditingInvoice(inv)}>
                       <Edit />
                     </IconButton>
+                  )}
+
+                  {inv.xeroExportError && !weekMeta?.locked && (
+                    <Tooltip title="Retry export for this invoice">
+                      <IconButton
+                        onClick={() => handleExportToXero([inv.id])}
+                        disabled={exporting}
+                        size="small"
+                        color="warning"
+                      >
+                        <Refresh />
+                      </IconButton>
+                    </Tooltip>
                   )}
                 </Grid>
               </Grid>
@@ -620,6 +634,14 @@ const InvoicesPage = () => {
             </Paper>
           ))}
         </Paper>
+      ) : (
+        alreadyGenerated === false && (
+          <Paper sx={{ p: 4, textAlign: "center" }}>
+            <Typography color="text.secondary">
+              No invoices generated for this week yet.
+            </Typography>
+          </Paper>
+        )
       )}
 
       <EditInvoiceDialog
@@ -645,51 +667,15 @@ const InvoicesPage = () => {
         }}
       />
 
-      <Dialog
-        open={showExportDialog}
-        onClose={() => setShowExportDialog(false)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>
-          {exportResult?.success ? "Export Successful" : "Export Result"}
-        </DialogTitle>
-        <DialogContent>
-          {exportResult?.success ? (
-            <Box>
-              <Alert severity="success" sx={{ mb: 2 }}>
-                Successfully exported {exportResult.exported} invoices to XERO
-              </Alert>
-
-              {exportResult.errors > 0 && (
-                <Alert severity="warning" sx={{ mb: 2 }}>
-                  {exportResult.errors} invoices could not be exported
-                </Alert>
-              )}
-
-              {exportResult.errorDetails?.length > 0 && (
-                <Box>
-                  <Typography variant="subtitle2" gutterBottom>
-                    Errors:
-                  </Typography>
-                  {exportResult.errorDetails.map((err, idx) => (
-                    <Alert key={idx} severity="error" sx={{ mb: 1 }}>
-                      <strong>{err.familyName}:</strong> {err.error}
-                    </Alert>
-                  ))}
-                </Box>
-              )}
-            </Box>
-          ) : (
-            <Alert severity="error">
-              {exportResult?.error || "Failed to export invoices"}
-            </Alert>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setShowExportDialog(false)}>Close</Button>
-        </DialogActions>
-      </Dialog>
+      <XeroExportResultsDialog
+        open={showExportResults}
+        onClose={() => setShowExportResults(false)}
+        results={exportResults}
+        type="invoices"
+        onRetryAll={handleRetryAllFailed}
+        onRetryItem={handleRetryItem}
+        retrying={exporting}
+      />
     </Box>
   );
 };
