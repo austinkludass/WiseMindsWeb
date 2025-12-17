@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import {
   collection,
   deleteDoc,
@@ -51,6 +51,9 @@ const BigCalendar = () => {
     frequencies: [],
     types: [],
   });
+
+  const calendarRef = useRef(null);
+  const hasScrolledToTime = useRef(false);
 
   const activeFilterCount = useMemo(() => {
     return Object.values(filters).reduce(
@@ -198,6 +201,26 @@ const BigCalendar = () => {
     };
   }, []);
 
+  useEffect(() => {
+    if (hasScrolledToTime.current) return;
+
+    const scrollToCurrentTime = () => {
+      const timeIndicator = calendarRef.current?.querySelector(
+        ".rbc-current-time-indicator"
+      );
+
+      if (timeIndicator) {
+        timeIndicator.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+        hasScrolledToTime.current = true;
+      }
+    };
+    
+    scrollToCurrentTime();
+  }, [allEvents]);
+
   const handleViewEvent = (event) => {
     setSelectedEvent(event);
     setDialogMode("view");
@@ -278,7 +301,7 @@ const BigCalendar = () => {
   };
 
   return (
-    <Box>
+    <Box ref={calendarRef}>
       <Box display="flex" justifyContent="flex-end" mb={1}>
         <IconButton onClick={() => setShowFilters((prev) => !prev)}>
           <Badge
