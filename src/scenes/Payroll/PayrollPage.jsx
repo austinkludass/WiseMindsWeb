@@ -19,6 +19,7 @@ import {
   TableHead,
   TableRow,
   Avatar,
+  TextField,
 } from "@mui/material";
 import {
   getWeekRange,
@@ -72,6 +73,7 @@ const PayrollPage = () => {
   const [pendingRequests, setPendingRequests] = useState([]);
   const [expandedTutor, setExpandedTutor] = useState(null);
   const [processingRequest, setProcessingRequest] = useState(null);
+  const [search, setSearch] = useState("");
 
   const [exporting, setExporting] = useState(false);
   const [exportResults, setExportResults] = useState(null);
@@ -180,6 +182,15 @@ const PayrollPage = () => {
     }
     return previewData || [];
   }, [isGenerated, payrollItems, previewData]);
+
+  const filteredDisplayData = useMemo(() => {
+    if (!search) return displayData;
+
+    const term = search.toLowerCase();
+    return displayData.filter((tutor) =>
+      tutor.tutorName.toLowerCase().includes(term)
+    );
+  }, [displayData, search]);
 
   const handleGeneratePayroll = async () => {
     setGenerating(true);
@@ -472,15 +483,6 @@ const PayrollPage = () => {
                 {getGenerateDisabledReason()}
               </Typography>
             )}
-
-            {payrollMeta?.lastGenerated && (
-              <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                Last generated:{" "}
-                {dayjs(payrollMeta.lastGenerated.toDate()).format(
-                  "MMM D, YYYY h:mm A"
-                )}
-              </Typography>
-            )}
           </Box>
 
           {pendingRequests.length > 0 && (
@@ -600,201 +602,229 @@ const PayrollPage = () => {
         </Paper>
       ) : (
         <TableContainer component={Paper}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell width={50} />
-                <TableCell>Tutor</TableCell>
-                <TableCell align="center">Lessons</TableCell>
-                <TableCell align="center">Lesson Hours</TableCell>
-                {isGenerated && (
-                  <TableCell align="center">Additional Hours</TableCell>
-                )}
-                <TableCell align="center">
-                  {isGenerated ? "Total Hours" : "Hours"}
-                </TableCell>
-                {isGenerated && (
-                  <TableCell align="center">XERO Status</TableCell>
-                )}
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {displayData.map((tutor) => (
-                <>
-                  <TableRow
-                    key={tutor.tutorId || tutor.id}
-                    hover
-                    sx={{
-                      cursor: "pointer",
-                      borderLeft: tutor.xeroExportError
-                        ? `4px solid ${theme.palette.warning.main}`
-                        : tutor.exportedToXero
-                        ? `4px solid ${theme.palette.success.main}`
-                        : "4px solid transparent",
-                    }}
-                    onClick={() => toggleExpand(tutor.tutorId || tutor.id)}
-                  >
-                    <TableCell>
-                      <IconButton size="small">
-                        {expandedTutor === (tutor.tutorId || tutor.id) ? (
-                          <ExpandLessIcon />
-                        ) : (
-                          <ExpandMoreIcon />
-                        )}
-                      </IconButton>
-                    </TableCell>
-                    <TableCell>
-                      <Box display="flex" alignItems="center" gap={1}>
-                        <Avatar
-                          src={tutor.avatar}
-                          sx={{
-                            width: 32,
-                            height: 32,
-                            bgcolor:
-                              tutor.tutorColor || colors.orangeAccent[400],
-                          }}
-                        >
-                          {tutor.tutorName?.charAt(0)}
-                        </Avatar>
-                        <Typography>{tutor.tutorName}</Typography>
-                      </Box>
-                    </TableCell>
-                    <TableCell align="center">{tutor.lessonCount}</TableCell>
-                    <TableCell align="center">
-                      {formatHours(tutor.lessonHours)}
-                    </TableCell>
-                    {isGenerated && (
-                      <TableCell align="center">
-                        {formatHours(tutor.additionalHours || 0)}
-                      </TableCell>
-                    )}
-                    <TableCell align="center">
-                      <Typography fontWeight="bold">
-                        {formatHours(tutor.totalHours || tutor.lessonHours)}
-                      </Typography>
-                    </TableCell>
-                    {isGenerated && (
-                      <TableCell align="center">
-                        {tutor.exportedToXero ? (
-                          <Tooltip title="Exported to XERO">
-                            <CheckCircleIcon color="success" />
-                          </Tooltip>
-                        ) : tutor.xeroExportError ? (
-                          <Tooltip title={tutor.xeroExportError}>
-                            <Chip
-                              size="small"
-                              icon={<ErrorIcon />}
-                              label="Failed"
-                              color="warning"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleExportToXero([tutor.id]);
-                              }}
-                              sx={{ cursor: "pointer" }}
-                            />
-                          </Tooltip>
-                        ) : (
-                          <Typography variant="body2" color="text.secondary">
-                            Pending
-                          </Typography>
-                        )}
-                      </TableCell>
-                    )}
-                  </TableRow>
-                  <TableRow>
-                    <TableCell
-                      colSpan={isGenerated ? 7 : 5}
-                      sx={{ p: 0, border: 0 }}
+          <Box
+            display="flex"
+            justifyContent="space-between"
+            alignItems="center"
+            px={4}
+            pt={2}
+          >
+            <Typography variant="h6">Tutors ({displayData.length})</Typography>
+            <TextField
+              size="small"
+              label="Search tutors"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              sx={{ width: 250 }}
+            />
+          </Box>
+          {filteredDisplayData.length === 0 ? (
+            <Box sx={{ p: 4, textAlign: "center" }}>
+              <Typography variant="h6" color="text.secondary">
+                No tutors match your search
+              </Typography>
+            </Box>
+          ) : (
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell width={50} />
+                  <TableCell>Tutor</TableCell>
+                  <TableCell align="center">Lessons</TableCell>
+                  <TableCell align="center">Lesson Hours</TableCell>
+                  {isGenerated && (
+                    <TableCell align="center">Additional Hours</TableCell>
+                  )}
+                  <TableCell align="center">
+                    {isGenerated ? "Total Hours" : "Hours"}
+                  </TableCell>
+                  {isGenerated && (
+                    <TableCell align="center">XERO Status</TableCell>
+                  )}
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {filteredDisplayData.map((tutor) => (
+                  <>
+                    <TableRow
+                      key={tutor.tutorId || tutor.id}
+                      hover
+                      sx={{
+                        cursor: "pointer",
+                        borderLeft: tutor.xeroExportError
+                          ? `4px solid ${theme.palette.warning.main}`
+                          : tutor.exportedToXero
+                          ? `4px solid ${theme.palette.success.main}`
+                          : "4px solid transparent",
+                      }}
+                      onClick={() => toggleExpand(tutor.tutorId || tutor.id)}
                     >
-                      <Collapse
-                        in={expandedTutor === (tutor.tutorId || tutor.id)}
-                        timeout="auto"
-                        unmountOnExit
-                      >
-                        <Box sx={{ p: 2, bgcolor: "background.default" }}>
-                          <Typography
-                            variant="subtitle2"
-                            color={colors.orangeAccent[400]}
-                            gutterBottom
+                      <TableCell>
+                        <IconButton size="small">
+                          {expandedTutor === (tutor.tutorId || tutor.id) ? (
+                            <ExpandLessIcon />
+                          ) : (
+                            <ExpandMoreIcon />
+                          )}
+                        </IconButton>
+                      </TableCell>
+                      <TableCell>
+                        <Box display="flex" alignItems="center" gap={1}>
+                          <Avatar
+                            src={tutor.avatar}
+                            sx={{
+                              width: 32,
+                              height: 32,
+                              bgcolor:
+                                tutor.tutorColor || colors.orangeAccent[400],
+                            }}
                           >
-                            Lessons
-                          </Typography>
-                          {tutor.lessons?.length > 0 ? (
-                            <Stack spacing={1}>
-                              {tutor.lessons.map((lesson, idx) => (
-                                <Box
-                                  key={idx}
-                                  display="flex"
-                                  justifyContent="space-between"
-                                  alignItems="center"
-                                >
-                                  <Typography variant="body2">
-                                    {lesson.subjectGroupName || lesson.subject}{" "}
-                                    -{" "}
-                                    {lesson.studentNames?.join(", ") ||
-                                      lesson.studentName}
-                                  </Typography>
-                                  <Typography
-                                    variant="body2"
-                                    color="text.secondary"
-                                  >
-                                    {dayjs(
-                                      lesson.startDateTime || lesson.date
-                                    ).format("ddd DD/MM")}{" "}
-                                    • {formatHours(lesson.duration)}
-                                  </Typography>
-                                </Box>
-                              ))}
-                            </Stack>
+                            {tutor.tutorName?.charAt(0)}
+                          </Avatar>
+                          <Typography>{tutor.tutorName}</Typography>
+                        </Box>
+                      </TableCell>
+                      <TableCell align="center">{tutor.lessonCount}</TableCell>
+                      <TableCell align="center">
+                        {formatHours(tutor.lessonHours)}
+                      </TableCell>
+                      {isGenerated && (
+                        <TableCell align="center">
+                          {formatHours(tutor.additionalHours || 0)}
+                        </TableCell>
+                      )}
+                      <TableCell align="center">
+                        <Typography fontWeight="bold">
+                          {formatHours(tutor.totalHours || tutor.lessonHours)}
+                        </Typography>
+                      </TableCell>
+                      {isGenerated && (
+                        <TableCell align="center">
+                          {tutor.exportedToXero ? (
+                            <Tooltip title="Exported to XERO">
+                              <CheckCircleIcon color="success" />
+                            </Tooltip>
+                          ) : tutor.xeroExportError ? (
+                            <Tooltip title={tutor.xeroExportError}>
+                              <Chip
+                                size="small"
+                                icon={<ErrorIcon />}
+                                label="Failed"
+                                color="warning"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleExportToXero([tutor.id]);
+                                }}
+                                sx={{ cursor: "pointer" }}
+                              />
+                            </Tooltip>
                           ) : (
                             <Typography variant="body2" color="text.secondary">
-                              No lesson details available
+                              Pending
                             </Typography>
                           )}
-
-                          {isGenerated &&
-                            tutor.additionalHoursDetails?.length > 0 && (
-                              <>
-                                <Typography
-                                  variant="subtitle2"
-                                  color={colors.orangeAccent[400]}
-                                  gutterBottom
-                                  sx={{ mt: 2 }}
-                                >
-                                  Additional Hours
-                                </Typography>
-                                <Stack spacing={1}>
-                                  {tutor.additionalHoursDetails.map(
-                                    (detail, idx) => (
-                                      <Box
-                                        key={idx}
-                                        display="flex"
-                                        justifyContent="space-between"
-                                        alignItems="center"
-                                      >
-                                        <Typography variant="body2">
-                                          {detail.description}
-                                        </Typography>
-                                        <Typography
-                                          variant="body2"
-                                          color="text.secondary"
-                                        >
-                                          {formatHours(detail.hours)}
-                                        </Typography>
-                                      </Box>
-                                    )
-                                  )}
-                                </Stack>
-                              </>
+                        </TableCell>
+                      )}
+                    </TableRow>
+                    <TableRow>
+                      <TableCell
+                        colSpan={isGenerated ? 7 : 5}
+                        sx={{ p: 0, border: 0 }}
+                      >
+                        <Collapse
+                          in={expandedTutor === (tutor.tutorId || tutor.id)}
+                          timeout="auto"
+                          unmountOnExit
+                        >
+                          <Box sx={{ p: 2, bgcolor: "background.default" }}>
+                            <Typography
+                              variant="subtitle2"
+                              color={colors.orangeAccent[400]}
+                              gutterBottom
+                            >
+                              Lessons
+                            </Typography>
+                            {tutor.lessons?.length > 0 ? (
+                              <Stack spacing={1}>
+                                {tutor.lessons.map((lesson, idx) => (
+                                  <Box
+                                    key={idx}
+                                    display="flex"
+                                    justifyContent="space-between"
+                                    alignItems="center"
+                                  >
+                                    <Typography variant="body2">
+                                      {lesson.subjectGroupName ||
+                                        lesson.subject}{" "}
+                                      -{" "}
+                                      {lesson.studentNames?.join(", ") ||
+                                        lesson.studentName}
+                                    </Typography>
+                                    <Typography
+                                      variant="body2"
+                                      color="text.secondary"
+                                    >
+                                      {dayjs(
+                                        lesson.startDateTime || lesson.date
+                                      ).format("ddd DD/MM")}{" "}
+                                      • {formatHours(lesson.duration)}
+                                    </Typography>
+                                  </Box>
+                                ))}
+                              </Stack>
+                            ) : (
+                              <Typography
+                                variant="body2"
+                                color="text.secondary"
+                              >
+                                No lesson details available
+                              </Typography>
                             )}
-                        </Box>
-                      </Collapse>
-                    </TableCell>
-                  </TableRow>
-                </>
-              ))}
-            </TableBody>
-          </Table>
+
+                            {isGenerated &&
+                              tutor.additionalHoursDetails?.length > 0 && (
+                                <>
+                                  <Typography
+                                    variant="subtitle2"
+                                    color={colors.orangeAccent[400]}
+                                    gutterBottom
+                                    sx={{ mt: 2 }}
+                                  >
+                                    Additional Hours
+                                  </Typography>
+                                  <Stack spacing={1}>
+                                    {tutor.additionalHoursDetails.map(
+                                      (detail, idx) => (
+                                        <Box
+                                          key={idx}
+                                          display="flex"
+                                          justifyContent="space-between"
+                                          alignItems="center"
+                                        >
+                                          <Typography variant="body2">
+                                            {detail.description}
+                                          </Typography>
+                                          <Typography
+                                            variant="body2"
+                                            color="text.secondary"
+                                          >
+                                            {formatHours(detail.hours)}
+                                          </Typography>
+                                        </Box>
+                                      )
+                                    )}
+                                  </Stack>
+                                </>
+                              )}
+                          </Box>
+                        </Collapse>
+                      </TableCell>
+                    </TableRow>
+                  </>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </TableContainer>
       )}
 
