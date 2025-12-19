@@ -8,13 +8,16 @@ import {
   MenuItem,
   CircularProgress,
   Divider,
+  Alert,
+  Tooltip,
 } from "@mui/material";
 import { collection, getDocs, updateDoc, doc } from "firebase/firestore";
 import { db } from "../../data/firebase";
+import LockIcon from "@mui/icons-material/Lock";
 
-const roleOptions = ["Admin", "Head Tutor", "Tutor", "Minion"];
+const roleOptions = ["Admin", "Senior Tutor", "Head Tutor", "Tutor", "Minion"];
 
-const PermissionsTab = () => {
+const PermissionsTab = ({ canEdit = false }) => {
   const [tutors, setTutors] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -25,6 +28,21 @@ const PermissionsTab = () => {
         id: d.id,
         ...d.data(),
       }));
+      const roleOrder = {
+        Admin: 1,
+        "Senior Tutor": 2,
+        "Head Tutor": 3,
+        Tutor: 4,
+        Minion: 5,
+      };
+      list.sort((a, b) => {
+        const roleCompare =
+          (roleOrder[a.role] || 99) - (roleOrder[b.role] || 99);
+        if (roleCompare !== 0) return roleCompare;
+        return `${a.firstName} ${a.lastName}`.localeCompare(
+          `${b.firstName} ${b.lastName}`
+        );
+      });
       setTutors(list);
       setLoading(false);
     };
@@ -32,10 +50,16 @@ const PermissionsTab = () => {
   }, []);
 
   const handleRoleChange = async (id, newRole) => {
-    await updateDoc(doc(db, "tutors", id), { role: newRole });
-    setTutors((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, role: newRole } : t))
-    );
+    if (!canEdit) return;
+
+    try {
+      await updateDoc(doc(db, "tutors", id), { role: newRole });
+      setTutors((prev) =>
+        prev.map((t) => (t.id === id ? { ...t, role: newRole } : t))
+      );
+    } catch (error) {
+      console.error("Error updating role:", error);
+    }
   };
 
   if (loading) {
@@ -51,9 +75,16 @@ const PermissionsTab = () => {
       <Typography variant="h5" fontWeight="600" mb={1}>
         Tutor Permissions
       </Typography>
-      <Typography variant="body2" color="text.secondary" mb={3}>
+      <Typography variant="body2" color="text.secondary" mb={2}>
         Manage roles and permissions for all tutors in your organisation.
       </Typography>
+
+      {!canEdit && (
+        <Alert severity="info" icon={<LockIcon />} sx={{ mb: 3 }}>
+          Only Admins can modify tutor roles. Contact an Admin if you need to
+          change permissions.
+        </Alert>
+      )}
 
       <Box
         display="grid"
@@ -103,7 +134,7 @@ const PermissionsTab = () => {
           <Select
             size="small"
             fullWidth
-            disabled
+            disabled={!canEdit}
             value={tutor.role || ""}
             onChange={(e) => handleRoleChange(tutor.id, e.target.value)}
             sx={{ borderRadius: "8px" }}

@@ -18,6 +18,8 @@ import FamilyPage from "./scenes/Student/FamilyPage";
 import InvoicesPage from "./scenes/Invoicing/InvoicesPage";
 import PayrollPage from "./scenes/Payroll/PayrollPage";
 import AdditionalHoursPage from "./scenes/Payroll/AdditionalHoursPage";
+import ProtectedRoute from "./components/Global/ProtectedRoute";
+import { ROLES } from "./utils/permissions";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { CssBaseline, ThemeProvider } from "@mui/material";
 import { ColorModeContext, useMode } from "./theme";
@@ -56,8 +58,28 @@ function App() {
                     <Route path="/settings" element={<Settings />} />
                     <Route path="/reportbug" element={<ReportBug />} />
                     <Route path="/calendar" element={<CalendarPage />} />
-                    <Route path="/invoices" element={<InvoicesPage />} />
-                    <Route path="/payroll" element={<PayrollPage />} />
+                    <Route
+                      path="/invoices"
+                      element={
+                        <ProtectedRoute
+                          minimumRole={ROLES.HEAD_TUTOR}
+                          fallbackMessage="You need to be a Head Tutor or above to access invoices."
+                        >
+                          <InvoicesPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/payroll"
+                      element={
+                        <ProtectedRoute
+                          minimumRole={ROLES.HEAD_TUTOR}
+                          fallbackMessage="You need to be a Head Tutor or above to access payroll."
+                        >
+                          <PayrollPage />
+                        </ProtectedRoute>
+                      }
+                    />
                     <Route path="/additionalhours" element={<AdditionalHoursPage />} />
                     <Route path="*" element={<Navigate to="/" />} />
                   </Routes>

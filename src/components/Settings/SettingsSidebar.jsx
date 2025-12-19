@@ -12,7 +12,8 @@ import NotificationsIcon from "@mui/icons-material/Notifications";
 import PersonIcon from "@mui/icons-material/Person";
 import IntegrationInstructionsIcon from "@mui/icons-material/IntegrationInstructions";
 
-const tabs = [
+const allTabs = [
+  { key: "profile", label: "Profile", icon: <PersonIcon /> },
   { key: "permissions", label: "Permissions", icon: <SecurityIcon /> },
   {
     key: "integrations",
@@ -21,11 +22,11 @@ const tabs = [
   },
   { key: "general", label: "General", icon: <SettingsIcon /> },
   { key: "notifications", label: "Notifications", icon: <NotificationsIcon /> },
-  { key: "profile", label: "Profile", icon: <PersonIcon /> },
 ];
 
-const SettingsSidebar = ({ selected, onSelect }) => {
+const SettingsSidebar = ({ selected, onSelect, availableTabs = [] }) => {
   const theme = useTheme();
+  const visibleTabs = allTabs.filter((tab) => availableTabs.includes(tab.key));
 
   return (
     <Box
@@ -37,7 +38,7 @@ const SettingsSidebar = ({ selected, onSelect }) => {
       }}
     >
       <List>
-        {tabs.map((tab) => (
+        {visibleTabs.map((tab) => (
           <ListItemButton
             key={tab.key}
             selected={selected === tab.key}

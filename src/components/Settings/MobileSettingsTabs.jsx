@@ -1,15 +1,19 @@
 import { Box, Tabs, Tab } from "@mui/material";
 
-const tabs = [
-  "permissions",
-  "integrations",
-  "general",
-  "notifications",
-  "profile",
-];
+const tabLabels = {
+  profile: "Profile",
+  permissions: "Permissions",
+  integrations: "Integrations",
+  general: "General",
+  notifications: "Notifications",
+};
 
-const MobileSettingsTabs = ({ selected, onSelect }) => {
-  const tabIndex = tabs.indexOf(selected);
+const MobileSettingsTabs = ({ selected, onSelect, availableTabs = [] }) => {
+  const tabIndex = availableTabs.indexOf(selected);
+
+  const handleChange = (e, newIndex) => {
+    onSelect(availableTabs[newIndex]);
+  };
 
   return (
     <Box
@@ -20,18 +24,14 @@ const MobileSettingsTabs = ({ selected, onSelect }) => {
     >
       <Tabs
         value={tabIndex >= 0 ? tabIndex : 0}
-        onChange={(e, newIndex) => {
-          onSelect(tabs[newIndex]);
-        }}
+        onChange={handleChange}
         variant="scrollable"
         scrollButtons
         allowScrollButtonsMobile
       >
-        <Tab label="Permissions" />
-        <Tab label="Integrations" />
-        <Tab label="General" />
-        <Tab label="Notifications" />
-        <Tab label="Profile" />
+        {availableTabs.map((tabKey) => (
+          <Tab key={tabKey} label={tabLabels[tabKey] || tabKey} />
+        ))}
       </Tabs>
     </Box>
   );

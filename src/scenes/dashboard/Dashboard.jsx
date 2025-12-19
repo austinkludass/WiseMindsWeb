@@ -1,5 +1,6 @@
 import { Box, useTheme, useMediaQuery } from "@mui/material";
 import { tokens } from "../../theme";
+import usePermissions from "../../hooks/usePermissions";
 import UpcomingLessons from "../../components/Dashboard/UpcomingLessons";
 import Notifications from "../../components/Dashboard/Notifications";
 import Summaryboard from "../../components/Dashboard/Summaryboard";
@@ -11,6 +12,7 @@ const Dashboard = () => {
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const { canViewStatsCards } = usePermissions();
 
   return (
     <Box m="20px">
@@ -23,12 +25,15 @@ const Dashboard = () => {
         gridTemplateColumns={isMobile ? "1fr" : "repeat(12, 1fr)"}
         gridTemplateRows={
           isMobile
-            ? "repeat(5, 300px) 600px repeat(3, 300px)"
-            : "200px 90vh 200px"
+            ? canViewStatsCards
+              ? "repeat(5, 300px) 600px repeat(3, 300px)"
+              : "repeat(5, 300px) 600px"
+            : canViewStatsCards
+            ? "200px 90vh 200px"
+            : "200px 90vh"
         }
         gap="20px"
       >
-        {/* Row 1 */}
         <Box
           gridColumn={isMobile ? "span 1" : "span 4"}
           backgroundColor={colors.primary[400]}
@@ -62,7 +67,6 @@ const Dashboard = () => {
           <Summaryboard />
         </Box>
 
-        {/* Row 2 */}
         <Box
           gridColumn={isMobile ? "span 1" : "span 6"}
           backgroundColor={colors.primary[400]}
@@ -85,33 +89,36 @@ const Dashboard = () => {
           <Noticeboard />
         </Box>
 
-        {/* Row 3 */}
-        <Box
-          gridColumn={isMobile ? "span 1" : "span 4"}
-          bgcolor={colors.primary[400]}
-          overflow="hidden"
-          height="100%"
-        >
-          <StatsCard field="lessons" color={colors.orangeAccent[700]} />
-        </Box>
+        {canViewStatsCards && (
+          <>
+            <Box
+              gridColumn={isMobile ? "span 1" : "span 4"}
+              bgcolor={colors.primary[400]}
+              overflow="hidden"
+              height="100%"
+            >
+              <StatsCard field="lessons" color={colors.orangeAccent[700]} />
+            </Box>
 
-        <Box
-          gridColumn={isMobile ? "span 1" : "span 4"}
-          bgcolor={colors.primary[400]}
-          overflow="hidden"
-          height="100%"
-        >
-          <StatsCard field="students" color={colors.orangeAccent[700]} />
-        </Box>
+            <Box
+              gridColumn={isMobile ? "span 1" : "span 4"}
+              bgcolor={colors.primary[400]}
+              overflow="hidden"
+              height="100%"
+            >
+              <StatsCard field="students" color={colors.orangeAccent[700]} />
+            </Box>
 
-        <Box
-          gridColumn={isMobile ? "span 1" : "span 4"}
-          bgcolor={colors.primary[400]}
-          overflow="hidden"
-          height="100%"
-        >
-          <StatsCard field="tutors" color={colors.orangeAccent[700]} />
-        </Box>
+            <Box
+              gridColumn={isMobile ? "span 1" : "span 4"}
+              bgcolor={colors.primary[400]}
+              overflow="hidden"
+              height="100%"
+            >
+              <StatsCard field="tutors" color={colors.orangeAccent[700]} />
+            </Box>
+          </>
+        )}
       </Box>
     </Box>
   );

@@ -14,6 +14,7 @@ import {
   DialogContent,
   DialogContentText,
   DialogActions,
+  Alert,
 } from "@mui/material";
 import {
   Check as CheckIcon,
@@ -21,6 +22,7 @@ import {
   Edit as EditIcon,
   Delete as DeleteIcon,
   LocationOn as LocationOnIcon,
+  Lock as LockIcon,
 } from "@mui/icons-material";
 import { tokens } from "../../theme";
 import { useState, useEffect } from "react";
@@ -29,6 +31,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { GoogleMap } from "../../components/Global/GoogleMap";
 import Header from "../../components/Global/Header";
+import usePermissions from "../../hooks/usePermissions";
 import { db } from "../../data/firebase";
 import {
   collection,
@@ -52,6 +55,8 @@ const tutorBaySchema = z.object({
 const TutoringBayList = () => {
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
+  const { canEditLocations } = usePermissions();
+
   const [locations, setLocations] = useState([]);
   const [editingLocation, setEditingLocation] = useState(null);
   const [showAddLocationForm, setShowAddLocationForm] = useState(false);
@@ -80,6 +85,8 @@ const TutoringBayList = () => {
   });
 
   const addLocation = async (data) => {
+    if (!canEditLocations) return;
+
     const id = crypto.randomUUID();
     const newLocation = {
       id,
@@ -96,7 +103,7 @@ const TutoringBayList = () => {
   };
 
   const updateLocation = async (data) => {
-    if (!editingLocation) return;
+    if (!editingLocation || !canEditLocations) return;
 
     const updated = {
       ...editingLocation,
@@ -114,12 +121,16 @@ const TutoringBayList = () => {
     locationForm.reset();
   };
 
-  const deleteLocation = async (id) => {
-    await deleteDoc(doc(db, "locations", id));
-    setLocations((prev) => prev.filter((loc) => loc.id !== id));
+  const deleteLocation = async (locationId) => {
+    if (!canEditLocations) return;
+
+    setLocations((prev) => prev.filter((loc) => loc.id !== locationId));
+    await deleteDoc(doc(db, "locations", locationId));
   };
 
   const startEditingLocation = (location) => {
+    if (!canEditLocations) return;
+
     setEditingLocation(location);
     locationForm.setValue("name", location.name);
     locationForm.setValue("address", location.address);
@@ -131,8 +142,9 @@ const TutoringBayList = () => {
   };
 
   const addTutorBay = async (locationId, data) => {
-    const newBay = { id: crypto.randomUUID(), name: data.name };
+    if (!canEditLocations) return;
 
+    const newBay = { id: crypto.randomUUID(), name: data.name };
     setLocations((prev) =>
       prev.map((loc) =>
         loc.id === locationId
@@ -148,12 +160,12 @@ const TutoringBayList = () => {
       await updateDoc(locationDoc, { tutorBays: updatedTutorBays });
     }
 
-    bayForm.reset();
     setShowAddBayForm(null);
+    bayForm.reset();
   };
 
   const updateTutorBay = async (locationId, data) => {
-    if (!editingBay.bay) return;
+    if (!canEditLocations) return;
 
     setLocations((prev) =>
       prev.map((loc) =>
@@ -184,6 +196,8 @@ const TutoringBayList = () => {
   };
 
   const deleteTutorBay = async (locationId, bayId) => {
+    if (!canEditLocations) return;
+
     setLocations((prev) =>
       prev.map((loc) =>
         loc.id === locationId
@@ -206,6 +220,8 @@ const TutoringBayList = () => {
   };
 
   const startEditingBay = (locationId, bay) => {
+    if (!canEditLocations) return;
+
     setEditingBay({ locationId, bay });
     bayForm.setValue("name", bay.name);
   };
@@ -236,16 +252,24 @@ const TutoringBayList = () => {
             title="LOCATIONS & TUTOR BAYS"
             subtitle="Manage locations and tutor bays"
           />
-          <Button
-            variant="contained"
-            onClick={() => setShowAddLocationForm(true)}
-          >
-            Add Location
-          </Button>
+          {canEditLocations && (
+            <Button
+              variant="contained"
+              onClick={() => setShowAddLocationForm(true)}
+            >
+              Add Location
+            </Button>
+          )}
         </Box>
 
-        {/* Add Location Form */}
-        {showAddLocationForm && (
+        {!canEditLocations && (
+          <Alert severity="info" icon={<LockIcon />}>
+            Only Admins can edit locations and tutor bays. Contact an Admin if
+            you need to make changes.
+          </Alert>
+        )}
+
+        {showAddLocationForm && canEditLocations && (
           <Paper elevation={2} sx={{ p: 3 }}>
             <Typography variant="h6" gutterBottom>
               Add New Location
@@ -289,7 +313,6 @@ const TutoringBayList = () => {
           </Paper>
         )}
 
-        {/* Location Cards */}
         {locations.map((location) => (
           <Paper key={location.id} elevation={2} sx={{ p: 3 }}>
             {editingLocation?.id === location.id ? (
@@ -341,23 +364,24 @@ const TutoringBayList = () => {
                     {location.address}
                   </Typography>
                 </Box>
-                <Box sx={{ display: "flex", gap: 1 }}>
-                  <IconButton onClick={() => startEditingLocation(location)}>
-                    <EditIcon />
-                  </IconButton>
-                  <IconButton
-                    onClick={() => setLocationToDelete(location)}
-                    color="error"
-                  >
-                    <DeleteIcon />
-                  </IconButton>
-                </Box>
+                {canEditLocations && (
+                  <Box sx={{ display: "flex", gap: 1 }}>
+                    <IconButton onClick={() => startEditingLocation(location)}>
+                      <EditIcon />
+                    </IconButton>
+                    <IconButton
+                      onClick={() => setLocationToDelete(location)}
+                      color="error"
+                    >
+                      <DeleteIcon />
+                    </IconButton>
+                  </Box>
+                )}
               </Box>
             )}
 
             <Divider sx={{ my: 2 }} />
 
-            {/* Tutor Bays Section */}
             <Grid container spacing={2}>
               <Grid size={{ xs: 12, md: 6 }}>
                 <Box
@@ -369,16 +393,18 @@ const TutoringBayList = () => {
                   }}
                 >
                   <Typography variant="h5">Tutor Bays</Typography>
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    onClick={() => setShowAddBayForm(location.id)}
-                  >
-                    Add Bay
-                  </Button>
+                  {canEditLocations && (
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      onClick={() => setShowAddBayForm(location.id)}
+                    >
+                      Add Bay
+                    </Button>
+                  )}
                 </Box>
 
-                {showAddBayForm === location.id && (
+                {showAddBayForm === location.id && canEditLocations && (
                   <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
                     <form
                       onSubmit={bayForm.handleSubmit((data) =>
@@ -413,14 +439,18 @@ const TutoringBayList = () => {
                 )}
 
                 {location.tutorBays.length === 0 ? (
-                  <Typography variant="body2" color="text.secondary">
-                    No tutor bays added yet
+                  <Typography color="text.secondary" variant="body2">
+                    No tutor bays yet
                   </Typography>
                 ) : (
-                  location.tutorBays.map((bay) => (
-                    <Paper key={bay.id} variant="outlined" sx={{ p: 1, mb: 1 }}>
-                      {editingBay.bay?.id === bay.id &&
-                      editingBay.locationId === location.id ? (
+                  location.tutorBays.map((bay) =>
+                    editingBay.bay?.id === bay.id &&
+                    editingBay.locationId === location.id ? (
+                      <Paper
+                        key={bay.id}
+                        variant="outlined"
+                        sx={{ p: 1, mb: 1 }}
+                      >
                         <form
                           onSubmit={bayForm.handleSubmit((data) =>
                             updateTutorBay(location.id, data)
@@ -450,52 +480,42 @@ const TutoringBayList = () => {
                             </Button>
                           </Box>
                         </form>
-                      ) : (
-                        <Box
-                          sx={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            alignItems: "center",
-                          }}
-                        >
-                          <Box
-                            sx={{
-                              flex: 1,
-                              minWidth: 0,
-                              overflow: "hidden",
-                              whiteSpace: "nowrap",
-                              textOverflow: "ellipsis",
-                            }}
-                          >
-                            <Chip label={bay.name} sx={{ maxWidth: "100%" }} />
-                          </Box>
-                          <Box
-                            sx={{
-                              display: "flex",
-                              ml: 1,
-                              gap: 1,
-                              flexShrink: 0,
-                            }}
-                          >
+                      </Paper>
+                    ) : (
+                      <Paper
+                        key={bay.id}
+                        variant="outlined"
+                        sx={{
+                          p: 1.5,
+                          mb: 1,
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                        }}
+                      >
+                        <Typography>{bay.name}</Typography>
+                        {canEditLocations && (
+                          <Box>
                             <IconButton
-                              onClick={() => startEditingBay(location.id, bay)}
                               size="small"
+                              onClick={() => startEditingBay(location.id, bay)}
                             >
                               <EditIcon fontSize="small" />
                             </IconButton>
                             <IconButton
+                              size="small"
+                              color="error"
                               onClick={() =>
                                 deleteTutorBay(location.id, bay.id)
                               }
-                              size="small"
                             >
                               <DeleteIcon fontSize="small" />
                             </IconButton>
                           </Box>
-                        </Box>
-                      )}
-                    </Paper>
-                  ))
+                        )}
+                      </Paper>
+                    )
+                  )
                 )}
               </Grid>
 
@@ -520,19 +540,22 @@ const TutoringBayList = () => {
               No locations added yet
             </Typography>
             <Typography variant="body2" color="text.secondary" gutterBottom>
-              Start by adding your first location
+              {canEditLocations
+                ? "Start by adding your first location"
+                : "No locations have been configured yet"}
             </Typography>
-            <Button
-              variant="contained"
-              onClick={() => setShowAddLocationForm(true)}
-            >
-              Add Your First Location
-            </Button>
+            {canEditLocations && (
+              <Button
+                variant="contained"
+                onClick={() => setShowAddLocationForm(true)}
+              >
+                Add Your First Location
+              </Button>
+            )}
           </Paper>
         )}
       </Box>
 
-      {/* Dialog Box */}
       <Dialog
         open={Boolean(locationToDelete)}
         onClose={() => setLocationToDelete(null)}

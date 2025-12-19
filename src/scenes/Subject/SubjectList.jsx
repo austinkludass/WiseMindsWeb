@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { FixedSizeList as List } from "react-window";
 import { VirtualizedAutoComplete } from "../../components/Global/VirtualizedAutoComplete";
+import usePermissions from "../../hooks/usePermissions";
 import {
   Box,
   Tabs,
@@ -20,6 +21,7 @@ import {
   Autocomplete,
   Collapse,
   Tooltip,
+  Alert,
 } from "@mui/material";
 import {
   Delete as DeleteIcon,
@@ -28,6 +30,7 @@ import {
   CollectionsBookmark as GroupIcon,
   LibraryBooks as BookIcon,
   Add as AddIcon,
+  Lock as LockIcon,
 } from "@mui/icons-material";
 import {
   collection,
@@ -42,6 +45,8 @@ import Header from "../../components/Global/Header";
 import AddToGroupDialog from "../../components/subject/AddToGroupDialog";
 
 const SubjectList = () => {
+  const { canEditSubjects } = usePermissions();
+
   const [tab, setTab] = useState(0);
   const [curriculums, setCurriculums] = useState([]);
   const [subjects, setSubjects] = useState([]);
@@ -101,18 +106,12 @@ const SubjectList = () => {
     fetchData();
   }, []);
 
-  const toggleShowSubjects = (curriculumId) => {
-    setShowSubjectsMap((prev) => ({
-      ...prev,
-      [curriculumId]: !prev[curriculumId],
-    }));
+  const toggleShowSubjects = (id) => {
+    setShowSubjectsMap((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
-  const toggleShowGroupSubjects = (groupId) => {
-    setShowGroupSubjectsMap((prev) => ({
-      ...prev,
-      [groupId]: !prev[groupId],
-    }));
+  const toggleShowGroupSubjects = (id) => {
+    setShowGroupSubjectsMap((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
   const handleTabChange = (_, val) => {
@@ -121,15 +120,19 @@ const SubjectList = () => {
   };
 
   const handleAddCurriculum = async () => {
-    if (!newCurriculum.trim()) return;
+    if (!newCurriculum.trim() || !canEditSubjects) return;
+
     const docRef = await addDoc(collection(db, "curriculums"), {
       name: newCurriculum,
     });
+
     setCurriculums((prev) => [...prev, { id: docRef.id, name: newCurriculum }]);
     setNewCurriculum("");
   };
 
   const handleDeleteCurriculum = async (curriculumId) => {
+    if (!canEditSubjects) return;
+
     const toDelete = subjects.filter((s) => s.curriculumId === curriculumId);
 
     for (let s of toDelete) {
@@ -143,6 +146,8 @@ const SubjectList = () => {
   };
 
   const handleAddSubject = async (curriculumId) => {
+    if (!canEditSubjects) return;
+
     const name = subjectInput[curriculumId];
     if (!name) return;
 
@@ -152,17 +157,18 @@ const SubjectList = () => {
     });
 
     setSubjects((prev) => [...prev, { id: docRef.id, name, curriculumId }]);
-
     setSubjectInput((prev) => ({ ...prev, [curriculumId]: "" }));
   };
 
   const handleDeleteSubject = async (subjectId) => {
+    if (!canEditSubjects) return;
+
     await deleteDoc(doc(db, "subjects", subjectId));
     setSubjects((prev) => prev.filter((s) => s.id !== subjectId));
   };
 
   const handleAddGroup = async () => {
-    if (!newGroup.trim()) return;
+    if (!newGroup.trim() || !canEditSubjects) return;
 
     const docRef = await addDoc(collection(db, "subjectGroups"), {
       name: newGroup,
@@ -177,11 +183,15 @@ const SubjectList = () => {
   };
 
   const handleDeleteGroup = async (groupId) => {
+    if (!canEditSubjects) return;
+
     await deleteDoc(doc(db, "subjectGroups", groupId));
     setGroups((prev) => prev.filter((g) => g.id !== groupId));
   };
 
   const handleAddSubjectToGroup = async (groupId) => {
+    if (!canEditSubjects) return;
+
     const subjectId = groupSubjectSelect[groupId];
     if (!subjectId) return;
 
@@ -198,6 +208,8 @@ const SubjectList = () => {
   };
 
   const handleRemoveSubjectFromGroup = async (groupId, subjectId) => {
+    if (!canEditSubjects) return;
+
     const group = groups.find((g) => g.id === groupId);
     const updated = group.subjectIds.filter((id) => id !== subjectId);
 
@@ -211,12 +223,16 @@ const SubjectList = () => {
   };
 
   const startEdit = (id, type, name) => {
+    if (!canEditSubjects) return;
+
     setEditedName(name);
     if (type === "curriculum") setEditCurriculumId(id);
     if (type === "group") setEditGroupId(id);
   };
 
   const saveEdit = async (id, type) => {
+    if (!canEditSubjects) return;
+
     const ref = doc(
       db,
       type === "curriculum" ? "curriculums" : "subjectGroups",
@@ -242,12 +258,14 @@ const SubjectList = () => {
   };
 
   const openDeleteDialog = (type, item) => {
+    if (!canEditSubjects) return;
+
     setDeleteType(type);
     setDeleteTarget(item);
   };
 
   const confirmDelete = async () => {
-    if (!deleteTarget) return;
+    if (!deleteTarget || !canEditSubjects) return;
     if (deleteType === "curriculum")
       await handleDeleteCurriculum(deleteTarget.id);
     if (deleteType === "group") await handleDeleteGroup(deleteTarget.id);
@@ -262,11 +280,14 @@ const SubjectList = () => {
     .sort((a, b) => a.name.localeCompare(b.name));
 
   const handleOpenAddDialog = (subject) => {
+    if (!canEditSubjects) return;
     setSelectedSubject(subject);
     setAddDialogOpen(true);
   };
 
   const handleAddToGroup = async (groupId) => {
+    if (!canEditSubjects) return;
+
     const group = groups.find((g) => g.id === groupId);
     const updated = [
       ...new Set([...(group.subjectIds || []), selectedSubject.id]),
@@ -288,8 +309,15 @@ const SubjectList = () => {
     <Box p={4}>
       <Header
         title="SUBJECTS"
-        subtitle="Manage subjects, groups and curricula"
+        subtitle="Manage Subjects, Groups and Curriculums"
       />
+
+      {!canEditSubjects && (
+        <Alert severity="info" icon={<LockIcon />} sx={{ mb: 3 }}>
+          Only Admins can edit curriculums, subject groups, and subjects.
+          Contact an Admin if you need to make changes.
+        </Alert>
+      )}
 
       <Tabs value={tab} onChange={handleTabChange} sx={{ mb: 3 }}>
         <Tab label="Curriculums" />
@@ -324,14 +352,16 @@ const SubjectList = () => {
                 fullWidth
               />
 
-              <Tooltip title="Add new Curriculum">
-                <IconButton
-                  color={showAddCurriculum ? "primary" : "default"}
-                  onClick={() => setShowAddCurriculum((prev) => !prev)}
-                >
-                  <AddIcon />
-                </IconButton>
-              </Tooltip>
+              {canEditSubjects && (
+                <Tooltip title="Add new Curriculum">
+                  <IconButton
+                    color={showAddCurriculum ? "primary" : "default"}
+                    onClick={() => setShowAddCurriculum((prev) => !prev)}
+                  >
+                    <AddIcon />
+                  </IconButton>
+                </Tooltip>
+              )}
             </Box>
 
             <Collapse
@@ -397,65 +427,69 @@ const SubjectList = () => {
                         } subjects`}
                       />
                     </Box>
-                    <Box
-                      sx={{
-                        display: "flex",
-                        flex: "0",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        marginLeft: "10px",
-                      }}
-                    >
-                      {editCurriculumId === cur.id ? (
-                        <IconButton
-                          onClick={() => saveEdit(cur.id, "curriculum")}
-                        >
-                          <SaveIcon />
-                        </IconButton>
-                      ) : (
-                        <IconButton
-                          onClick={() =>
-                            startEdit(cur.id, "curriculum", cur.name)
-                          }
-                        >
-                          <EditIcon />
-                        </IconButton>
-                      )}
-                      <IconButton
-                        onClick={() => openDeleteDialog("curriculum", cur)}
+                    {canEditSubjects && (
+                      <Box
+                        sx={{
+                          display: "flex",
+                          flex: "0",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          marginLeft: "10px",
+                        }}
                       >
-                        <DeleteIcon />
-                      </IconButton>
-                    </Box>
+                        {editCurriculumId === cur.id ? (
+                          <IconButton
+                            onClick={() => saveEdit(cur.id, "curriculum")}
+                          >
+                            <SaveIcon />
+                          </IconButton>
+                        ) : (
+                          <IconButton
+                            onClick={() =>
+                              startEdit(cur.id, "curriculum", cur.name)
+                            }
+                          >
+                            <EditIcon />
+                          </IconButton>
+                        )}
+                        <IconButton
+                          onClick={() => openDeleteDialog("curriculum", cur)}
+                        >
+                          <DeleteIcon />
+                        </IconButton>
+                      </Box>
+                    )}
                   </Box>
 
-                  <Stack direction="row" mt={2} spacing={2}>
-                    <TextField
-                      fullWidth
-                      placeholder="Add new subject..."
-                      value={subjectInput[cur.id] || ""}
-                      onChange={(e) =>
-                        setSubjectInput((prev) => ({
-                          ...prev,
-                          [cur.id]: e.target.value,
-                        }))
-                      }
-                    />
-                    <Box
-                      sx={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                    >
-                      <Button
-                        variant="contained"
-                        onClick={() => handleAddSubject(cur.id)}
+                  {canEditSubjects && (
+                    <Stack direction="row" mt={2} spacing={2}>
+                      <TextField
+                        fullWidth
+                        placeholder="Add new subject..."
+                        value={subjectInput[cur.id] || ""}
+                        onChange={(e) =>
+                          setSubjectInput((prev) => ({
+                            ...prev,
+                            [cur.id]: e.target.value,
+                          }))
+                        }
+                      />
+                      <Box
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
                       >
-                        Add
-                      </Button>
-                    </Box>
-                  </Stack>
+                        <Button
+                          variant="contained"
+                          onClick={() => handleAddSubject(cur.id)}
+                        >
+                          Add
+                        </Button>
+                      </Box>
+                    </Stack>
+                  )}
 
                   <Button
                     size="small"
@@ -531,11 +565,16 @@ const SubjectList = () => {
                               }}
                             >
                               <Typography>{subject.name}</Typography>
-                              <IconButton
-                                onClick={() => handleDeleteSubject(subject.id)}
-                              >
-                                <DeleteIcon />
-                              </IconButton>
+
+                              {canEditSubjects && (
+                                <IconButton
+                                  onClick={() =>
+                                    handleDeleteSubject(subject.id)
+                                  }
+                                >
+                                  <DeleteIcon />
+                                </IconButton>
+                              )}
                             </Box>
                           );
                         }}
@@ -575,14 +614,16 @@ const SubjectList = () => {
                 fullWidth
               />
 
-              <Tooltip title="Add new Subject Group">
-                <IconButton
-                  color={showAddGroup ? "primary" : "default"}
-                  onClick={() => setShowAddGroup((prev) => !prev)}
-                >
-                  <AddIcon />
-                </IconButton>
-              </Tooltip>
+              {canEditSubjects && (
+                <Tooltip title="Add new Subject Group">
+                  <IconButton
+                    color={showAddGroup ? "primary" : "default"}
+                    onClick={() => setShowAddGroup((prev) => !prev)}
+                  >
+                    <AddIcon />
+                  </IconButton>
+                </Tooltip>
+              )}
             </Box>
 
             <Collapse
@@ -644,94 +685,102 @@ const SubjectList = () => {
                         color="success"
                       />
                     </Box>
-                    <Box
-                      sx={{
-                        display: "flex",
-                        flex: "0",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        marginLeft: "10px",
-                      }}
-                    >
-                      {editGroupId === g.id ? (
-                        <IconButton onClick={() => saveEdit(g.id, "group")}>
-                          <SaveIcon />
-                        </IconButton>
-                      ) : (
-                        <IconButton
-                          onClick={() => startEdit(g.id, "group", g.name)}
-                        >
-                          <EditIcon />
-                        </IconButton>
-                      )}
-                      <IconButton onClick={() => openDeleteDialog("group", g)}>
-                        <DeleteIcon />
-                      </IconButton>
-                    </Box>
-                  </Box>
 
-                  <Stack direction="row" mt={2} spacing={2}>
-                    <Autocomplete
-                      fullWidth
-                      disableListWrap
-                      value={
-                        subjects.find(
-                          (s) => s.id === groupSubjectSelect[g.id]
-                        ) || null
-                      }
-                      options={subjects
-                        .filter((s) => !g.subjectIds.includes(s.id))
-                        .sort((a, b) => a.name.localeCompare(b.name))}
-                      getOptionLabel={(option) =>
-                        `${option.name} (${
-                          curriculums.find((c) => c.id === option.curriculumId)
-                            ?.name || "Unknown"
-                        })`
-                      }
-                      renderInput={(params) => (
-                        <TextField
-                          {...params}
-                          label="Select subject..."
-                          variant="outlined"
-                        />
-                      )}
-                      onChange={(_, value) => {
-                        setGroupSubjectSelect((prev) => ({
-                          ...prev,
-                          [g.id]: value?.id || "",
-                        }));
-                      }}
-                      isOptionEqualToValue={(option, value) =>
-                        option.id === value.id
-                      }
-                      slotProps={{
-                        listbox: {
-                          component: VirtualizedAutoComplete,
-                        },
-                      }}
-                    />
-                    <Box
-                      sx={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                    >
-                      <Button
-                        disabled={!groupSubjectSelect[g.id]}
-                        variant="contained"
-                        onClick={() => {
-                          handleAddSubjectToGroup(g.id);
-                          setGroupSubjectSelect((prev) => ({
-                            ...prev,
-                            [g.id]: "",
-                          }));
+                    {canEditSubjects && (
+                      <Box
+                        sx={{
+                          display: "flex",
+                          flex: "0",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          marginLeft: "10px",
                         }}
                       >
-                        Add
-                      </Button>
-                    </Box>
-                  </Stack>
+                        {editGroupId === g.id ? (
+                          <IconButton onClick={() => saveEdit(g.id, "group")}>
+                            <SaveIcon />
+                          </IconButton>
+                        ) : (
+                          <IconButton
+                            onClick={() => startEdit(g.id, "group", g.name)}
+                          >
+                            <EditIcon />
+                          </IconButton>
+                        )}
+                        <IconButton
+                          onClick={() => openDeleteDialog("group", g)}
+                        >
+                          <DeleteIcon />
+                        </IconButton>
+                      </Box>
+                    )}
+                  </Box>
+
+                  {canEditSubjects && (
+                    <Stack direction="row" mt={2} spacing={2}>
+                      <Autocomplete
+                        fullWidth
+                        disableListWrap
+                        value={
+                          subjects.find(
+                            (s) => s.id === groupSubjectSelect[g.id]
+                          ) || null
+                        }
+                        options={subjects
+                          .filter((s) => !g.subjectIds.includes(s.id))
+                          .sort((a, b) => a.name.localeCompare(b.name))}
+                        getOptionLabel={(option) =>
+                          `${option.name} (${
+                            curriculums.find(
+                              (c) => c.id === option.curriculumId
+                            )?.name || "Unknown"
+                          })`
+                        }
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            label="Select subject..."
+                            variant="outlined"
+                          />
+                        )}
+                        onChange={(_, value) => {
+                          setGroupSubjectSelect((prev) => ({
+                            ...prev,
+                            [g.id]: value?.id || "",
+                          }));
+                        }}
+                        isOptionEqualToValue={(option, value) =>
+                          option.id === value.id
+                        }
+                        slotProps={{
+                          listbox: {
+                            component: VirtualizedAutoComplete,
+                          },
+                        }}
+                      />
+                      <Box
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        <Button
+                          disabled={!groupSubjectSelect[g.id]}
+                          variant="contained"
+                          onClick={() => {
+                            handleAddSubjectToGroup(g.id);
+                            setGroupSubjectSelect((prev) => ({
+                              ...prev,
+                              [g.id]: "",
+                            }));
+                          }}
+                        >
+                          Add
+                        </Button>
+                      </Box>
+                    </Stack>
+                  )}
 
                   <Button
                     size="small"
@@ -816,13 +865,16 @@ const SubjectList = () => {
                                 {sub?.name}{" "}
                                 <Chip size="small" label={cur?.name} />
                               </Typography>
-                              <IconButton
-                                onClick={() =>
-                                  handleRemoveSubjectFromGroup(g.id, sub.id)
-                                }
-                              >
-                                <DeleteIcon />
-                              </IconButton>
+
+                              {canEditSubjects && (
+                                <IconButton
+                                  onClick={() =>
+                                    handleRemoveSubjectFromGroup(g.id, sub.id)
+                                  }
+                                >
+                                  <DeleteIcon />
+                                </IconButton>
+                              )}
                             </Box>
                           );
                         }}
@@ -874,9 +926,11 @@ const SubjectList = () => {
                         />
                       )}
                     </Typography>
-                    <IconButton onClick={() => handleOpenAddDialog(subject)}>
-                      <AddIcon />
-                    </IconButton>
+                    {canEditSubjects && (
+                      <IconButton onClick={() => handleOpenAddDialog(subject)}>
+                        <AddIcon />
+                      </IconButton>
+                    )}
                   </Box>
                 );
               }}
@@ -885,7 +939,6 @@ const SubjectList = () => {
         </Box>
       )}
 
-      {/* Delete Confirmation Dialog */}
       <Dialog open={!!deleteTarget} onClose={() => setDeleteTarget(null)}>
         <DialogTitle>Are you sure?</DialogTitle>
         <DialogContent>

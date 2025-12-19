@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Box, useTheme } from "@mui/material";
+import usePermissions from "../../hooks/usePermissions";
 import Header from "../../components/Global/Header";
 import PermissionsTab from "../../components/Settings/PermissionsTab";
 import IntegrationsTab from "../../components/Settings/IntegrationsTab";
@@ -9,20 +10,47 @@ import MobileSettingsTabs from "../../components/Settings/MobileSettingsTabs";
 
 const Settings = () => {
   const theme = useTheme();
-  const [selectedTab, setSelectedTab] = useState("permissions");
+  const { canAccessIntegrations, canEditPermissions, loading } =
+    usePermissions();
+
+  const getAvailableTabs = () => {
+    const tabs = [];
+
+    tabs.push("profile");
+
+    tabs.push("permissions");
+
+    if (canAccessIntegrations) {
+      tabs.push("integrations");
+    }
+
+    tabs.push("general");
+    tabs.push("notifications");
+
+    return tabs;
+  };
+
+  const availableTabs = getAvailableTabs();
+  const [selectedTab, setSelectedTab] = useState("profile");
+
+  useEffect(() => {
+    if (!loading && !availableTabs.includes(selectedTab)) {
+      setSelectedTab(availableTabs[0] || "profile");
+    }
+  }, [availableTabs, selectedTab, loading]);
 
   const renderTab = () => {
     switch (selectedTab) {
+      case "profile":
+        return <ProfileTab />;
       case "permissions":
-        return <PermissionsTab />;
+        return <PermissionsTab canEdit={canEditPermissions} />;
       case "integrations":
-        return <IntegrationsTab />;
+        return canAccessIntegrations ? <IntegrationsTab /> : null;
       case "general":
         return <Box></Box>;
       case "notifications":
         return <Box></Box>;
-      case "profile":
-        return <ProfileTab />;
       default:
         return null;
     }
@@ -33,12 +61,17 @@ const Settings = () => {
       <Header title="SETTINGS" subtitle="Wise Minds Admin Settings" />
 
       <Box display="flex" mt={3} gap={2}>
-        <SettingsSidebar selected={selectedTab} onSelect={setSelectedTab} />
+        <SettingsSidebar
+          selected={selectedTab}
+          onSelect={setSelectedTab}
+          availableTabs={availableTabs}
+        />
 
         <Box flex={1}>
           <MobileSettingsTabs
             selected={selectedTab}
             onSelect={setSelectedTab}
+            availableTabs={availableTabs}
           />
 
           {renderTab()}

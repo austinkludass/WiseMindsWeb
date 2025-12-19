@@ -8,6 +8,7 @@ import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { ToastContainer, toast } from "react-toastify";
 import { ColorService, useColor } from "react-color-palette";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import usePermissions from "../../hooks/usePermissions";
 import dayjs from "dayjs";
 import Header from "../../components/Global/Header";
 import Section from "../../components/Global/Section";
@@ -29,7 +30,6 @@ import "dayjs/locale/en-gb";
 const TutorProfile = () => {
   const { tutorId } = useParams();
   const [tutor, setTutor] = useState(null);
-  const [currentUser, setCurrentUser] = useState(null);
   const [forms, setForms] = useState({});
   const [editState, setEditState] = useState({});
   const [touchedFields, setTouchedFields] = useState({});
@@ -46,72 +46,83 @@ const TutorProfile = () => {
   const dateFields = ["dateOfBirth", "wwvpExpiry", "faCourseDate", "faExpiry"];
   const [isSaving, setIsSaving] = useState(false);
 
+  const { canViewBankingTax, canViewBlockedStudents, userId } =
+    usePermissions();
+  const canSeeBankingTax = canViewBankingTax(tutorId);
+  const canSeeBlockedStudents = canViewBlockedStudents;
+
   const setForm = (key, value) =>
     setForms((prev) => ({ ...prev, [key]: value }));
   const toggleEdit = (key, state) =>
     setEditState((prev) => ({ ...prev, [key]: state }));
 
-  const formConfigs = {
-    profile: {
-      title: "",
-      component: TutorProfileInfo,
-      fields: [
-        "firstName",
-        "middleName",
-        "lastName",
-        "dateOfBirth",
-        "wiseMindsEmail",
-      ],
-      extraProps: {
-        tutorColor,
-        setTutorColor,
-        profilePic,
-        setProfilePic,
-        profilePicPreview,
-        setProfilePicPreview,
+  const getFormConfigs = () => {
+    const configs = {
+      profile: {
+        title: "",
+        component: TutorProfileInfo,
+        fields: [
+          "firstName",
+          "middleName",
+          "lastName",
+          "dateOfBirth",
+          "wiseMindsEmail",
+        ],
+        extraProps: {
+          tutorColor,
+          setTutorColor,
+          profilePic,
+          setProfilePic,
+          profilePicPreview,
+          setProfilePicPreview,
+        },
       },
-    },
-    contact: {
-      title: "",
-      component: TutorContactInfo,
-      fields: ["personalEmail", "phone", "address"],
-    },
-    personal: {
-      title: "",
-      component: TutorPersonalInfo,
-      fields: [
-        "career",
-        "degree",
-        "position",
-        "homeLocation",
-        "role",
-        "hours",
-        "rate",
-      ],
-    },
-    emergency: {
-      title: "",
-      component: TutorEmergencyInfo,
-      fields: [
-        "emergencyName",
-        "emergencyRelationship",
-        "emergencyPhone",
-        "emergencyEmail",
-      ],
-    },
-    bank: {
-      title: "",
-      component: TutorBankInfo,
-      fields: [
-        "bankName",
-        "accountName",
-        "bsb",
-        "accountNumber",
-        "tfn",
-        "superCompany",
-      ],
-    },
-    wwvp: {
+      contact: {
+        title: "",
+        component: TutorContactInfo,
+        fields: ["personalEmail", "phone", "address"],
+      },
+      personal: {
+        title: "",
+        component: TutorPersonalInfo,
+        fields: [
+          "career",
+          "degree",
+          "position",
+          "homeLocation",
+          "role",
+          "hours",
+          "rate",
+        ],
+      },
+      emergency: {
+        title: "",
+        component: TutorEmergencyInfo,
+        fields: [
+          "emergencyName",
+          "emergencyRelationship",
+          "emergencyPhone",
+          "emergencyEmail",
+        ],
+      },
+    };
+
+    if (canSeeBankingTax) {
+      configs.bank = {
+        title: "",
+        component: TutorBankInfo,
+        fields: [
+          "bankName",
+          "accountName",
+          "bsb",
+          "accountNumber",
+          "tfn",
+          "superCompany",
+        ],
+      };
+    }
+
+    configs.wwvp = {
       title: "",
       component: TutorWWVPInfo,
       fields: [
@@ -122,8 +133,9 @@ const TutorProfile = () => {
         "wwvpFilePath",
       ],
       extraProps: { wwvpFile, setWwvpFile },
-    },
-    firstaid: {
+    };
+
+    configs.firstaid = {
       title: "",
       component: TutorFirstAidInfo,
       fields: [
@@ -136,8 +148,9 @@ const TutorProfile = () => {
         "firstAidFilePath",
       ],
       extraProps: { firstAidFile, setFirstAidFile },
-    },
-    policecheck: {
+    };
+
+    configs.policecheck = {
       title: "",
       component: TutorPoliceCheckInfo,
       fields: [
@@ -149,8 +162,9 @@ const TutorProfile = () => {
         "policeCheckFilePath",
       ],
       extraProps: { policeCheckFile, setPoliceCheckFile },
-    },
-    availability: {
+    };
+
+    configs.availability = {
       title: "Availability",
       component: AvailabilitySelector,
       fields: [],
@@ -158,8 +172,9 @@ const TutorProfile = () => {
         initialAvailability: availability,
         onAvailabilityChange: setAvailability,
       },
-    },
-    unavailability: {
+    };
+
+    configs.unavailability = {
       title: "Unavailability",
       component: UnavailabilitySelector,
       fields: [],
@@ -167,27 +182,30 @@ const TutorProfile = () => {
         unavailability,
         onChange: setUnavailability,
       },
-    },
-    capabilities: {
+    };
+
+    configs.capabilities = {
       title: "Capabilities",
       component: TutorCapabilities,
       fields: [],
       extraProps: { capabilityIds, setCapabilityIds },
-    },
-    blockedstudents: {
-      title: "Blocked Students",
-      component: TutorBlockedStudents,
-      fields: [],
-      extraProps: { blockedStudentIds, setBlockedStudentIds },
-    },
+    };
+
+    if (canSeeBlockedStudents) {
+      configs.blockedstudents = {
+        title: "Blocked Students",
+        component: TutorBlockedStudents,
+        fields: [],
+        extraProps: { blockedStudentIds, setBlockedStudentIds },
+      };
+    }
+
+    return configs;
   };
 
-  useEffect(() => {
-    // Get logged-in user from localStorage
-    const storedUser = JSON.parse(localStorage.getItem("user"));
-    setCurrentUser(storedUser);
+  const formConfigs = getFormConfigs();
 
-    // Fetch tutor details from Firestore
+  useEffect(() => {
     const fetchTutor = async () => {
       if (!tutorId) return;
       const tutorRef = doc(db, "tutors", tutorId);
@@ -220,7 +238,7 @@ const TutorProfile = () => {
     };
 
     fetchTutor();
-  }, [tutorId]);
+  }, [tutorId, canSeeBankingTax, canSeeBlockedStudents]);
 
   const handleSave = async (key) => {
     setIsSaving(true);
@@ -294,12 +312,13 @@ const TutorProfile = () => {
 
     try {
       await updateDoc(tutorRef, payload);
-      toast.success("Successfully updated tutor");
+      toast.success("Saved successfully");
+      toggleEdit(key, false);
+      setTutor((prev) => ({ ...prev, ...payload }));
     } catch (error) {
-      toast.error("Error updating tutor: " + error.message);
+      toast.error("Error saving: " + error.message);
     }
-    setTutor((prev) => ({ ...prev, ...payload }));
-    toggleEdit(key, false);
+
     setIsSaving(false);
   };
 
@@ -360,9 +379,6 @@ const TutorProfile = () => {
       </Box>
     );
   }
-
-  // const isSelf = currentUser?.uid === tutorId;
-  // const isAdmin = currentUser?.role === "admin";
 
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="en-gb">
