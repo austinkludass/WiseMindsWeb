@@ -34,6 +34,9 @@ const timeForHour = (hour) => {
   return date;
 };
 
+const isValidDate = (value) =>
+  value instanceof Date && !Number.isNaN(value.getTime());
+
 function timeStringToDate(timeStr) {
   if (typeof timeStr !== "string" || !timeStr.includes(":")) {
     console.warn("Invalid time string: ", timeStr);
@@ -80,9 +83,13 @@ const AvailabilitySelector = ({
     setAvailability(parsed);
   }, [initialAvailability]);
 
-  const updateAvailability = (newAvailability) => {
-    setAvailability(newAvailability);
-    if (onAvailabilityChange) onAvailabilityChange(newAvailability);
+  const updateAvailability = (updater) => {
+    setAvailability((prev) => {
+      const next =
+        typeof updater === "function" ? updater(prev) : updater;
+      if (onAvailabilityChange) onAvailabilityChange(next);
+      return next;
+    });
   };
 
   // Add a new time slot for a day
@@ -112,7 +119,8 @@ const AvailabilitySelector = ({
 
   // Update time values
   const handleTimeChange = (day, index, type, value) => {
-    if (!value) return;
+    if (!isValidDate(value)) return;
+    if (value < minTime || value > maxTime) return;
     updateAvailability((prev) => {
       const updatedSlots = [...(prev[day] || [])];
       updatedSlots[index] = { ...updatedSlots[index], [type]: value };

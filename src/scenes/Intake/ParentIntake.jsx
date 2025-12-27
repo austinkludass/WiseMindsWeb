@@ -4,11 +4,8 @@ import { addDoc, collection } from "firebase/firestore";
 import { useLocation } from "react-router-dom";
 import { db } from "../../data/firebase";
 import IntakeLayout from "../../components/intake/IntakeLayout";
-import StudentBasicsStep from "../../components/intake/steps/StudentBasicsStep";
-import FamilyEmergencyStep from "../../components/intake/steps/FamilyEmergencyStep";
-import AcademicNeedsStep from "../../components/intake/steps/AcademicNeedsStep";
-import TrialStep from "../../components/intake/steps/TrialStep";
-import RegularAvailabilityStep from "../../components/intake/steps/RegularAvailabilityStep";
+import FamilyStep from "../../components/intake/steps/FamilyStep";
+import ChildrenStep from "../../components/intake/steps/ChildrenStep";
 import AdditionalInfoStep from "../../components/intake/steps/AdditionalInfoStep";
 import AvailabilityFormatter from "../../utils/AvailabilityFormatter";
 
@@ -23,7 +20,7 @@ import AvailabilityFormatter from "../../utils/AvailabilityFormatter";
  * - parentPhone | guardianPhone | familyPhone | phone
  * - parentAddress | guardianAddress | familyAddress | address
  *
- * Child (first entry is used):
+ * Child (first entry is used for a single child unless childNames is supplied):
  * - childName | studentName (full name)
  * - childNames | children (list, separated by commas, semicolons, or pipes)
  * - childFirstName | studentFirstName | firstName
@@ -33,15 +30,25 @@ import AvailabilityFormatter from "../../utils/AvailabilityFormatter";
  * Hidden location:
  * - homeLocation | location | locationId | location_id | preferredLocation
  */
-const defaultFormData = {
-  firstName: "",
-  middleName: "",
-  lastName: "",
-  dateOfBirth: null,
-  allergiesAna: "",
-  allergiesNonAna: "",
-  doesCarryEpi: false,
-  doesAdminEpi: false,
+/**
+ * Intake submission payload contract (intakeSubmissions):
+ * - family: guardian + emergency + household preferences; homeLocation is optional
+ * - children: array of child objects; availability/subjects are per child
+ * - meta: submission metadata
+ *
+ * Required (validation):
+ * - family: parentName, familyEmail, familyPhone, familyAddress
+ * - family: emergencyFirst, emergencyLast, emergencyRelationship, emergencyPhone
+ * - family: howUserHeard, consentAccepted
+ * - child: firstName, lastName, dateOfBirth, school, yearLevel
+ * - child: preferredStart, trialAvailability, availability
+ *
+ * Normalization:
+ * - date values are stored as ISO strings
+ * - availability and trialAvailability are formatted via AvailabilityFormatter
+ * - subjects include id, hours, and selected (request tutoring)
+ */
+const defaultFamilyData = {
   parentName: "",
   familyEmail: "",
   familyPhone: "",
@@ -56,15 +63,10 @@ const defaultFormData = {
   emergencyRelationship: "",
   emergencyRelationshipOther: "",
   emergencyPhone: "",
-  school: "",
-  yearLevel: "",
-  notes: "",
   canOfferFood: true,
   avoidFoods: "",
   questions: "",
   howUserHeard: "",
-  preferredStart: null,
-  trialNotes: "",
   homeLocation: "",
   additionalNotes: "",
   consentAccepted: false,
@@ -77,6 +79,104 @@ const formatDateValue = (value) =>
   value && typeof value.toISOString === "function" ? value.toISOString() : null;
 
 const defaultSubjects = [{ id: "", hours: "", selected: false }];
+
+const toTimeValue = (value) => {
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    return value.getTime();
+  }
+  if (typeof value === "string" && value.includes(":")) {
+    const [hours, minutes] = value.split(":").map(Number);
+    if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return null;
+    const date = new Date();
+    date.setHours(hours, minutes, 0, 0);
+    return date.getTime();
+  }
+  return null;
+};
+
+const validateAvailability = (availability, label) => {
+  const messages = [];
+  const reported = new Set();
+
+  Object.entries(availability || {}).forEach(([day, slots]) => {
+    if (!Array.isArray(slots) || slots.length === 0) return;
+
+    const normalized = [];
+    let hasInvalidValue = false;
+    let hasInvalidRange = false;
+
+    slots.forEach((slot) => {
+      const start = toTimeValue(slot.start);
+      const end = toTimeValue(slot.end);
+      if (start === null || end === null) {
+        hasInvalidValue = true;
+        return;
+      }
+      if (start >= end) {
+        hasInvalidRange = true;
+      }
+      normalized.push({ start, end });
+    });
+
+    if (hasInvalidValue) {
+      const key = `${label}-${day}-invalid`;
+      if (!reported.has(key)) {
+        messages.push(`${label}: ${day} has an invalid time value.`);
+        reported.add(key);
+      }
+    }
+
+    if (hasInvalidRange) {
+      const key = `${label}-${day}-range`;
+      if (!reported.has(key)) {
+        messages.push(`${label}: ${day} has an end time before the start time.`);
+        reported.add(key);
+      }
+    }
+
+    if (normalized.length > 1) {
+      normalized.sort((a, b) => a.start - b.start);
+      const hasOverlap = normalized.some((slot, index) => {
+        if (index === 0) return false;
+        return slot.start < normalized[index - 1].end;
+      });
+      if (hasOverlap) {
+        const key = `${label}-${day}-overlap`;
+        if (!reported.has(key)) {
+          messages.push(`${label}: ${day} has overlapping time slots.`);
+          reported.add(key);
+        }
+      }
+    }
+  });
+
+  return messages;
+};
+
+const createChild = (overrides = {}) => ({
+  firstName: "",
+  middleName: "",
+  lastName: "",
+  dateOfBirth: null,
+  allergiesAna: "",
+  allergiesNonAna: "",
+  doesCarryEpi: false,
+  doesAdminEpi: false,
+  school: "",
+  yearLevel: "",
+  notes: "",
+  preferredStart: null,
+  trialNotes: "",
+  subjects: defaultSubjects.map((subject) => ({ ...subject })),
+  availability: {},
+  trialAvailability: {},
+  ...overrides,
+});
+
+const createChildTouched = () => ({
+  firstName: false,
+  lastName: false,
+});
 
 const getParamValue = (params, keys) => {
   for (const key of keys) {
@@ -114,25 +214,14 @@ const ParentIntake = () => {
   const [errors, setErrors] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const [formData, setFormData] = useState(defaultFormData);
-  const [subjects, setSubjects] = useState(defaultSubjects);
-  const [availability, setAvailability] = useState({});
-  const [trialAvailability, setTrialAvailability] = useState({});
-  const [touched, setTouched] = useState({
-    firstName: false,
-    familyPhone: false,
-    familyEmail: false,
-  });
+  const [familyData, setFamilyData] = useState(defaultFamilyData);
+  const [children, setChildren] = useState([createChild()]);
+  const [childrenTouched, setChildrenTouched] = useState([
+    createChildTouched(),
+  ]);
 
   const steps = useMemo(
-    () => [
-      { label: "Student", Component: StudentBasicsStep },
-      { label: "Family", Component: FamilyEmergencyStep },
-      { label: "Academic", Component: AcademicNeedsStep },
-      { label: "Trial", Component: TrialStep },
-      { label: "Availability", Component: RegularAvailabilityStep },
-      { label: "Additional", Component: AdditionalInfoStep },
-    ],
+    () => [{ label: "Family" }, { label: "Children" }, { label: "Additional" }],
     []
   );
 
@@ -217,7 +306,7 @@ const ParentIntake = () => {
 
     const splitChild = childFullName ? splitFullName(childFullName) : null;
 
-    setFormData((prev) => {
+    setFamilyData((prev) => {
       const next = { ...prev };
       const setIfEmpty = (key, value) => {
         if (!value) return;
@@ -231,82 +320,115 @@ const ParentIntake = () => {
       setIfEmpty("familyPhone", familyPhone);
       setIfEmpty("familyAddress", familyAddress);
 
-      setIfEmpty("firstName", childFirst || splitChild?.first || "");
-      setIfEmpty("middleName", childMiddle || splitChild?.middle || "");
-      setIfEmpty("lastName", childLast || splitChild?.last || "");
-
       if (homeLocation && next.homeLocation !== homeLocation) {
         next.homeLocation = homeLocation;
       }
 
       return next;
     });
+
+    const listChildren = childNames.map((name) =>
+      createChild(splitFullName(name))
+    );
+
+    const primaryChild = createChild({
+      firstName: childFirst || splitChild?.first || "",
+      middleName: childMiddle || splitChild?.middle || "",
+      lastName: childLast || splitChild?.last || "",
+    });
+
+    const hasPrimaryName =
+      primaryChild.firstName || primaryChild.middleName || primaryChild.lastName;
+
+    if (listChildren.length > 0) {
+      setChildren((prev) => {
+        const hasExistingNames = prev.some(
+          (child) => child.firstName || child.middleName || child.lastName
+        );
+        if (hasExistingNames) {
+          return prev;
+        }
+        setChildrenTouched(listChildren.map(() => createChildTouched()));
+        return listChildren;
+      });
+      return;
+    }
+
+    if (hasPrimaryName) {
+      setChildren((prev) =>
+        prev.map((child, index) =>
+          index === 0
+            ? {
+                ...child,
+                firstName: child.firstName || primaryChild.firstName,
+                middleName: child.middleName || primaryChild.middleName,
+                lastName: child.lastName || primaryChild.lastName,
+              }
+            : child
+        )
+      );
+    }
   }, [search]);
 
   const buildSubmissionPayload = () => {
-    const formattedTrial = hasAvailability(trialAvailability)
-      ? AvailabilityFormatter(trialAvailability)
-      : {};
-    const formattedAvailability = hasAvailability(availability)
-      ? AvailabilityFormatter(availability)
-      : {};
-
     return {
-      student: {
-        firstName: formData.firstName.trim(),
-        middleName: formData.middleName.trim(),
-        lastName: formData.lastName.trim(),
-        dateOfBirth: formatDateValue(formData.dateOfBirth),
-        allergiesAna: formData.allergiesAna,
-        allergiesNonAna: formData.allergiesNonAna,
-        doesCarryEpi: Boolean(formData.doesCarryEpi),
-        doesAdminEpi: Boolean(formData.doesAdminEpi),
-        familyPhone: formData.familyPhone,
-        familyEmail: formData.familyEmail,
-        familyAddress: formData.familyAddress,
-        emergencyFirst: formData.emergencyFirst,
-        emergencyLast: formData.emergencyLast,
+      family: {
+        parentName: familyData.parentName,
+        parentEmail: familyData.familyEmail,
+        parentPhone: familyData.familyPhone,
+        parentAddress: familyData.familyAddress,
+        schedulePreference: familyData.schedulePreference,
+        secondaryName: familyData.secondaryContactName,
+        secondaryEmail: familyData.secondaryContactEmail,
+        secondaryPhone: familyData.secondaryContactPhone,
+        emergencyFirst: familyData.emergencyFirst,
+        emergencyLast: familyData.emergencyLast,
         emergencyRelationship:
-          formData.emergencyRelationship === "Other"
-            ? formData.emergencyRelationshipOther || "Other"
-            : formData.emergencyRelationship,
-        emergencyPhone: formData.emergencyPhone,
-        school: formData.school,
-        yearLevel: formData.yearLevel,
-        notes: formData.notes,
-        canOfferFood: Boolean(formData.canOfferFood),
-        avoidFoods: formData.avoidFoods,
-        questions: formData.questions,
-        howUserHeard: formData.howUserHeard,
-        preferredStart: formatDateValue(formData.preferredStart),
-        trialAvailability: formattedTrial,
-        availability: formattedAvailability,
-        subjects: subjects
+          familyData.emergencyRelationship === "Other"
+            ? familyData.emergencyRelationshipOther || "Other"
+            : familyData.emergencyRelationship,
+        emergencyPhone: familyData.emergencyPhone,
+        usePrimaryAsEmergency: Boolean(familyData.usePrimaryAsEmergency),
+        canOfferFood: Boolean(familyData.canOfferFood),
+        avoidFoods: familyData.avoidFoods,
+        questions: familyData.questions,
+        howUserHeard: familyData.howUserHeard,
+        additionalNotes: familyData.additionalNotes,
+        homeLocation: familyData.homeLocation,
+      },
+      children: children.map((child) => ({
+        firstName: child.firstName.trim(),
+        middleName: child.middleName.trim(),
+        lastName: child.lastName.trim(),
+        dateOfBirth: formatDateValue(child.dateOfBirth),
+        allergiesAna: child.allergiesAna,
+        allergiesNonAna: child.allergiesNonAna,
+        doesCarryEpi: Boolean(child.doesCarryEpi),
+        doesAdminEpi: Boolean(child.doesAdminEpi),
+        school: child.school,
+        yearLevel: child.yearLevel,
+        notes: child.notes,
+        preferredStart: formatDateValue(child.preferredStart),
+        trialNotes: child.trialNotes,
+        trialAvailability: hasAvailability(child.trialAvailability)
+          ? AvailabilityFormatter(child.trialAvailability)
+          : {},
+        availability: hasAvailability(child.availability)
+          ? AvailabilityFormatter(child.availability)
+          : {},
+        subjects: child.subjects
           .filter((subject) => subject.id)
           .map((subject) => ({
             id: subject.id,
             hours: subject.hours ? String(subject.hours) : "0",
             selected: Boolean(subject.selected),
           })),
-        homeLocation: formData.homeLocation,
-        trialNotes: formData.trialNotes,
-        additionalNotes: formData.additionalNotes,
-      },
-      family: {
-        parentName: formData.parentName,
-        parentEmail: formData.familyEmail,
-        parentPhone: formData.familyPhone,
-        parentAddress: formData.familyAddress,
-        schedulePreference: formData.schedulePreference,
-        secondaryName: formData.secondaryContactName,
-        secondaryEmail: formData.secondaryContactEmail,
-        secondaryPhone: formData.secondaryContactPhone,
-      },
+      })),
       meta: {
         status: "new",
         source: "parent-intake",
         submittedAt: new Date().toISOString(),
-        consentAccepted: Boolean(formData.consentAccepted),
+        consentAccepted: Boolean(familyData.consentAccepted),
       },
     };
   };
@@ -314,48 +436,74 @@ const ParentIntake = () => {
   const validateForm = () => {
     const nextErrors = [];
 
-    if (!formData.firstName.trim()) nextErrors.push("Student first name is required.");
-    if (!formData.lastName.trim()) nextErrors.push("Student last name is required.");
-    if (!formData.dateOfBirth) nextErrors.push("Date of birth is required.");
+    if (children.length < 1) nextErrors.push("Please add at least one child.");
 
-    if (!formData.parentName.trim())
+    if (!familyData.parentName.trim())
       nextErrors.push("Primary guardian name is required.");
-    if (!formData.familyEmail.trim())
+    if (!familyData.familyEmail.trim())
       nextErrors.push("Primary guardian email is required.");
-    if (!formData.familyPhone.trim())
+    if (!familyData.familyPhone.trim())
       nextErrors.push("Primary guardian phone is required.");
-    if (!formData.familyAddress.trim())
+    if (!familyData.familyAddress.trim())
       nextErrors.push("Home address is required.");
 
-    if (!formData.emergencyFirst.trim())
+    if (!familyData.emergencyFirst.trim())
       nextErrors.push("Emergency contact first name is required.");
-    if (!formData.emergencyLast.trim())
+    if (!familyData.emergencyLast.trim())
       nextErrors.push("Emergency contact last name is required.");
-    if (!formData.emergencyRelationship)
+    if (!familyData.emergencyRelationship)
       nextErrors.push("Emergency contact relationship is required.");
     if (
-      formData.emergencyRelationship === "Other" &&
-      !formData.emergencyRelationshipOther.trim()
+      familyData.emergencyRelationship === "Other" &&
+      !familyData.emergencyRelationshipOther.trim()
     ) {
       nextErrors.push("Please specify the emergency contact relationship.");
     }
-    if (!formData.emergencyPhone.trim())
+    if (!familyData.emergencyPhone.trim())
       nextErrors.push("Emergency contact phone is required.");
 
-    if (!formData.school.trim()) nextErrors.push("School is required.");
-    if (!formData.yearLevel.trim()) nextErrors.push("Year level is required.");
+    children.forEach((child, index) => {
+      const label = `Child ${index + 1}`;
+      if (!child.firstName.trim())
+        nextErrors.push(`${label}: first name is required.`);
+      if (!child.lastName.trim())
+        nextErrors.push(`${label}: last name is required.`);
+      if (!child.dateOfBirth)
+        nextErrors.push(`${label}: date of birth is required.`);
+      if (!child.school.trim())
+        nextErrors.push(`${label}: school is required.`);
+      if (!child.yearLevel.trim())
+        nextErrors.push(`${label}: year level is required.`);
+      if (!hasAvailability(child.trialAvailability))
+        nextErrors.push(`${label}: add at least one trial availability slot.`);
+      if (!child.preferredStart)
+        nextErrors.push(`${label}: preferred start date is required.`);
+      if (!hasAvailability(child.availability))
+        nextErrors.push(`${label}: add regular availability.`);
 
-    if (!hasAvailability(trialAvailability))
-      nextErrors.push("Please add at least one trial availability slot.");
-    if (!formData.preferredStart)
-      nextErrors.push("Preferred start date is required.");
-    if (!hasAvailability(availability))
-      nextErrors.push("Please add regular availability.");
+      if (hasAvailability(child.trialAvailability)) {
+        nextErrors.push(
+          ...validateAvailability(
+            child.trialAvailability,
+            `${label} trial availability`
+          )
+        );
+      }
 
-    if (!formData.howUserHeard.trim())
+      if (hasAvailability(child.availability)) {
+        nextErrors.push(
+          ...validateAvailability(
+            child.availability,
+            `${label} regular availability`
+          )
+        );
+      }
+    });
+
+    if (!familyData.howUserHeard.trim())
       nextErrors.push("Please tell us how you heard about Wise Minds.");
 
-    if (!formData.consentAccepted)
+    if (!familyData.consentAccepted)
       nextErrors.push("You must accept the terms and conditions.");
 
     return nextErrors;
@@ -370,12 +518,12 @@ const ParentIntake = () => {
   };
 
   const handleSubmit = async () => {
-    // const validationErrors = validateForm();
+    const validationErrors = validateForm();
 
-    // if (validationErrors.length > 0) {
-    //   setErrors(validationErrors);
-    //   return;
-    // }
+    if (validationErrors.length > 0) {
+      setErrors(validationErrors);
+      return;
+    }
 
     setErrors([]);
     setIsSubmitting(true);
@@ -385,10 +533,9 @@ const ParentIntake = () => {
       console.log("Intake submission payload:", JSON.stringify(payload, null, 2));
       await addDoc(collection(db, "intakeSubmissions"), payload);
       setSubmitted(true);
-      setFormData(defaultFormData);
-      setSubjects(defaultSubjects);
-      setAvailability({});
-      setTrialAvailability({});
+      setFamilyData(defaultFamilyData);
+      setChildren([createChild()]);
+      setChildrenTouched([createChildTouched()]);
     } catch (error) {
       setErrors(["Submission failed. Please try again in a moment."]);
     } finally {
@@ -414,14 +561,12 @@ const ParentIntake = () => {
             next steps.
           </Typography>
           <Button variant="contained" onClick={handleStartNew}>
-            Submit another student
+            Submit another family
           </Button>
         </Stack>
       </Box>
     );
   }
-
-  const ActiveStep = steps[currentStep].Component;
 
   return (
     <IntakeLayout
@@ -434,18 +579,22 @@ const ParentIntake = () => {
       isSubmitting={isSubmitting}
       isLastStep={currentStep === steps.length - 1}
     >
-      <ActiveStep
-        formData={formData}
-        setFormData={setFormData}
-        touched={touched}
-        setTouched={setTouched}
-        subjects={subjects}
-        setSubjects={setSubjects}
-        availability={availability}
-        setAvailability={setAvailability}
-        trialAvailability={trialAvailability}
-        setTrialAvailability={setTrialAvailability}
-      />
+      {currentStep === 0 && (
+        <FamilyStep formData={familyData} setFormData={setFamilyData} />
+      )}
+      {currentStep === 1 && (
+        <ChildrenStep
+          childrenData={children}
+          setChildrenData={setChildren}
+          childrenTouched={childrenTouched}
+          setChildrenTouched={setChildrenTouched}
+          createChild={createChild}
+          createChildTouched={createChildTouched}
+        />
+      )}
+      {currentStep === 2 && (
+        <AdditionalInfoStep formData={familyData} setFormData={setFamilyData} />
+      )}
     </IntakeLayout>
   );
 };
