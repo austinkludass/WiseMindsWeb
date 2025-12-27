@@ -37,6 +37,7 @@ const AcademicNeedsStep = ({ formData, setFormData, subjects, setSubjects }) => 
         isEdit={true}
         subjects={subjects}
         setSubjects={setSubjects}
+        allowTutoringToggle={true}
       />
 
       <Paper variant="outlined" sx={{ p: 2 }}>

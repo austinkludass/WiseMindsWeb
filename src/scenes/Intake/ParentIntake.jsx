@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Box, Button, Stack, Typography } from "@mui/material";
 import { addDoc, collection } from "firebase/firestore";
+import { useLocation } from "react-router-dom";
 import { db } from "../../data/firebase";
 import IntakeLayout from "../../components/intake/IntakeLayout";
 import StudentBasicsStep from "../../components/intake/steps/StudentBasicsStep";
@@ -11,6 +12,27 @@ import RegularAvailabilityStep from "../../components/intake/steps/RegularAvaila
 import AdditionalInfoStep from "../../components/intake/steps/AdditionalInfoStep";
 import AvailabilityFormatter from "../../utils/AvailabilityFormatter";
 
+/**
+ * Query parameter support for pre-filling the intake form.
+ *
+ * Family/guardian:
+ * - parentName | guardianName | familyName | primaryName
+ * - parentFirstName | guardianFirstName | familyFirst | familyFirstName | primaryFirstName
+ * - parentLastName | guardianLastName | familyLast | familyLastName | primaryLastName
+ * - parentEmail | guardianEmail | familyEmail | email
+ * - parentPhone | guardianPhone | familyPhone | phone
+ * - parentAddress | guardianAddress | familyAddress | address
+ *
+ * Child (first entry is used):
+ * - childName | studentName (full name)
+ * - childNames | children (list, separated by commas, semicolons, or pipes)
+ * - childFirstName | studentFirstName | firstName
+ * - childMiddleName | studentMiddleName | middleName
+ * - childLastName | studentLastName | lastName
+ *
+ * Hidden location:
+ * - homeLocation | location | locationId | location_id | preferredLocation
+ */
 const defaultFormData = {
   firstName: "",
   middleName: "",
@@ -27,6 +49,8 @@ const defaultFormData = {
   secondaryContactName: "",
   secondaryContactEmail: "",
   secondaryContactPhone: "",
+  schedulePreference: "same_time_within_hour",
+  usePrimaryAsEmergency: false,
   emergencyFirst: "",
   emergencyLast: "",
   emergencyRelationship: "",
@@ -42,7 +66,6 @@ const defaultFormData = {
   preferredStart: null,
   trialNotes: "",
   homeLocation: "",
-  baseRate: "",
   additionalNotes: "",
   consentAccepted: false,
 };
@@ -53,9 +76,40 @@ const hasAvailability = (availability) =>
 const formatDateValue = (value) =>
   value && typeof value.toISOString === "function" ? value.toISOString() : null;
 
-const defaultSubjects = [{ id: "", hours: "" }];
+const defaultSubjects = [{ id: "", hours: "", selected: false }];
+
+const getParamValue = (params, keys) => {
+  for (const key of keys) {
+    const value = params.get(key);
+    if (value && value.trim()) {
+      return value.trim();
+    }
+  }
+  return "";
+};
+
+const splitFullName = (fullName = "") => {
+  const parts = fullName.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return { first: "", middle: "", last: "" };
+  if (parts.length === 1) return { first: parts[0], middle: "", last: "" };
+  if (parts.length === 2) return { first: parts[0], middle: "", last: parts[1] };
+  return {
+    first: parts[0],
+    middle: parts.slice(1, -1).join(" "),
+    last: parts[parts.length - 1],
+  };
+};
+
+const parseChildNamesList = (raw) => {
+  if (!raw) return [];
+  return raw
+    .split(/[|,;]/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+};
 
 const ParentIntake = () => {
+  const { search } = useLocation();
   const [currentStep, setCurrentStep] = useState(0);
   const [errors, setErrors] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -85,6 +139,109 @@ const ParentIntake = () => {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [currentStep]);
+
+  useEffect(() => {
+    if (!search) return;
+    const params = new URLSearchParams(search);
+
+    const parentNameRaw = getParamValue(params, [
+      "parentName",
+      "guardianName",
+      "familyName",
+      "primaryName",
+    ]);
+    const parentFirst = getParamValue(params, [
+      "parentFirstName",
+      "guardianFirstName",
+      "familyFirst",
+      "familyFirstName",
+      "primaryFirstName",
+    ]);
+    const parentLast = getParamValue(params, [
+      "parentLastName",
+      "guardianLastName",
+      "familyLast",
+      "familyLastName",
+      "primaryLastName",
+    ]);
+    const parentName =
+      parentNameRaw || [parentFirst, parentLast].filter(Boolean).join(" ");
+
+    const familyEmail = getParamValue(params, [
+      "parentEmail",
+      "guardianEmail",
+      "familyEmail",
+      "email",
+    ]);
+    const familyPhone = getParamValue(params, [
+      "parentPhone",
+      "guardianPhone",
+      "familyPhone",
+      "phone",
+    ]);
+    const familyAddress = getParamValue(params, [
+      "parentAddress",
+      "guardianAddress",
+      "familyAddress",
+      "address",
+    ]);
+    const homeLocation = getParamValue(params, [
+      "homeLocation",
+      "location",
+      "locationId",
+      "location_id",
+      "preferredLocation",
+    ]);
+
+    const childNamesParam = getParamValue(params, ["childNames", "children"]);
+    const childNames = parseChildNamesList(childNamesParam);
+    const childNameRaw = getParamValue(params, ["childName", "studentName"]);
+    const childFullName =
+      childNameRaw || (childNames.length > 0 ? childNames[0] : "");
+
+    const childFirst = getParamValue(params, [
+      "childFirstName",
+      "studentFirstName",
+      "firstName",
+    ]);
+    const childMiddle = getParamValue(params, [
+      "childMiddleName",
+      "studentMiddleName",
+      "middleName",
+    ]);
+    const childLast = getParamValue(params, [
+      "childLastName",
+      "studentLastName",
+      "lastName",
+    ]);
+
+    const splitChild = childFullName ? splitFullName(childFullName) : null;
+
+    setFormData((prev) => {
+      const next = { ...prev };
+      const setIfEmpty = (key, value) => {
+        if (!value) return;
+        if (typeof next[key] === "string" && next[key].trim() === "") {
+          next[key] = value;
+        }
+      };
+
+      setIfEmpty("parentName", parentName);
+      setIfEmpty("familyEmail", familyEmail);
+      setIfEmpty("familyPhone", familyPhone);
+      setIfEmpty("familyAddress", familyAddress);
+
+      setIfEmpty("firstName", childFirst || splitChild?.first || "");
+      setIfEmpty("middleName", childMiddle || splitChild?.middle || "");
+      setIfEmpty("lastName", childLast || splitChild?.last || "");
+
+      if (homeLocation && next.homeLocation !== homeLocation) {
+        next.homeLocation = homeLocation;
+      }
+
+      return next;
+    });
+  }, [search]);
 
   const buildSubmissionPayload = () => {
     const formattedTrial = hasAvailability(trialAvailability)
@@ -129,9 +286,9 @@ const ParentIntake = () => {
           .map((subject) => ({
             id: subject.id,
             hours: subject.hours ? String(subject.hours) : "0",
+            selected: Boolean(subject.selected),
           })),
         homeLocation: formData.homeLocation,
-        baseRate: formData.baseRate ? Number(formData.baseRate) : null,
         trialNotes: formData.trialNotes,
         additionalNotes: formData.additionalNotes,
       },
@@ -140,6 +297,7 @@ const ParentIntake = () => {
         parentEmail: formData.familyEmail,
         parentPhone: formData.familyPhone,
         parentAddress: formData.familyAddress,
+        schedulePreference: formData.schedulePreference,
         secondaryName: formData.secondaryContactName,
         secondaryEmail: formData.secondaryContactEmail,
         secondaryPhone: formData.secondaryContactPhone,
@@ -196,9 +354,6 @@ const ParentIntake = () => {
 
     if (!formData.howUserHeard.trim())
       nextErrors.push("Please tell us how you heard about Wise Minds.");
-
-    if (!formData.baseRate)
-      nextErrors.push("Expected hourly rate is required.");
 
     if (!formData.consentAccepted)
       nextErrors.push("You must accept the terms and conditions.");

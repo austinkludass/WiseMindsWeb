@@ -25,6 +25,15 @@ const daysOfWeek = [
   "Sunday",
 ];
 
+const DEFAULT_MIN_HOUR = 8;
+const DEFAULT_MAX_HOUR = 21;
+
+const timeForHour = (hour) => {
+  const date = new Date();
+  date.setHours(hour, 0, 0, 0);
+  return date;
+};
+
 function timeStringToDate(timeStr) {
   if (typeof timeStr !== "string" || !timeStr.includes(":")) {
     console.warn("Invalid time string: ", timeStr);
@@ -40,8 +49,18 @@ const AvailabilitySelector = ({
   initialAvailability,
   onAvailabilityChange,
   isEdit,
+  minHour = DEFAULT_MIN_HOUR,
+  maxHour = DEFAULT_MAX_HOUR,
 }) => {
   const [availability, setAvailability] = useState({});
+  const resolvedMinHour = Number.isFinite(minHour)
+    ? minHour
+    : DEFAULT_MIN_HOUR;
+  const resolvedMaxHour = Number.isFinite(maxHour)
+    ? maxHour
+    : DEFAULT_MAX_HOUR;
+  const minTime = timeForHour(Math.min(resolvedMinHour, resolvedMaxHour));
+  const maxTime = timeForHour(Math.max(resolvedMinHour, resolvedMaxHour));
 
   useEffect(() => {
     if (!initialAvailability) return;
@@ -68,13 +87,15 @@ const AvailabilitySelector = ({
 
   // Add a new time slot for a day
   const addTimeSlot = (day) => {
+    const startHour = Math.min(resolvedMinHour, resolvedMaxHour);
+    const endHour = Math.min(startHour + 1, Math.max(resolvedMinHour, resolvedMaxHour));
     updateAvailability((prev) => ({
       ...prev,
       [day]: [
         ...(prev[day] || []),
         {
-          start: new Date(new Date().setHours(6, 0, 0, 0)),
-          end: new Date(new Date().setHours(22, 0, 0, 0)),
+          start: timeForHour(startHour),
+          end: timeForHour(endHour),
         },
       ],
     }));
@@ -128,6 +149,8 @@ const AvailabilitySelector = ({
                         label="Start Time"
                         readOnly={!isEdit}
                         value={slot.start}
+                        minTime={minTime}
+                        maxTime={maxTime}
                         onChange={(newValue) =>
                           handleTimeChange(day, index, "start", newValue)
                         }
@@ -141,6 +164,8 @@ const AvailabilitySelector = ({
                         label="End Time"
                         readOnly={!isEdit}
                         value={slot.end}
+                        minTime={minTime}
+                        maxTime={maxTime}
                         onChange={(newValue) =>
                           handleTimeChange(day, index, "end", newValue)
                         }

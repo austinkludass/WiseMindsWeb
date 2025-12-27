@@ -89,7 +89,8 @@ function App() {
               </div>
             ) : (
               <Routes>
-                <Route path="*" element={<Login />} />
+                <Route path="/intake" element={<ParentIntake />} />
+                {/* <Route path="*" element={<Login />} /> */}
               </Routes>
             )}
           </BrowserRouter>

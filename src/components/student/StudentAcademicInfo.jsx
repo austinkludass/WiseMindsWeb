@@ -10,6 +10,8 @@ import {
   useTheme,
   CircularProgress,
   Autocomplete,
+  Checkbox,
+  FormControlLabel,
 } from "@mui/material";
 import { tokens } from "../../theme";
 import { FixedSizeList } from "react-window";
@@ -64,6 +66,7 @@ const StudentAcademicInfo = ({
   isEdit,
   subjects,
   setSubjects,
+  allowTutoringToggle = false,
 }) => {
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
@@ -102,12 +105,17 @@ const StudentAcademicInfo = ({
 
   const handleSubjectChange = (index, field, value) => {
     const newSubjects = [...subjects];
-    newSubjects[index][field] = value;
+    newSubjects[index] = { ...newSubjects[index], [field]: value };
     setSubjects(newSubjects);
   };
 
   const addSubject = () => {
-    setSubjects([...subjects, { name: "", hours: "" }]);
+    const newSubject = {
+      name: "",
+      hours: "",
+      ...(allowTutoringToggle ? { selected: false } : {}),
+    };
+    setSubjects([...subjects, newSubject]);
   };
 
   const removeSubject = (index) => {
@@ -143,8 +151,9 @@ const StudentAcademicInfo = ({
             variant="outlined"
           />
           <Typography variant="body1" gutterBottom sx={{ mb: 2 }}>
-            Please list all subjects being undertaken and tick which subjects
-            you would like tutoring for:
+            {allowTutoringToggle
+              ? "Please list all subjects being undertaken and tick which subjects you would like tutoring for:"
+              : "Please list all subjects being undertaken and add the desired tutoring hours:"}
           </Typography>
           <Button
             variant="contained"
@@ -163,18 +172,18 @@ const StudentAcademicInfo = ({
             </Typography>
           )}
           <Box sx={{ mb: 2 }}>
-            {subjects.map((subject, index) => (
-              <Paper
-                key={index}
-                elevation={1}
-                sx={{
-                  p: 2,
-                  mb: 1,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 2,
-                }}
-              >
+          {subjects.map((subject, index) => (
+            <Paper
+              key={index}
+              elevation={1}
+              sx={{
+                p: 2,
+                mb: 1,
+                display: "flex",
+                alignItems: "center",
+                gap: 2,
+              }}
+            >
                 <Autocomplete
                   loading={loadingSubjects}
                   sx={{ flex: 2 }}
@@ -190,9 +199,15 @@ const StudentAcademicInfo = ({
                   }
                   onChange={(_, newValue) => {
                     const updatedSubjects = [...subjects];
+                    const selected = allowTutoringToggle
+                      ? typeof subjects[index]?.selected === "boolean"
+                        ? subjects[index].selected
+                        : false
+                      : subjects[index]?.selected;
                     updatedSubjects[index] = {
                       id: newValue?.id || "",
                       hours: subjects[index].hours || "",
+                      ...(allowTutoringToggle ? { selected } : {}),
                     };
                     setSubjects(updatedSubjects);
                   }}
@@ -216,6 +231,24 @@ const StudentAcademicInfo = ({
                     />
                   )}
                 />
+                {allowTutoringToggle && (
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={Boolean(subject.selected)}
+                        onChange={(e) =>
+                          handleSubjectChange(
+                            index,
+                            "selected",
+                            e.target.checked
+                          )
+                        }
+                      />
+                    }
+                    label="Request tutoring?"
+                    sx={{ minWidth: 120 }}
+                  />
+                )}
                 <TextField
                   size="small"
                   label="Hours/week"
@@ -226,6 +259,7 @@ const StudentAcademicInfo = ({
                     handleSubjectChange(index, "hours", e.target.value)
                   }
                   sx={{ width: 120 }}
+                  disabled={allowTutoringToggle && !subject.selected}
                 />
                 <IconButton
                   color="error"
