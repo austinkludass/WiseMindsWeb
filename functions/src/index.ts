@@ -218,6 +218,40 @@ async function sendCollection(
   return res.json(arr);
 }
 
+function validateLessonPayload(data: any) {
+  const required = [
+    "tutorId",
+    "tutorColor",
+    "tutorName",
+    "subjectGroupId",
+    "subjectGroupName",
+    "startDateTime",
+    "endDateTime",
+    "type",
+    "locationId",
+    "locationName",
+    "reports",
+    "studentIds",
+    "studentNames",
+  ];
+
+  for (const key of required) {
+    if (!data[key]) {
+      return `Missing field: ${key}`;
+    }
+  }
+
+  if (!dayjs(data.startDateTime).isValid()) {
+    return "Invalid startDateTime";
+  }
+
+  if (!dayjs(data.endDateTime).isValid()) {
+    return "Invalid endDateTime";
+  }
+
+  return null;
+}
+
 export const generateTutorNotifications = onSchedule(
   {
     schedule: "every 24 hours",
@@ -503,6 +537,7 @@ export const api = onRequest(
 
     try {
       switch (path) {
+      /* ---------- READ ---------- */
       case "/students":
         return sendCollection("students", res);
 
@@ -521,8 +556,36 @@ export const api = onRequest(
       case "/families":
         return sendCollection("families", res);
 
+      /* ---------- READ AND WRITE LESSONS ---------- */
+      case "/lessons":
+        if (req.method === "GET") {
+          return sendCollection("lessons", res);
+        }
+
+        if (req.method === "POST") {
+          const error = validateLessonPayload(req.body);
+          if (error) {
+            return res.status(400).json({error});
+          }
+
+          const lesson = {
+            ...req.body,
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          };
+
+          const docRef = await db.collection("lessons").add(lesson);
+
+          return res.status(201).json({
+            success: true,
+            lessonId: docRef.id,
+          });
+        }
+
+        return res.status(405).json({error: "Method not allowed"});
+
       default:
-        res.status(404).json({error: "Unknown endpoint"});
+        return res.status(404).json({error: "Unknown endpoint"});
       }
     } catch (error: any) {
       res.status(500).json({error: error.message});

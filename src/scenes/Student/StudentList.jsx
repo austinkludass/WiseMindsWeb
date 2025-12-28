@@ -1,18 +1,40 @@
-import React, { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { DataGrid } from "@mui/x-data-grid";
-import { Box, IconButton, useTheme } from "@mui/material";
+import {
+  Box,
+  IconButton,
+  useTheme,
+  Typography,
+  Stack,
+  Button,
+  Paper,
+  Menu,
+  MenuItem,
+  ListItemText,
+  ToggleButtonGroup,
+  ToggleButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
+  Chip,
+} from "@mui/material";
 import { tokens } from "../../theme";
 import { useNavigate } from "react-router-dom";
-import { Typography } from "@mui/material";
-import { collection, getDocs } from "firebase/firestore";
+import {
+  collection,
+  getDocs,
+  doc,
+  setDoc,
+  deleteDoc,
+  getDoc,
+} from "firebase/firestore";
 import { db } from "../../data/firebase";
 import { ToastContainer, toast } from "react-toastify";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Header from "../../components/Global/Header";
 import ArrowCircleRightIcon from "@mui/icons-material/ArrowCircleRight";
-import Stack from "@mui/material/Stack";
-import Button from "@mui/material/Button";
-import Paper from "@mui/material/Paper";
 import "react-toastify/dist/ReactToastify.css";
 
 const fetchLocations = async () => {
@@ -35,6 +57,23 @@ const fetchStudents = async () => {
     }));
   } catch (error) {
     toast.error("Failed to fetch students: " + error.message);
+    return [];
+  }
+};
+
+const fetchArchivedStudents = async () => {
+  try {
+    const querySnapshot = await getDocs(collection(db, "archivedStudents"));
+    return querySnapshot.docs.map((doc) => ({
+      id: doc.id,
+      firstName: doc.data().firstName,
+      lastName: doc.data().lastName,
+      homeLocation: doc.data().homeLocation,
+      archivedAt: doc.data().archivedAt,
+    }));
+  } catch (error) {
+    toast.error("Failed to fetch archived students: " + error.message);
+    return [];
   }
 };
 
@@ -42,6 +81,16 @@ const StudentList = () => {
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  const [viewMode, setViewMode] = useState("active");
+  const [contextMenu, setContextMenu] = useState(null);
+  const [selectedStudent, setSelectedStudent] = useState(null);
+  const [confirmDialog, setConfirmDialog] = useState({
+    open: false,
+    action: null,
+    student: null,
+  });
 
   const { data: locationMap = {}, isLoading: loadingLocations } = useQuery({
     queryKey: ["locations"],
@@ -49,17 +98,139 @@ const StudentList = () => {
     staleTime: 60 * 60 * 1000,
   });
 
-  const { data: rows = [], error } = useQuery({
+  const {
+    data: activeStudents = [],
+    error: activeError,
+    isLoading: loadingActive,
+  } = useQuery({
     queryKey: ["students"],
     queryFn: fetchStudents,
     staleTime: 5 * 60 * 1000,
   });
 
+  const {
+    data: archivedStudents = [],
+    error: archivedError,
+    isLoading: loadingArchived,
+  } = useQuery({
+    queryKey: ["archivedStudents"],
+    queryFn: fetchArchivedStudents,
+    staleTime: 5 * 60 * 1000,
+    enabled: viewMode === "archived",
+  });
+
   useEffect(() => {
-    if (error) {
-      toast.error(error.message);
+    if (activeError) {
+      toast.error(activeError.message);
     }
-  }, [error]);
+    if (archivedError) {
+      toast.error(archivedError.message);
+    }
+  }, [activeError, archivedError]);
+
+  const handleContextMenu = (event, student) => {
+    event.preventDefault();
+    setSelectedStudent(student);
+    setContextMenu(
+      contextMenu === null
+        ? { mouseX: event.clientX + 2, mouseY: event.clientY - 6 }
+        : null
+    );
+  };
+
+  const handleCloseContextMenu = () => {
+    setContextMenu(null);
+    setSelectedStudent(null);
+  };
+
+  const handleArchiveClick = () => {
+    setConfirmDialog({
+      open: true,
+      action: "archive",
+      student: selectedStudent,
+    });
+    handleCloseContextMenu();
+  };
+
+  const handleUnarchiveClick = () => {
+    setConfirmDialog({
+      open: true,
+      action: "unarchive",
+      student: selectedStudent,
+    });
+    handleCloseContextMenu();
+  };
+
+  const handleConfirmAction = async () => {
+    const { action, student } = confirmDialog;
+
+    try {
+      if (action === "archive") {
+        const studentRef = doc(db, "students", student.id);
+        const studentSnap = await getDoc(studentRef);
+
+        if (!studentSnap.exists()) {
+          toast.error("Student not found");
+          return;
+        }
+
+        const studentData = studentSnap.data();
+
+        const archivedRef = doc(db, "archivedStudents", student.id);
+        await setDoc(archivedRef, {
+          ...studentData,
+          archivedAt: new Date().toISOString(),
+        });
+
+        await deleteDoc(studentRef);
+
+        toast.success(
+          `${student.firstName} ${student.lastName} has been archived`
+        );
+
+        queryClient.invalidateQueries({ queryKey: ["students"] });
+        queryClient.invalidateQueries({ queryKey: ["archivedStudents"] });
+      } else if (action === "unarchive") {
+        const archivedRef = doc(db, "archivedStudents", student.id);
+        const archivedSnap = await getDoc(archivedRef);
+
+        if (!archivedSnap.exists()) {
+          toast.error("Archived student not found");
+          return;
+        }
+
+        const studentData = archivedSnap.data();
+
+        const { archivedAt, ...activeStudentData } = studentData;
+        const studentRef = doc(db, "students", student.id);
+        await setDoc(studentRef, activeStudentData);
+
+        await deleteDoc(archivedRef);
+
+        toast.success(
+          `${student.firstName} ${student.lastName} has been unarchived`
+        );
+
+        queryClient.invalidateQueries({ queryKey: ["students"] });
+        queryClient.invalidateQueries({ queryKey: ["archivedStudents"] });
+      }
+    } catch (error) {
+      toast.error(`Failed to ${action} student: ${error.message}`);
+    }
+
+    setConfirmDialog({ open: false, action: null, student: null });
+  };
+
+  const handleViewModeChange = (event, newMode) => {
+    if (newMode !== null) {
+      setViewMode(newMode);
+    }
+  };
+
+  const rows = viewMode === "active" ? activeStudents : archivedStudents;
+  const isLoading =
+    loadingLocations ||
+    (viewMode === "active" ? loadingActive : loadingArchived);
 
   const columns = [
     {
@@ -75,6 +246,19 @@ const StudentList = () => {
       width: 200,
       valueGetter: (_, row) => locationMap[row.homeLocation] || "Unknown",
     },
+    ...(viewMode === "archived"
+      ? [
+          {
+            field: "archivedAt",
+            headerName: "Archived",
+            width: 150,
+            valueGetter: (value) => {
+              if (!value) return "";
+              return new Date(value).toLocaleDateString("en-AU");
+            },
+          },
+        ]
+      : []),
     {
       field: "edit",
       headerName: "",
@@ -85,6 +269,8 @@ const StudentList = () => {
         <IconButton
           color="secondary"
           onClick={() => navigate(`/student/${params.row.id}`)}
+          disabled={viewMode === "archived"}
+          sx={{ visibility: viewMode === "archived" ? "collapse" : "visible"}}
         >
           <ArrowCircleRightIcon sx={{ width: 25, height: 25 }} />
         </IconButton>
@@ -94,22 +280,51 @@ const StudentList = () => {
 
   return (
     <Box display="flex" m="20px">
-      <Stack>
+      <Stack sx={{ width: "100%" }}>
         <Header title="STUDENTS" subtitle="View all students" />
-        <Button
-          onClick={() => navigate("/newstudent")}
-          variant="contained"
-          sx={{
-            width: "20%",
-            backgroundColor: `${colors.orangeAccent[700]}`,
-            fontSize: "1.3em",
-          }}
+
+        <Box
+          display="flex"
+          justifyContent="space-between"
+          alignItems="center"
+          mb={2}
         >
-          <Typography variant="h6">NEW</Typography>
-        </Button>
+          <Button
+            onClick={() => navigate("/newstudent")}
+            variant="contained"
+            sx={{
+              backgroundColor: `${colors.orangeAccent[700]}`,
+              fontSize: "1.3em",
+            }}
+          >
+            <Typography variant="h6">NEW</Typography>
+          </Button>
+
+          <ToggleButtonGroup
+            value={viewMode}
+            exclusive
+            onChange={handleViewModeChange}
+            size="small"
+          >
+            <ToggleButton value="active">
+              Active
+              <Chip label={activeStudents.length} size="small" sx={{ ml: 1 }} />
+            </ToggleButton>
+            <ToggleButton value="archived">
+              Archived
+              {archivedStudents.length > 0 && (
+                <Chip
+                  label={archivedStudents.length}
+                  size="small"
+                  sx={{ ml: 1 }}
+                />
+              )}
+            </ToggleButton>
+          </ToggleButtonGroup>
+        </Box>
+
         <Paper
           sx={{
-            width: "100vh",
             backgroundColor: "transparent",
             marginTop: "4px",
           }}
@@ -118,14 +333,101 @@ const StudentList = () => {
             checkboxSelection={false}
             rows={rows}
             columns={columns}
+            loading={isLoading}
             initialState={{
               pagination: { paginationModel: { page: 0, pageSize: 50 } },
             }}
             pageSizeOptions={[50]}
             sx={{ border: 0 }}
+            slotProps={{
+              row: {
+                onContextMenu: (event) => {
+                  const rowId = event.currentTarget.getAttribute("data-id");
+                  const student = rows.find((r) => r.id === rowId);
+                  if (student) {
+                    handleContextMenu(event, student);
+                  }
+                },
+                style: { cursor: "context-menu" },
+              },
+            }}
           />
         </Paper>
       </Stack>
+
+      <Menu
+        open={contextMenu !== null}
+        onClose={handleCloseContextMenu}
+        anchorReference="anchorPosition"
+        anchorPosition={
+          contextMenu !== null
+            ? { top: contextMenu.mouseY, left: contextMenu.mouseX }
+            : undefined
+        }
+      >
+        {viewMode === "active" ? (
+          <MenuItem onClick={handleArchiveClick}>
+            <ListItemText>Archive Student</ListItemText>
+          </MenuItem>
+        ) : (
+          <MenuItem onClick={handleUnarchiveClick}>
+            <ListItemText>Unarchive Student</ListItemText>
+          </MenuItem>
+        )}
+      </Menu>
+
+      <Dialog
+        open={confirmDialog.open}
+        onClose={() =>
+          setConfirmDialog({ open: false, action: null, student: null })
+        }
+      >
+        <DialogTitle>
+          {confirmDialog.action === "archive"
+            ? "Archive Student?"
+            : "Unarchive Student?"}
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            {confirmDialog.action === "archive" ? (
+              <>
+                Are you sure you want to archive{" "}
+                <strong>
+                  {confirmDialog.student?.firstName}{" "}
+                  {confirmDialog.student?.lastName}
+                </strong>
+                ? They will be moved to the archived list and won't appear in
+                lesson forms or other active lists.
+              </>
+            ) : (
+              <>
+                Are you sure you want to unarchive{" "}
+                <strong>
+                  {confirmDialog.student?.firstName}{" "}
+                  {confirmDialog.student?.lastName}
+                </strong>
+                ? They will be restored to the active students list.
+              </>
+            )}
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() =>
+              setConfirmDialog({ open: false, action: null, student: null })
+            }
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleConfirmAction}
+            variant="contained"
+          >
+            {confirmDialog.action === "archive" ? "Archive" : "Unarchive"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
       <ToastContainer position="top-right" autoClose={3000} />
     </Box>
   );
