@@ -556,6 +556,9 @@ export const api = onRequest(
       case "/families":
         return sendCollection("families", res);
 
+      case "/invoices":
+        return sendCollection("invoices", res);
+
       /* ---------- READ AND WRITE LESSONS ---------- */
       case "/lessons":
         if (req.method === "GET") {
