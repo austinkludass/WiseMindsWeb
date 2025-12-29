@@ -187,6 +187,18 @@ const NewStudent = () => {
         <Header title="NEW STUDENT" subtitle="Enter details for new student" />
       </Box>
 
+      <Paper
+        variant="outlined"
+        sx={{ p: 3, maxWidth: 1000, minWidth: 600, m: 4 }}
+      >
+        <Typography variant="body1">
+          Welcome to the new student form. This form covers a variety of core
+          information required for the student to get started at Wise Minds!
+          Please fill out this form to the best of your knowledge and do not
+          hesitate to reach out if you have any questions.
+        </Typography>
+      </Paper>
+
       {/* General Info */}
       <Paper sx={{ p: 3, maxWidth: 1000, minWidth: 600, m: 4 }}>
         <Stack spacing={2}>
@@ -247,6 +259,14 @@ const NewStudent = () => {
       <Paper sx={{ p: 3, maxWidth: 1000, minWidth: 600, m: 4 }}>
         <Stack spacing={2}>
           <Typography variant="h4">Trial Session</Typography>
+          <Typography variant="body2" color="text.secondary">
+            The trial session at Wise Minds runs for 45 minutes followed by 10
+            minutes of direct conversation with you regarding how the session
+            went. This session gives your child one-on-one time with the tutor
+            we think would be best. This session is usually completed as a{" "}
+            <strong>one-off session</strong> before organising regular, weekly
+            sessions (as such, availability may be different).
+          </Typography>
           <Typography variant="h6" color={colors.orangeAccent[400]}>
             Available times for trial session
           </Typography>
@@ -264,6 +284,12 @@ const NewStudent = () => {
       <Paper sx={{ p: 3, maxWidth: 1000, minWidth: 600, m: 4 }}>
         <Stack spacing={2}>
           <Typography variant="h4">Regular Availability</Typography>
+          <Typography variant="body2" color="text.secondary">
+            The regular availability is the times that your child is available
+            on a weekly basis for tutoring. This will influence our tutor
+            selection. The more availability you have, the better chance we
+            find the best possible tutor!
+          </Typography>
           <StudentAvailabilityInfo
             isEdit={true}
             availability={availability}

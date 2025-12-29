@@ -57,6 +57,15 @@ const FamilyEmergencyStep = ({ formData, setFormData }) => {
     });
   };
 
+  const handleSecondarySameAddressChange = (event) => {
+    const checked = event.target.checked;
+    setFormData((prev) => ({
+      ...prev,
+      secondaryContactSameAddress: checked,
+      secondaryContactAddress: checked ? prev.familyAddress : prev.secondaryContactAddress,
+    }));
+  };
+
   useEffect(() => {
     if (!formData.usePrimaryAsEmergency) return;
     setFormData((prev) => {
@@ -79,6 +88,18 @@ const FamilyEmergencyStep = ({ formData, setFormData }) => {
       };
     });
   }, [formData.parentName, formData.familyPhone, formData.usePrimaryAsEmergency, setFormData]);
+
+  useEffect(() => {
+    if (!formData.secondaryContactSameAddress) return;
+    setFormData((prev) => {
+      if (!prev.secondaryContactSameAddress) return prev;
+      if (prev.secondaryContactAddress === prev.familyAddress) return prev;
+      return {
+        ...prev,
+        secondaryContactAddress: prev.familyAddress,
+      };
+    });
+  }, [formData.familyAddress, formData.secondaryContactSameAddress, setFormData]);
 
   return (
     <Stack spacing={4}>
@@ -128,6 +149,11 @@ const FamilyEmergencyStep = ({ formData, setFormData }) => {
             />
           </Grid>
         </Grid>
+        <Typography variant="body2" color="text.secondary">
+          The Primary guardian is the main point of contact for a family. They
+          will receive reports, invoices and other communications directly from
+          us.
+        </Typography>
 
         <Typography variant="subtitle1" color="text.secondary">
           Optional secondary contact
@@ -160,10 +186,39 @@ const FamilyEmergencyStep = ({ formData, setFormData }) => {
               fullWidth
             />
           </Grid>
+          <Grid size={{ xs: 12, md: 6 }}>
+            <TextField
+              name="secondaryContactAddress"
+              label="Secondary Guardian Address"
+              value={formData.secondaryContactAddress}
+              onChange={handleChange}
+              fullWidth
+              disabled={formData.secondaryContactSameAddress}
+            />
+          </Grid>
         </Grid>
+        <FormControlLabel
+          control={
+            <Checkbox
+              checked={formData.secondaryContactSameAddress}
+              onChange={handleSecondarySameAddressChange}
+            />
+          }
+          label="Secondary guardian address is the same as primary"
+        />
+        <Typography variant="body2" color="text.secondary">
+          A secondary guardian will also receive a copy of student reports,
+          invoices and email communications.
+        </Typography>
 
         <Paper variant="outlined" sx={{ p: 2 }}>
           <Stack spacing={1}>
+            <Typography variant="body2" color="text.secondary">
+              At Wise Minds, we can do our best to schedule multiple students in
+              the one time slot. This means you only need to make the one trip
+              in. Note: This is quite a logistical challenge and we do our
+              absolute best, but we cannot guarentee this will be possible.
+            </Typography>
             <Typography variant="h6">Family Scheduling Preference</Typography>
             <Typography variant="body2" color="text.secondary">
               Let us know if siblings should be scheduled together or if you are
@@ -174,21 +229,38 @@ const FamilyEmergencyStep = ({ formData, setFormData }) => {
               value={formData.schedulePreference}
               onChange={handleChange}
             >
-              <FormControlLabel
-                value="same_time_within_hour"
-                control={<Radio />}
-                label="Prefer siblings at the same time (±1 hour)"
-              />
-              <FormControlLabel
-                value="same_day"
-                control={<Radio />}
-                label="Prefer siblings on the same day"
-              />
-              <FormControlLabel
-                value="no_preference"
-                control={<Radio />}
-                label="No preference"
-              />
+              <Stack spacing={0.5}>
+                <FormControlLabel
+                  value="same_time_within_hour"
+                  control={<Radio />}
+                  label="Prefer siblings at the same time"
+                />
+                <Typography variant="body2" color="text.secondary">
+                  We will try to schedule your children to be at the same time.
+                </Typography>
+              </Stack>
+              <Stack spacing={0.5}>
+                <FormControlLabel
+                  value="same_day"
+                  control={<Radio />}
+                  label="Prefer siblings on the same day (+- 1 hour)"
+                />
+                <Typography variant="body2" color="text.secondary">
+                  We will try to schedule your children within 1 hour of each
+                  other.
+                </Typography>
+              </Stack>
+              <Stack spacing={0.5}>
+                <FormControlLabel
+                  value="no_preference"
+                  control={<Radio />}
+                  label="No preference"
+                />
+                <Typography variant="body2" color="text.secondary">
+                  We will schedule your students based on the best
+                  student-tutor match available within the time you provided.
+                </Typography>
+              </Stack>
             </RadioGroup>
           </Stack>
         </Paper>

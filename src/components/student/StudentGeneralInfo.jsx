@@ -71,6 +71,12 @@ const StudentGeneralInfo = ({
             label="Date of Birth"
           />
           <TextField
+            name="allergiesNonAna"
+            value={formData.allergiesNonAna}
+            onChange={handleChange}
+            label="Allergies (Non-Anaphylactic)"
+          />
+          <TextField
             name="allergiesAna"
             value={formData.allergiesAna}
             onChange={handleChange}
@@ -97,12 +103,6 @@ const StudentGeneralInfo = ({
               />
             }
             label="Can the student administer THEIR EPI Pen?"
-          />
-          <TextField
-            name="allergiesNonAna"
-            value={formData.allergiesNonAna}
-            onChange={handleChange}
-            label="Allergies (Non-Anaphylactic)"
           />
         </>
       ) : (
@@ -168,10 +168,10 @@ const StudentGeneralInfo = ({
               fontWeight="bold"
               sx={{ mb: "5px" }}
             >
-              Allergies (Anaphylactic)
+              Allergies (Non-Anaphylactic)
             </Typography>
             <Typography variant="h6" color={colors.grey[100]}>
-              {formData.allergiesAna}
+              {formData.allergiesNonAna}
             </Typography>
           </div>
           <div style={{ display: "flex", gap: "10px" }}>
@@ -207,10 +207,10 @@ const StudentGeneralInfo = ({
               fontWeight="bold"
               sx={{ mb: "5px" }}
             >
-              Allergies (Non-Anaphylactic)
+              Allergies (Anaphylactic)
             </Typography>
             <Typography variant="h6" color={colors.grey[100]}>
-              {formData.allergiesNonAna}
+              {formData.allergiesAna}
             </Typography>
           </div>
         </>

@@ -9,7 +9,12 @@ import {
 } from "@mui/material";
 import { tokens } from "../../theme";
 
-const StudentAdditionalInfo = ({ formData, setFormData, isEdit }) => {
+const StudentAdditionalInfo = ({
+  formData,
+  setFormData,
+  isEdit,
+  includeHowUserHeard = true,
+}) => {
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
 
@@ -47,12 +52,14 @@ const StudentAdditionalInfo = ({ formData, setFormData, isEdit }) => {
             onChange={handleChange}
             label="Questions regarding tutoring of this child"
           />
-          <TextField
-            name="howUserHeard"
-            value={formData.howUserHeard}
-            onChange={handleChange}
-            label="How did the person hear about Wise Minds Canberra?"
-          />
+          {includeHowUserHeard && (
+            <TextField
+              name="howUserHeard"
+              value={formData.howUserHeard}
+              onChange={handleChange}
+              label="How did the person hear about Wise Minds Canberra?"
+            />
+          )}
         </>
       ) : (
         <>
@@ -95,19 +102,21 @@ const StudentAdditionalInfo = ({ formData, setFormData, isEdit }) => {
               {formData.questions}
             </Typography>
           </div>
-          <div style={{ display: "flex", gap: "10px" }}>
-            <Typography
-              variant="h5"
-              color={colors.orangeAccent[400]}
-              fontWeight="bold"
-              sx={{ mb: "5px" }}
-            >
-              How did the person hear about us?
-            </Typography>
-            <Typography variant="h6" color={colors.grey[100]}>
-              {formData.howUserHeard}
-            </Typography>
-          </div>
+          {includeHowUserHeard && (
+            <div style={{ display: "flex", gap: "10px" }}>
+              <Typography
+                variant="h5"
+                color={colors.orangeAccent[400]}
+                fontWeight="bold"
+                sx={{ mb: "5px" }}
+              >
+                How did the person hear about us?
+              </Typography>
+              <Typography variant="h6" color={colors.grey[100]}>
+                {formData.howUserHeard}
+              </Typography>
+            </div>
+          )}
         </>
       )}
     </Stack>

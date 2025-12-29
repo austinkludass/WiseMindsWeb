@@ -15,6 +15,7 @@ import StudentBasicsStep from "./StudentBasicsStep";
 import AcademicNeedsStep from "./AcademicNeedsStep";
 import TrialStep from "./TrialStep";
 import RegularAvailabilityStep from "./RegularAvailabilityStep";
+import StudentAdditionalInfo from "../../student/StudentAdditionalInfo";
 
 const getChildLabel = (child, index) => {
   const name = [child.firstName, child.lastName].filter(Boolean).join(" ");
@@ -171,6 +172,20 @@ const ChildrenStep = ({
                 availability={child.availability}
                 setAvailability={setChildAvailability(index)}
               />
+
+              <Divider />
+
+              <Stack spacing={2}>
+                <Typography variant="h5" fontWeight="bold">
+                  Child Preferences
+                </Typography>
+                <StudentAdditionalInfo
+                  formData={child}
+                  setFormData={setChildFormData(index)}
+                  isEdit={true}
+                  includeHowUserHeard={false}
+                />
+              </Stack>
             </Stack>
           </AccordionDetails>
         </Accordion>

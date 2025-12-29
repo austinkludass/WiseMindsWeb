@@ -5,8 +5,6 @@ import {
   FormControlLabel,
   Checkbox,
 } from "@mui/material";
-import StudentAdditionalInfo from "../../student/StudentAdditionalInfo";
-
 const AdditionalInfoStep = ({ formData, setFormData }) => {
   const handleChange = (event) => {
     setFormData({ ...formData, [event.target.name]: event.target.value });
@@ -21,10 +19,12 @@ const AdditionalInfoStep = ({ formData, setFormData }) => {
       <Typography variant="h5" fontWeight="bold">
         Additional Information
       </Typography>
-      <StudentAdditionalInfo
-        formData={formData}
-        setFormData={setFormData}
-        isEdit={true}
+
+      <TextField
+        name="howUserHeard"
+        label="How did you hear about Wise Minds Canberra?"
+        value={formData.howUserHeard}
+        onChange={handleChange}
       />
 
       <TextField

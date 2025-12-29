@@ -1,4 +1,8 @@
 import React, { useEffect, useState } from "react";
+// TODO:
+// - Restore fuzzy matching for subject search.
+// - Family scheduling: only show this option if we send >1 student or they add a second.
+// - Add common subjects per year level to subject search.
 import {
   TextField,
   Typography,
@@ -12,11 +16,10 @@ import {
   Autocomplete,
   Checkbox,
   FormControlLabel,
+  MenuItem,
 } from "@mui/material";
 import { tokens } from "../../theme";
 import { FixedSizeList } from "react-window";
-import { db } from "../../data/firebase";
-import { collection, getDocs, doc, getDoc } from "firebase/firestore";
 import DeleteIcon from "@mui/icons-material/Delete";
 import AddIcon from "@mui/icons-material/Add";
 
@@ -76,24 +79,39 @@ const StudentAcademicInfo = ({
 
   useEffect(() => {
     const fetchSubjectsWithCurriculums = async () => {
-      const curriculumSnap = await getDocs(collection(db, "curriculums"));
-      const curriculumMap = {};
-      curriculumSnap.forEach((doc) => {
-        curriculumMap[doc.id] = doc.data().name;
-      });
-
-      const subjectSnap = await getDocs(collection(db, "subjects"));
-      const allSubjects = subjectSnap.docs.map((docSnap) => {
-        const data = docSnap.data();
-        return {
-          id: docSnap.id,
-          name: data.name,
-          curriculumName: curriculumMap[data.curriculumId] || "Unknown",
-        };
-      });
-
-      setSubjectOptions(allSubjects);
-      setLoadingSubjects(false);
+      try {
+        const response = await fetch(
+          "https://australia-southeast1-wisemindsadmin.cloudfunctions.net/api/subjects",
+          {
+            headers: {
+              "x-api-key": "apples",
+            },
+          }
+        );
+        const data = await response.json();
+        const rawSubjects = Array.isArray(data)
+          ? data
+          : Array.isArray(data?.subjects)
+            ? data.subjects
+            : [];
+        const allSubjects = rawSubjects.map((subject, index) => ({
+          id:
+            subject.id ||
+            subject._id ||
+            subject.subjectId ||
+            `subject-${index}`,
+          name: subject.name || subject.subject || "Unknown",
+          curriculumName:
+            subject.curriculumName ||
+            subject.curriculum?.name ||
+            "Unknown",
+        }));
+        setSubjectOptions(allSubjects);
+      } catch (error) {
+        setSubjectOptions([]);
+      } finally {
+        setLoadingSubjects(false);
+      }
     };
 
     fetchSubjectsWithCurriculums();
@@ -108,6 +126,25 @@ const StudentAcademicInfo = ({
     newSubjects[index] = { ...newSubjects[index], [field]: value };
     setSubjects(newSubjects);
   };
+
+  const yearLevelOptions = [
+    "Pre-Kindergarten",
+    "Kindergarten",
+    "Year 1",
+    "Year 2",
+    "Year 3",
+    "Year 4",
+    "Year 5",
+    "Year 6",
+    "Year 7",
+    "Year 8",
+    "Year 9",
+    "Year 10",
+    "Year 11",
+    "Year 12",
+    "Tertiary",
+    "Other",
+  ];
 
   const addSubject = () => {
     const newSubject = {
@@ -149,10 +186,17 @@ const StudentAcademicInfo = ({
             value={formData.yearLevel}
             onChange={handleInputChange}
             variant="outlined"
-          />
+            select
+          >
+            {yearLevelOptions.map((option) => (
+              <MenuItem key={option} value={option}>
+                {option}
+              </MenuItem>
+            ))}
+          </TextField>
           <Typography variant="body1" gutterBottom sx={{ mb: 2 }}>
             {allowTutoringToggle
-              ? "Please list all subjects being undertaken and tick which subjects you would like tutoring for:"
+              ? "Please list all of the subjects that the student is currently taking at school and tick what subjects you would like tutoring for. Our sessions run for 1 hour each per subject."
               : "Please list all subjects being undertaken and add the desired tutoring hours:"}
           </Typography>
           <Button
@@ -190,6 +234,16 @@ const StudentAcademicInfo = ({
                   disableListWrap
                   ListboxComponent={ListboxComponent}
                   options={subjectOptions}
+                  filterOptions={(options, { inputValue }) => {
+                    if (!inputValue) return options;
+                    const term = inputValue.toLowerCase();
+                    return options.filter((option) => {
+                      const name = option.name?.toLowerCase() || "";
+                      const curriculum =
+                        option.curriculumName?.toLowerCase() || "";
+                      return name.includes(term) || curriculum.includes(term);
+                    });
+                  }}
                   getOptionLabel={(option) =>
                     `${option.name} (${option.curriculumName})`
                   }
