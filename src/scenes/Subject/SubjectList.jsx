@@ -22,6 +22,7 @@ import {
   Collapse,
   Tooltip,
   Alert,
+  Checkbox,
 } from "@mui/material";
 import {
   Delete as DeleteIcon,
@@ -31,6 +32,8 @@ import {
   LibraryBooks as BookIcon,
   Add as AddIcon,
   Lock as LockIcon,
+  Star as StarIcon,
+  StarBorder as StarBorderIcon,
 } from "@mui/icons-material";
 import {
   collection,
@@ -52,6 +55,7 @@ const SubjectList = () => {
   const [subjects, setSubjects] = useState([]);
   const [groups, setGroups] = useState([]);
   const [subjectInput, setSubjectInput] = useState({});
+  const [subjectIsCommon, setSubjectIsCommon] = useState({});
   const [groupSubjectSelect, setGroupSubjectSelect] = useState({});
   const [newCurriculum, setNewCurriculum] = useState("");
   const [newGroup, setNewGroup] = useState("");
@@ -151,13 +155,38 @@ const SubjectList = () => {
     const name = subjectInput[curriculumId];
     if (!name) return;
 
+    const isCommon = subjectIsCommon[curriculumId] || false;
+
     const docRef = await addDoc(collection(db, "subjects"), {
       name,
       curriculumId,
+      isCommon,
     });
 
-    setSubjects((prev) => [...prev, { id: docRef.id, name, curriculumId }]);
+    setSubjects((prev) => [
+      ...prev,
+      { id: docRef.id, name, curriculumId, isCommon },
+    ]);
+
     setSubjectInput((prev) => ({ ...prev, [curriculumId]: "" }));
+    setSubjectIsCommon((prev) => ({ ...prev, [curriculumId]: false }));
+  };
+
+  const handleToggleCommon = async (subjectId) => {
+    const subject = subjects.find((s) => s.id === subjectId);
+    if (!subject) return;
+
+    const newIsCommon = !subject.isCommon;
+
+    await updateDoc(doc(db, "subjects", subjectId), {
+      isCommon: newIsCommon,
+    });
+
+    setSubjects((prev) =>
+      prev.map((s) =>
+        s.id === subjectId ? { ...s, isCommon: newIsCommon } : s
+      )
+    );
   };
 
   const handleDeleteSubject = async (subjectId) => {
@@ -309,7 +338,7 @@ const SubjectList = () => {
     <Box p={4}>
       <Header
         title="SUBJECTS"
-        subtitle="Manage Subjects, Groups and Curriculums"
+        subtitle="Manage subjects, groups and curricula"
       />
 
       {!canEditSubjects && (
@@ -462,7 +491,12 @@ const SubjectList = () => {
                   </Box>
 
                   {canEditSubjects && (
-                    <Stack direction="row" mt={2} spacing={2}>
+                    <Stack
+                      direction="row"
+                      mt={2}
+                      spacing={2}
+                      alignItems="center"
+                    >
                       <TextField
                         fullWidth
                         placeholder="Add new subject..."
@@ -474,6 +508,20 @@ const SubjectList = () => {
                           }))
                         }
                       />
+                      <Tooltip title="Mark as common subject">
+                        <Checkbox
+                          checked={subjectIsCommon[cur.id] || false}
+                          onChange={(e) =>
+                            setSubjectIsCommon((prev) => ({
+                              ...prev,
+                              [cur.id]: e.target.checked,
+                            }))
+                          }
+                          icon={<StarBorderIcon />}
+                          checkedIcon={<StarIcon />}
+                          color="warning"
+                        />
+                      </Tooltip>
                       <Box
                         sx={{
                           display: "flex",
@@ -564,16 +612,54 @@ const SubjectList = () => {
                                 py: 1,
                               }}
                             >
-                              <Typography>{subject.name}</Typography>
-
+                              <Box
+                                display="flex"
+                                alignItems="center"
+                                gap={1}
+                                flex={1}
+                              >
+                                <Typography>{subject.name}</Typography>
+                                {subject.isCommon && (
+                                  <Chip
+                                    size="small"
+                                    label="Common"
+                                    color="warning"
+                                    icon={<StarIcon />}
+                                  />
+                                )}
+                              </Box>
                               {canEditSubjects && (
-                                <IconButton
-                                  onClick={() =>
-                                    handleDeleteSubject(subject.id)
-                                  }
-                                >
-                                  <DeleteIcon />
-                                </IconButton>
+                                <Box>
+                                  <Tooltip
+                                    title={
+                                      subject.isCommon
+                                        ? "Remove common status"
+                                        : "Mark as common"
+                                    }
+                                  >
+                                    <IconButton
+                                      onClick={() =>
+                                        handleToggleCommon(subject.id)
+                                      }
+                                      color={
+                                        subject.isCommon ? "warning" : "default"
+                                      }
+                                    >
+                                      {subject.isCommon ? (
+                                        <StarIcon />
+                                      ) : (
+                                        <StarBorderIcon />
+                                      )}
+                                    </IconButton>
+                                  </Tooltip>
+                                  <IconButton
+                                    onClick={() =>
+                                      handleDeleteSubject(subject.id)
+                                    }
+                                  >
+                                    <DeleteIcon />
+                                  </IconButton>
+                                </Box>
                               )}
                             </Box>
                           );
@@ -730,7 +816,7 @@ const SubjectList = () => {
                           .filter((s) => !g.subjectIds.includes(s.id))
                           .sort((a, b) => a.name.localeCompare(b.name))}
                         getOptionLabel={(option) =>
-                          `${option.name} (${
+                          `${option.name}${option.isCommon ? " ★" : ""} (${
                             curriculums.find(
                               (c) => c.id === option.curriculumId
                             )?.name || "Unknown"
@@ -861,10 +947,20 @@ const SubjectList = () => {
                                 py: 1,
                               }}
                             >
-                              <Typography>
-                                {sub?.name}{" "}
-                                <Chip size="small" label={cur?.name} />
-                              </Typography>
+                              <Box display="flex" alignItems="center" gap={1}>
+                                <Typography>
+                                  {sub?.name}{" "}
+                                  <Chip size="small" label={cur?.name} />
+                                </Typography>
+                                {sub?.isCommon && (
+                                  <Chip
+                                    size="small"
+                                    label="Common"
+                                    color="warning"
+                                    icon={<StarIcon />}
+                                  />
+                                )}
+                              </Box>
 
                               {canEditSubjects && (
                                 <IconButton
@@ -916,8 +1012,8 @@ const SubjectList = () => {
                       py: 1,
                     }}
                   >
-                    <Typography>
-                      {subject.name}
+                    <Box display="flex" alignItems="center" gap={1}>
+                      <Typography>{subject.name}</Typography>
                       {curriculum && (
                         <Chip
                           size="small"
@@ -925,11 +1021,42 @@ const SubjectList = () => {
                           sx={{ ml: 1 }}
                         />
                       )}
-                    </Typography>
+                      {subject.isCommon && (
+                        <Chip
+                          size="small"
+                          label="Common"
+                          color="warning"
+                          icon={<StarIcon />}
+                        />
+                      )}
+                    </Box>
+
                     {canEditSubjects && (
-                      <IconButton onClick={() => handleOpenAddDialog(subject)}>
-                        <AddIcon />
-                      </IconButton>
+                      <Box>
+                        <Tooltip
+                          title={
+                            subject.isCommon
+                              ? "Remove common status"
+                              : "Mark as common"
+                          }
+                        >
+                          <IconButton
+                            onClick={() => handleToggleCommon(subject.id)}
+                            color={subject.isCommon ? "warning" : "default"}
+                          >
+                            {subject.isCommon ? (
+                              <StarIcon />
+                            ) : (
+                              <StarBorderIcon />
+                            )}
+                          </IconButton>
+                        </Tooltip>
+                        <IconButton
+                          onClick={() => handleOpenAddDialog(subject)}
+                        >
+                          <AddIcon />
+                        </IconButton>
+                      </Box>
                     )}
                   </Box>
                 );
