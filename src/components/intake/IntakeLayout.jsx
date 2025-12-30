@@ -12,6 +12,9 @@ import {
 } from "@mui/material";
 
 const IntakeLayout = ({
+  title = "Student Intake Form",
+  introTitle = "Welcome to the new student form",
+  introBody = "This form covers a variety of core information required for the student to get started at Wise Minds! Please fill out this form to the best of your knowledge and do not hesitate to reach out if you have any questions.",
   steps,
   currentStep,
   errors,
@@ -27,12 +30,17 @@ const IntakeLayout = ({
       <Stack spacing={3} sx={{ maxWidth: 980, mx: "auto" }}>
         <Box>
           <Typography variant="h3" fontWeight="bold" gutterBottom>
-            Student Intake Form
+            {title}
           </Typography>
-          <Typography variant="body1" color="text.secondary">
-            Tell us about your child and preferred tutoring schedule. We'll use
-            this to match the best tutor and timetable.
-          </Typography>
+          <Paper
+            variant="outlined"
+            sx={{ p: { xs: 2, md: 3 }, mt: 2, bgcolor: "background.paper" }}
+          >
+            <Typography variant="h6" fontWeight="bold" gutterBottom>
+              {introTitle}
+            </Typography>
+            <Typography variant="body1">{introBody}</Typography>
+          </Paper>
         </Box>
 
         <Stepper activeStep={currentStep} alternativeLabel>

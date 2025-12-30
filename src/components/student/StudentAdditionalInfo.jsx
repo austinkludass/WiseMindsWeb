@@ -17,6 +17,11 @@ const StudentAdditionalInfo = ({
 }) => {
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
+  const maxHoursValue = formData.maxHoursPerDay;
+  const maxHoursDisplay =
+    maxHoursValue === "" || maxHoursValue === null || maxHoursValue === undefined
+      ? "N/A"
+      : maxHoursValue;
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -51,6 +56,14 @@ const StudentAdditionalInfo = ({
             value={formData.questions}
             onChange={handleChange}
             label="Questions regarding tutoring of this child"
+          />
+          <TextField
+            name="maxHoursPerDay"
+            value={formData.maxHoursPerDay}
+            onChange={handleChange}
+            label="Max tutoring hours per day (optional)"
+            type="number"
+            inputProps={{ min: 0, step: 0.5 }}
           />
           {includeHowUserHeard && (
             <TextField
@@ -100,6 +113,19 @@ const StudentAdditionalInfo = ({
             </Typography>
             <Typography variant="h6" color={colors.grey[100]}>
               {formData.questions}
+            </Typography>
+          </div>
+          <div style={{ display: "flex", gap: "10px" }}>
+            <Typography
+              variant="h5"
+              color={colors.orangeAccent[400]}
+              fontWeight="bold"
+              sx={{ mb: "5px" }}
+            >
+              Max tutoring hours per day
+            </Typography>
+            <Typography variant="h6" color={colors.grey[100]}>
+              {maxHoursDisplay}
             </Typography>
           </div>
           {includeHowUserHeard && (

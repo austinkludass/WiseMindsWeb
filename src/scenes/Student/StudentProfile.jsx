@@ -95,7 +95,13 @@ const StudentProfile = () => {
     additional: {
       title: "Additional Information",
       component: StudentAdditionalInfo,
-      fields: ["canOfferFood", "avoidFoods", "questions", "howUserHeard"],
+      fields: [
+        "canOfferFood",
+        "avoidFoods",
+        "questions",
+        "maxHoursPerDay",
+        "howUserHeard",
+      ],
     },
     admin: {
       title: "Admin Information",

@@ -32,8 +32,12 @@ const ChildrenStep = ({
   setChildrenTouched,
   createChild,
   createChildTouched,
+  showTrialStep = true,
+  allowRemoveLastChild = false,
+  readOnlyIdentity = false,
+  allowAddChild = true,
 }) => {
-  const [expandedIndex, setExpandedIndex] = useState(0);
+  const [expandedIndex, setExpandedIndex] = useState(null);
 
   const addChild = () => {
     const nextIndex = childrenData.length;
@@ -81,9 +85,11 @@ const ChildrenStep = ({
         <Typography variant="h5" fontWeight="bold">
           Children Details
         </Typography>
-        <Button variant="outlined" onClick={addChild}>
-          Add another child
-        </Button>
+        {allowAddChild && (
+          <Button variant="outlined" onClick={addChild}>
+            Add another child
+          </Button>
+        )}
       </Box>
 
       {childrenData.map((child, index) => (
@@ -127,12 +133,13 @@ const ChildrenStep = ({
                 <Button
                   variant="text"
                   color="error"
+                  component="span"
                   onClick={(event) => {
                     event.stopPropagation();
                     removeChild(index);
                   }}
                   onFocus={(event) => event.stopPropagation()}
-                  disabled={childrenData.length === 1}
+                  disabled={!allowRemoveLastChild && childrenData.length === 1}
                 >
                   Remove
                 </Button>
@@ -146,6 +153,7 @@ const ChildrenStep = ({
                 setFormData={setChildFormData(index)}
                 touched={childrenTouched[index] || createChildTouched()}
                 setTouched={setChildTouched(index)}
+                readOnlyIdentity={readOnlyIdentity}
               />
 
               <Divider />
@@ -157,14 +165,17 @@ const ChildrenStep = ({
                 setSubjects={setChildSubjects(index)}
               />
 
-              <Divider />
-
-              <TrialStep
-                formData={child}
-                setFormData={setChildFormData(index)}
-                trialAvailability={child.trialAvailability}
-                setTrialAvailability={setChildTrialAvailability(index)}
-              />
+              {showTrialStep && (
+                <>
+                  <Divider />
+                  <TrialStep
+                    formData={child}
+                    setFormData={setChildFormData(index)}
+                    trialAvailability={child.trialAvailability}
+                    setTrialAvailability={setChildTrialAvailability(index)}
+                  />
+                </>
+              )}
 
               <Divider />
 
@@ -191,11 +202,13 @@ const ChildrenStep = ({
         </Accordion>
       ))}
 
-      <Box display="flex" justifyContent="flex-end">
-        <Button variant="outlined" onClick={addChild}>
-          Add another child
-        </Button>
-      </Box>
+      {allowAddChild && (
+        <Box display="flex" justifyContent="flex-end">
+          <Button variant="outlined" onClick={addChild}>
+            Add another child
+          </Button>
+        </Box>
+      )}
     </Stack>
   );
 };

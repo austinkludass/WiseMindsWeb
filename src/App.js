@@ -19,6 +19,7 @@ import InvoicesPage from "./scenes/Invoicing/InvoicesPage";
 import PayrollPage from "./scenes/Payroll/PayrollPage";
 import AdditionalHoursPage from "./scenes/Payroll/AdditionalHoursPage";
 import ParentIntake from "./scenes/Intake/ParentIntake";
+import ExistingFamilyIntake from "./scenes/Intake/ExistingFamilyIntake";
 import ProtectedRoute from "./components/Global/ProtectedRoute";
 import { ROLES } from "./utils/permissions";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
@@ -82,14 +83,19 @@ function App() {
                       }
                     />
                     <Route path="/additionalhours" element={<AdditionalHoursPage />} />
-                    <Route path="/intake" element={<ParentIntake />} />
+                    {/* <Route path="/intake" element={<ParentIntake />} /> */}
                     <Route path="*" element={<Navigate to="/" />} />
                   </Routes>
                 </main>
               </div>
             ) : (
               <Routes>
-                <Route path="/intake" element={<ParentIntake />} />
+                <Route path="/new-family" element={<ParentIntake />} />
+                <Route
+                  path="/existing-family/:familyId"
+                  element={<ExistingFamilyIntake />}
+                />
+                <Route path="/existing-family" element={<ExistingFamilyIntake />} />
                 {/* <Route path="*" element={<Login />} /> */}
               </Routes>
             )}

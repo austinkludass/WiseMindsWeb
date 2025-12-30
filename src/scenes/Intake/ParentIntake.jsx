@@ -8,6 +8,15 @@ import FamilyStep from "../../components/intake/steps/FamilyStep";
 import ChildrenStep from "../../components/intake/steps/ChildrenStep";
 import AdditionalInfoStep from "../../components/intake/steps/AdditionalInfoStep";
 import AvailabilityFormatter from "../../utils/AvailabilityFormatter";
+import {
+  createChild,
+  createChildTouched,
+  defaultFamilyData,
+  formatDateValue,
+  hasAvailability,
+  normalizeTutorIds,
+  validateAvailability,
+} from "./intakeUtils";
 
 /**
  * Query parameter support for pre-filling the intake form.
@@ -48,138 +57,6 @@ import AvailabilityFormatter from "../../utils/AvailabilityFormatter";
  * - availability and trialAvailability are formatted via AvailabilityFormatter
  * - subjects include id, hours, and selected (request tutoring)
  */
-const defaultFamilyData = {
-  parentName: "",
-  familyEmail: "",
-  familyPhone: "",
-  familyAddress: "",
-  secondaryContactName: "",
-  secondaryContactEmail: "",
-  secondaryContactPhone: "",
-  secondaryContactAddress: "",
-  secondaryContactSameAddress: true,
-  schedulePreference: "same_time_within_hour",
-  usePrimaryAsEmergency: false,
-  emergencyFirst: "",
-  emergencyLast: "",
-  emergencyRelationship: "",
-  emergencyRelationshipOther: "",
-  emergencyPhone: "",
-  howUserHeard: "",
-  homeLocation: "",
-  additionalNotes: "",
-  consentAccepted: false,
-};
-
-const hasAvailability = (availability) =>
-  Object.values(availability || {}).some((slots) => slots?.length);
-
-const formatDateValue = (value) =>
-  value && typeof value.toISOString === "function" ? value.toISOString() : null;
-
-const defaultSubjects = [{ id: "", hours: "", selected: false }];
-
-const toTimeValue = (value) => {
-  if (value instanceof Date && !Number.isNaN(value.getTime())) {
-    return value.getTime();
-  }
-  if (typeof value === "string" && value.includes(":")) {
-    const [hours, minutes] = value.split(":").map(Number);
-    if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return null;
-    const date = new Date();
-    date.setHours(hours, minutes, 0, 0);
-    return date.getTime();
-  }
-  return null;
-};
-
-const validateAvailability = (availability, label) => {
-  const messages = [];
-  const reported = new Set();
-
-  Object.entries(availability || {}).forEach(([day, slots]) => {
-    if (!Array.isArray(slots) || slots.length === 0) return;
-
-    const normalized = [];
-    let hasInvalidValue = false;
-    let hasInvalidRange = false;
-
-    slots.forEach((slot) => {
-      const start = toTimeValue(slot.start);
-      const end = toTimeValue(slot.end);
-      if (start === null || end === null) {
-        hasInvalidValue = true;
-        return;
-      }
-      if (start >= end) {
-        hasInvalidRange = true;
-      }
-      normalized.push({ start, end });
-    });
-
-    if (hasInvalidValue) {
-      const key = `${label}-${day}-invalid`;
-      if (!reported.has(key)) {
-        messages.push(`${label}: ${day} has an invalid time value.`);
-        reported.add(key);
-      }
-    }
-
-    if (hasInvalidRange) {
-      const key = `${label}-${day}-range`;
-      if (!reported.has(key)) {
-        messages.push(`${label}: ${day} has an end time before the start time.`);
-        reported.add(key);
-      }
-    }
-
-    if (normalized.length > 1) {
-      normalized.sort((a, b) => a.start - b.start);
-      const hasOverlap = normalized.some((slot, index) => {
-        if (index === 0) return false;
-        return slot.start < normalized[index - 1].end;
-      });
-      if (hasOverlap) {
-        const key = `${label}-${day}-overlap`;
-        if (!reported.has(key)) {
-          messages.push(`${label}: ${day} has overlapping time slots.`);
-          reported.add(key);
-        }
-      }
-    }
-  });
-
-  return messages;
-};
-
-const createChild = (overrides = {}) => ({
-  firstName: "",
-  middleName: "",
-  lastName: "",
-  dateOfBirth: null,
-  allergiesAna: "",
-  allergiesNonAna: "",
-  doesCarryEpi: false,
-  doesAdminEpi: false,
-  school: "",
-  yearLevel: "",
-  notes: "",
-  preferredStart: null,
-  trialNotes: "",
-  canOfferFood: true,
-  avoidFoods: "",
-  questions: "",
-  subjects: defaultSubjects.map((subject) => ({ ...subject })),
-  availability: {},
-  trialAvailability: {},
-  ...overrides,
-});
-
-const createChildTouched = () => ({
-  firstName: false,
-  lastName: false,
-});
-
 const getParamValue = (params, keys) => {
   for (const key of keys) {
     const value = params.get(key);
@@ -408,6 +285,7 @@ const ParentIntake = () => {
         school: child.school,
         yearLevel: child.yearLevel,
         notes: child.notes,
+        maxHoursPerDay: child.maxHoursPerDay,
         preferredStart: formatDateValue(child.preferredStart),
         trialNotes: child.trialNotes,
         canOfferFood: Boolean(child.canOfferFood),
@@ -425,6 +303,12 @@ const ParentIntake = () => {
             id: subject.id,
             hours: subject.hours ? String(subject.hours) : "0",
             selected: Boolean(subject.selected),
+            preferredTutorIds: normalizeTutorIds(
+              subject.preferredTutorIds || subject.preferredTutors
+            ),
+            blockedTutorIds: normalizeTutorIds(
+              subject.blockedTutorIds || subject.blockedTutors
+            ),
           })),
       })),
       meta: {

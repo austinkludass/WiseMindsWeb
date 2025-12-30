@@ -18,6 +18,8 @@ import {
   FormControlLabel,
   MenuItem,
 } from "@mui/material";
+import { collection, getDocs } from "firebase/firestore";
+import { db } from "../../data/firebase";
 import { tokens } from "../../theme";
 import { FixedSizeList } from "react-window";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -76,45 +78,146 @@ const StudentAcademicInfo = ({
 
   const [subjectOptions, setSubjectOptions] = useState([]);
   const [loadingSubjects, setLoadingSubjects] = useState(true);
+  const [curriculums, setCurriculums] = useState([]);
+  const [selectedCurriculumId, setSelectedCurriculumId] = useState("");
+  const [tutorOptions, setTutorOptions] = useState([]);
+  const [loadingTutors, setLoadingTutors] = useState(true);
+  const subjectList = Array.isArray(subjects) ? subjects : [];
 
   useEffect(() => {
+    let isMounted = true;
+
     const fetchSubjectsWithCurriculums = async () => {
       try {
-        const response = await fetch(
-          "https://australia-southeast1-wisemindsadmin.cloudfunctions.net/api/subjects",
-          {
-            headers: {
-              "x-api-key": "apples",
-            },
-          }
-        );
-        const data = await response.json();
-        const rawSubjects = Array.isArray(data)
-          ? data
-          : Array.isArray(data?.subjects)
-            ? data.subjects
-            : [];
-        const allSubjects = rawSubjects.map((subject, index) => ({
-          id:
-            subject.id ||
-            subject._id ||
-            subject.subjectId ||
-            `subject-${index}`,
-          name: subject.name || subject.subject || "Unknown",
-          curriculumName:
-            subject.curriculumName ||
-            subject.curriculum?.name ||
-            "Unknown",
+        const subjectSnap = await getDocs(collection(db, "subjects"));
+        const curriculumSnap = await getDocs(collection(db, "curriculums"));
+        if (!isMounted) return;
+        const curriculumList = curriculumSnap.docs.map((docSnap) => ({
+          id: docSnap.id,
+          name: docSnap.data()?.name || "Unnamed curriculum",
         }));
+        const curriculumMap = new Map(
+          curriculumList.map((curriculum) => [curriculum.id, curriculum.name])
+        );
+        console.info(
+          "[StudentAcademicInfo] cirriculums:",
+          curriculumList.length,
+          curriculumList.map((curriculum) => curriculum.name)
+        );
+        const curriculumNameToId = new Map(
+          curriculumList.map((curriculum) => [
+            curriculum.name.toLowerCase(),
+            curriculum.id,
+          ])
+        );
+        setCurriculums(curriculumList);
+
+        const allSubjects = subjectSnap.docs.map((docSnap) => {
+          const data = docSnap.data() || {};
+          const rawCurriculum =
+            data.cirriculumId ||
+            data.curriculumId ||
+            data.cirriculum ||
+            data.curriculum ||
+            "";
+          let curriculumId = "";
+          let curriculumName = "";
+
+          if (typeof rawCurriculum === "string") {
+            const trimmed = rawCurriculum.trim();
+            if (trimmed) {
+              const lower = trimmed.toLowerCase();
+              const pathId = trimmed.includes("/")
+                ? trimmed.split("/").pop()
+                : trimmed;
+              curriculumId = curriculumMap.has(pathId)
+                ? pathId
+                : curriculumNameToId.get(lower) || trimmed;
+            }
+          } else if (rawCurriculum && typeof rawCurriculum.id === "string") {
+            curriculumId = rawCurriculum.id;
+          }
+
+          if (curriculumId && curriculumMap.has(curriculumId)) {
+            curriculumName = curriculumMap.get(curriculumId);
+          } else if (typeof rawCurriculum === "string" && rawCurriculum.trim()) {
+            curriculumName = rawCurriculum.trim();
+          }
+
+          return {
+            id: docSnap.id,
+            name: data.name || data.subject || "Unknown",
+            curriculumId,
+            curriculumName:
+              data.cirriculumName ||
+              data.curriculumName ||
+              data.curriculum?.name ||
+              data.cirriculum?.name ||
+              curriculumName ||
+              "",
+          };
+        });
+        console.info(
+          "[StudentAcademicInfo] subjects:",
+          allSubjects.length,
+          allSubjects.slice(0, 5).map((subject) => ({
+            id: subject.id,
+            name: subject.name,
+            curriculumId: subject.curriculumId,
+          }))
+        );
         setSubjectOptions(allSubjects);
       } catch (error) {
-        setSubjectOptions([]);
+        console.error(
+          "[StudentAcademicInfo] Failed to load cirriculums/subjects:",
+          error
+        );
+        if (isMounted) {
+          setSubjectOptions([]);
+          setCurriculums([]);
+        }
       } finally {
-        setLoadingSubjects(false);
+        if (isMounted) setLoadingSubjects(false);
       }
     };
 
     fetchSubjectsWithCurriculums();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchTutors = async () => {
+      try {
+        const tutorSnap = await getDocs(collection(db, "tutors"));
+        if (!isMounted) return;
+        const tutors = tutorSnap.docs.map((docSnap) => {
+          const data = docSnap.data() || {};
+          const firstName = data.firstName || "";
+          const lastName = data.lastName || "";
+          const name = [firstName, lastName].filter(Boolean).join(" ");
+          return {
+            id: docSnap.id,
+            name: name || data.name || "Unnamed tutor",
+          };
+        });
+        setTutorOptions(tutors);
+      } catch (error) {
+        if (isMounted) setTutorOptions([]);
+      } finally {
+        if (isMounted) setLoadingTutors(false);
+      }
+    };
+
+    fetchTutors();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const handleInputChange = (e) => {
@@ -122,9 +225,59 @@ const StudentAcademicInfo = ({
   };
 
   const handleSubjectChange = (index, field, value) => {
-    const newSubjects = [...subjects];
-    newSubjects[index] = { ...newSubjects[index], [field]: value };
+    const newSubjects = [...subjectList];
+    const updated = { ...newSubjects[index], [field]: value };
+    if (field === "selected" && !value) {
+      updated.preferredTutorIds = [];
+      updated.blockedTutorIds = [];
+    }
+    newSubjects[index] = updated;
     setSubjects(newSubjects);
+  };
+
+  const normalizeTutorIds = (value) => {
+    if (!value || !Array.isArray(value)) return [];
+    const ids = value
+      .map((item) => {
+        if (typeof item === "string") return item;
+        if (item && typeof item === "object") return item.id || item.tutorId || "";
+        return "";
+      })
+      .filter(Boolean);
+    return Array.from(new Set(ids));
+  };
+
+  const getTutorIdsForSubject = (subject, field) => {
+    const raw =
+      subject?.[field] ||
+      (field === "preferredTutorIds" ? subject?.preferredTutors : subject?.blockedTutors) ||
+      [];
+    return normalizeTutorIds(raw);
+  };
+
+  const getTutorOptionsFromIds = (ids) =>
+    tutorOptions.filter((tutor) => ids.includes(tutor.id));
+
+  const setSubjectTutorIds = (index, field, selectedOptions = []) => {
+    const ids = Array.from(
+      new Set(selectedOptions.map((tutor) => tutor.id))
+    );
+    const nextSubjects = subjectList.map((subject, i) => {
+      if (i !== index) return subject;
+      const next = { ...subject, [field]: ids };
+      if (field === "preferredTutorIds") {
+        next.blockedTutorIds = normalizeTutorIds(next.blockedTutorIds).filter(
+          (id) => !ids.includes(id)
+        );
+      }
+      if (field === "blockedTutorIds") {
+        next.preferredTutorIds = normalizeTutorIds(
+          next.preferredTutorIds
+        ).filter((id) => !ids.includes(id));
+      }
+      return next;
+    });
+    setSubjects(nextSubjects);
   };
 
   const yearLevelOptions = [
@@ -146,25 +299,50 @@ const StudentAcademicInfo = ({
     "Other",
   ];
 
+  const availableSubjectOptions = selectedCurriculumId
+    ? subjectOptions.filter(
+        (subject) => subject.curriculumId === selectedCurriculumId
+      )
+    : subjectOptions;
+
+  useEffect(() => {
+    if (!selectedCurriculumId || subjectOptions.length === 0) return;
+    const validIds = new Set(
+      subjectOptions
+        .filter((subject) => subject.curriculumId === selectedCurriculumId)
+        .map((subject) => subject.id)
+    );
+    let hasChanges = false;
+    const nextSubjects = subjectList.map((subject) => {
+      if (!subject.id || validIds.has(subject.id)) return subject;
+      hasChanges = true;
+      return { ...subject, id: "" };
+    });
+    if (hasChanges) setSubjects(nextSubjects);
+  }, [selectedCurriculumId, subjectOptions, subjectList, setSubjects]);
+
   const addSubject = () => {
     const newSubject = {
       name: "",
       hours: "",
+      preferredTutorIds: [],
+      blockedTutorIds: [],
       ...(allowTutoringToggle ? { selected: false } : {}),
     };
-    setSubjects([...subjects, newSubject]);
+    setSubjects([...subjectList, newSubject]);
   };
 
   const removeSubject = (index) => {
-    const newSubjects = subjects.filter((_, i) => i !== index);
+    const newSubjects = subjectList.filter((_, i) => i !== index);
     setSubjects(newSubjects);
   };
 
   const getSubjectDisplay = (subjectId) => {
     const match = subjectOptions.find((s) => s.id === subjectId);
-    return match
+    if (!match) return "Unknown Subject";
+    return match.curriculumName
       ? `${match.name} (${match.curriculumName})`
-      : "Unknown Subject";
+      : match.name;
   };
 
   return (
@@ -194,6 +372,23 @@ const StudentAcademicInfo = ({
               </MenuItem>
             ))}
           </TextField>
+          <TextField
+            fullWidth
+            label="Curriculum"
+            name="curriculum"
+            value={selectedCurriculumId}
+            onChange={(e) => setSelectedCurriculumId(e.target.value)}
+            variant="outlined"
+            select
+            disabled={curriculums.length === 0}
+          >
+            <MenuItem value="">All Curriculums</MenuItem>
+            {curriculums.map((curriculum) => (
+              <MenuItem key={curriculum.id} value={curriculum.id}>
+                {curriculum.name}
+              </MenuItem>
+            ))}
+          </TextField>
           <Typography variant="body1" gutterBottom sx={{ mb: 2 }}>
             {allowTutoringToggle
               ? "Please list all of the subjects that the student is currently taking at school and tick what subjects you would like tutoring for. Our sessions run for 1 hour each per subject."
@@ -206,7 +401,7 @@ const StudentAcademicInfo = ({
           >
             Add Subject
           </Button>
-          {subjects.length === 0 && (
+          {subjectList.length === 0 && (
             <Typography
               variant="body2"
               color="text.secondary"
@@ -216,114 +411,205 @@ const StudentAcademicInfo = ({
             </Typography>
           )}
           <Box sx={{ mb: 2 }}>
-          {subjects.map((subject, index) => (
+          {subjectList.map((subject, index) => {
+            const preferredTutorIds = getTutorIdsForSubject(
+              subject,
+              "preferredTutorIds"
+            );
+            const blockedTutorIds = getTutorIdsForSubject(
+              subject,
+              "blockedTutorIds"
+            );
+            const overlapTutorIds = preferredTutorIds.filter((id) =>
+              blockedTutorIds.includes(id)
+            );
+            const preferredTutors = getTutorOptionsFromIds(preferredTutorIds);
+            const blockedTutors = getTutorOptionsFromIds(blockedTutorIds);
+
+            return (
             <Paper
               key={index}
               elevation={1}
               sx={{
                 p: 2,
                 mb: 1,
-                display: "flex",
-                alignItems: "center",
-                gap: 2,
               }}
             >
-                <Autocomplete
-                  loading={loadingSubjects}
-                  sx={{ flex: 2 }}
-                  disableListWrap
-                  ListboxComponent={ListboxComponent}
-                  options={subjectOptions}
-                  filterOptions={(options, { inputValue }) => {
-                    if (!inputValue) return options;
-                    const term = inputValue.toLowerCase();
-                    return options.filter((option) => {
-                      const name = option.name?.toLowerCase() || "";
-                      const curriculum =
-                        option.curriculumName?.toLowerCase() || "";
-                      return name.includes(term) || curriculum.includes(term);
-                    });
-                  }}
-                  getOptionLabel={(option) =>
-                    `${option.name} (${option.curriculumName})`
-                  }
-                  isOptionEqualToValue={(option, value) => option.id === value.id}
-                  value={
-                    subjectOptions.find((s) => s.id === subject.id) || null
-                  }
-                  onChange={(_, newValue) => {
-                    const updatedSubjects = [...subjects];
-                    const selected = allowTutoringToggle
-                      ? typeof subjects[index]?.selected === "boolean"
-                        ? subjects[index].selected
-                        : false
-                      : subjects[index]?.selected;
-                    updatedSubjects[index] = {
-                      id: newValue?.id || "",
-                      hours: subjects[index].hours || "",
-                      ...(allowTutoringToggle ? { selected } : {}),
-                    };
-                    setSubjects(updatedSubjects);
-                  }}
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      size="small"
-                      label="Subject name"
-                      sx={{ flex: 2 }}
-                      InputProps={{
-                        ...params.InputProps,
-                        endAdornment: (
-                          <>
-                            {loadingSubjects ? (
-                              <CircularProgress color="inherit" size={16} />
-                            ) : null}
-                            {params.InputProps.endAdornment}
-                          </>
-                        ),
-                      }}
+              <Stack spacing={2}>
+                <Box
+                  display="flex"
+                  alignItems="center"
+                  gap={2}
+                  flexWrap="wrap"
+                >
+                  <Autocomplete
+                    loading={loadingSubjects}
+                    sx={{ flex: 2, minWidth: 240 }}
+                    disableListWrap
+                    ListboxComponent={ListboxComponent}
+                    options={availableSubjectOptions}
+                    filterOptions={(options, { inputValue }) => {
+                      if (!inputValue) return options;
+                      const term = inputValue.toLowerCase();
+                      return options.filter((option) => {
+                        const name = option.name?.toLowerCase() || "";
+                        const curriculum =
+                          option.curriculumName?.toLowerCase() || "";
+                        return name.includes(term) || curriculum.includes(term);
+                      });
+                    }}
+                    getOptionLabel={(option) =>
+                      option.curriculumName
+                        ? `${option.name} (${option.curriculumName})`
+                        : option.name
+                    }
+                    isOptionEqualToValue={(option, value) =>
+                      option.id === value.id
+                    }
+                    value={
+                      availableSubjectOptions.find((s) => s.id === subject.id) ||
+                      null
+                    }
+                    onChange={(_, newValue) => {
+                      const updatedSubjects = [...subjectList];
+                      const existing = subjectList[index] || {};
+                      const selected = allowTutoringToggle
+                        ? typeof subjectList[index]?.selected === "boolean"
+                          ? subjectList[index].selected
+                          : false
+                        : subjectList[index]?.selected;
+                      const preferredTutorIds = normalizeTutorIds(
+                        existing.preferredTutorIds || existing.preferredTutors
+                      );
+                      const blockedTutorIds = normalizeTutorIds(
+                        existing.blockedTutorIds || existing.blockedTutors
+                      );
+                      updatedSubjects[index] = {
+                        id: newValue?.id || "",
+                        hours: subjectList[index]?.hours || "",
+                        ...(allowTutoringToggle ? { selected } : {}),
+                        preferredTutorIds,
+                        blockedTutorIds,
+                      };
+                      setSubjects(updatedSubjects);
+                    }}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        size="small"
+                        label="Subject name"
+                        sx={{ flex: 2 }}
+                        InputProps={{
+                          ...params.InputProps,
+                          endAdornment: (
+                            <>
+                              {loadingSubjects ? (
+                                <CircularProgress color="inherit" size={16} />
+                              ) : null}
+                              {params.InputProps.endAdornment}
+                            </>
+                          ),
+                        }}
+                      />
+                    )}
+                  />
+                  {allowTutoringToggle && (
+                    <FormControlLabel
+                      control={
+                        <Checkbox
+                          checked={Boolean(subject.selected)}
+                          onChange={(e) =>
+                            handleSubjectChange(
+                              index,
+                              "selected",
+                              e.target.checked
+                            )
+                          }
+                        />
+                      }
+                      label="Request tutoring?"
+                      sx={{ minWidth: 160 }}
                     />
                   )}
-                />
-                {allowTutoringToggle && (
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={Boolean(subject.selected)}
-                        onChange={(e) =>
-                          handleSubjectChange(
-                            index,
-                            "selected",
-                            e.target.checked
-                          )
-                        }
-                      />
+                  <TextField
+                    size="small"
+                    label="Hours/week"
+                    type="number"
+                    inputProps={{ min: 0, step: 1 }}
+                    value={subject.hours}
+                    onChange={(e) =>
+                      handleSubjectChange(index, "hours", e.target.value)
                     }
-                    label="Request tutoring?"
-                    sx={{ minWidth: 120 }}
+                    sx={{ width: 120 }}
+                    disabled={allowTutoringToggle && !subject.selected}
                   />
+                  <IconButton
+                    color="error"
+                    onClick={() => removeSubject(index)}
+                    size="small"
+                  >
+                    <DeleteIcon />
+                  </IconButton>
+                </Box>
+                {allowTutoringToggle &&
+                  (Boolean(subject.selected) ||
+                    preferredTutorIds.length > 0 ||
+                    blockedTutorIds.length > 0) && (
+                  <Stack spacing={1}>
+                    {overlapTutorIds.length > 0 && (
+                      <Typography variant="body2" color="error">
+                        A tutor cannot be both preferred and blocked. Please
+                        remove duplicates.
+                      </Typography>
+                    )}
+                    <Autocomplete
+                      multiple
+                      options={tutorOptions}
+                      loading={loadingTutors}
+                      disableCloseOnSelect
+                      getOptionLabel={(option) => option.name}
+                      isOptionEqualToValue={(option, value) =>
+                        option.id === value.id
+                      }
+                      value={preferredTutors}
+                      onChange={(_, value) =>
+                        setSubjectTutorIds(index, "preferredTutorIds", value)
+                      }
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          label="Preferred tutors"
+                          placeholder="Select preferred tutors"
+                        />
+                      )}
+                    />
+                    <Autocomplete
+                      multiple
+                      options={tutorOptions}
+                      loading={loadingTutors}
+                      disableCloseOnSelect
+                      getOptionLabel={(option) => option.name}
+                      isOptionEqualToValue={(option, value) =>
+                        option.id === value.id
+                      }
+                      value={blockedTutors}
+                      onChange={(_, value) =>
+                        setSubjectTutorIds(index, "blockedTutorIds", value)
+                      }
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          label="Blocked tutors"
+                          placeholder="Select blocked tutors"
+                        />
+                      )}
+                    />
+                  </Stack>
                 )}
-                <TextField
-                  size="small"
-                  label="Hours/week"
-                  type="number"
-                  inputProps={{ min: 0, step: 1 }}
-                  value={subject.hours}
-                  onChange={(e) =>
-                    handleSubjectChange(index, "hours", e.target.value)
-                  }
-                  sx={{ width: 120 }}
-                  disabled={allowTutoringToggle && !subject.selected}
-                />
-                <IconButton
-                  color="error"
-                  onClick={() => removeSubject(index)}
-                  size="small"
-                >
-                  <DeleteIcon />
-                </IconButton>
+              </Stack>
               </Paper>
-            ))}
+            );
+          })}
           </Box>
           <TextField
             fullWidth
@@ -375,7 +661,7 @@ const StudentAcademicInfo = ({
             >
               Subject Tutor Hours (subject / hours)
             </Typography>
-            {subjects.map((subject, index) => {
+            {subjectList.map((subject, index) => {
               return (
                 <Paper
                   key={index}

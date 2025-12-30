@@ -107,6 +107,11 @@ const FamilyEmergencyStep = ({ formData, setFormData }) => {
         <Typography variant="h5" fontWeight="bold">
           Parent or Guardian Details
         </Typography>
+        <Typography variant="body1" color="text.secondary">
+          The Primary guardian is the main point of contact for a family. They
+          will receive reports, invoices and other communications directly from
+          us.
+        </Typography>
         <Grid container spacing={2}>
           <Grid size={{ xs: 12, md: 6 }}>
             <TextField
@@ -149,14 +154,13 @@ const FamilyEmergencyStep = ({ formData, setFormData }) => {
             />
           </Grid>
         </Grid>
-        <Typography variant="body2" color="text.secondary">
-          The Primary guardian is the main point of contact for a family. They
-          will receive reports, invoices and other communications directly from
-          us.
-        </Typography>
 
         <Typography variant="subtitle1" color="text.secondary">
           Optional secondary contact
+        </Typography>
+        <Typography variant="body1" color="text.secondary">
+          A secondary guardian will also receive a copy of student reports,
+          invoices and email communications.
         </Typography>
         <Grid container spacing={2}>
           <Grid size={{ xs: 12, md: 6 }}>
@@ -206,21 +210,17 @@ const FamilyEmergencyStep = ({ formData, setFormData }) => {
           }
           label="Secondary guardian address is the same as primary"
         />
-        <Typography variant="body2" color="text.secondary">
-          A secondary guardian will also receive a copy of student reports,
-          invoices and email communications.
-        </Typography>
 
         <Paper variant="outlined" sx={{ p: 2 }}>
           <Stack spacing={1}>
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body1" color="text.secondary">
               At Wise Minds, we can do our best to schedule multiple students in
               the one time slot. This means you only need to make the one trip
               in. Note: This is quite a logistical challenge and we do our
               absolute best, but we cannot guarentee this will be possible.
             </Typography>
             <Typography variant="h6">Family Scheduling Preference</Typography>
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body1" color="text.secondary">
               Let us know if siblings should be scheduled together or if you are
               flexible.
             </Typography>
@@ -235,7 +235,7 @@ const FamilyEmergencyStep = ({ formData, setFormData }) => {
                   control={<Radio />}
                   label="Prefer siblings at the same time"
                 />
-                <Typography variant="body2" color="text.secondary">
+                <Typography variant="body1" color="text.secondary">
                   We will try to schedule your children to be at the same time.
                 </Typography>
               </Stack>
@@ -245,7 +245,7 @@ const FamilyEmergencyStep = ({ formData, setFormData }) => {
                   control={<Radio />}
                   label="Prefer siblings on the same day (+- 1 hour)"
                 />
-                <Typography variant="body2" color="text.secondary">
+                <Typography variant="body1" color="text.secondary">
                   We will try to schedule your children within 1 hour of each
                   other.
                 </Typography>
@@ -256,7 +256,7 @@ const FamilyEmergencyStep = ({ formData, setFormData }) => {
                   control={<Radio />}
                   label="No preference"
                 />
-                <Typography variant="body2" color="text.secondary">
+                <Typography variant="body1" color="text.secondary">
                   We will schedule your students based on the best
                   student-tutor match available within the time you provided.
                 </Typography>

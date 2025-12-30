@@ -85,6 +85,7 @@ const NewStudent = () => {
         canOfferFood: additionalInfo.canOfferFood,
         avoidFoods: additionalInfo.avoidFoods,
         questions: additionalInfo.questions,
+        maxHoursPerDay: additionalInfo.maxHoursPerDay,
         howUserHeard: additionalInfo.howUserHeard,
         preferredStart: trialInfo.preferredStart?.toISOString() || null,
         trialAvailability: AvailabilityFormatter(trialAvailability),
@@ -144,6 +145,7 @@ const NewStudent = () => {
     canOfferFood: true,
     avoidFoods: "",
     questions: "",
+    maxHoursPerDay: "",
     howUserHeard: "",
   });
 
