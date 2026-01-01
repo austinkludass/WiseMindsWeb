@@ -28,6 +28,14 @@ const IntakeLayout = ({
   return (
     <Box sx={{ px: { xs: 2, md: 6 }, py: { xs: 3, md: 5 } }}>
       <Stack spacing={3} sx={{ maxWidth: 980, mx: "auto" }}>
+        <Box display="flex" justifyContent="center">
+          <Box
+            component="img"
+            src="../../assets/wisemindslogo.png"
+            alt="Wise Minds logo"
+            sx={{ width: 56, height: 56 }}
+          />
+        </Box>
         <Box>
           <Typography variant="h3" fontWeight="bold" gutterBottom>
             {title}

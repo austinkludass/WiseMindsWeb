@@ -1,4 +1,5 @@
 import { Stack, Typography, TextField } from "@mui/material";
+import FamilySchedulingPreference from "./FamilySchedulingPreference";
 
 const ExistingFamilyStep = ({ formData, setFormData }) => {
   const handleChange = (event) => {
@@ -29,6 +30,10 @@ const ExistingFamilyStep = ({ formData, setFormData }) => {
         onChange={handleChange}
         required
         fullWidth
+      />
+      <FamilySchedulingPreference
+        formData={formData}
+        setFormData={setFormData}
       />
     </Stack>
   );

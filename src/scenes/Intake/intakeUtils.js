@@ -8,7 +8,7 @@ const defaultFamilyData = {
   secondaryContactPhone: "",
   secondaryContactAddress: "",
   secondaryContactSameAddress: true,
-  schedulePreference: "same_time_within_hour",
+  schedulePreference: "same_day",
   usePrimaryAsEmergency: false,
   emergencyFirst: "",
   emergencyLast: "",
@@ -20,6 +20,13 @@ const defaultFamilyData = {
   additionalNotes: "",
   consentAccepted: false,
 };
+
+const schedulePreferenceValues = [
+  "same_day",
+  "back_to_back",
+  "same_time_within_hour",
+  "no_preference",
+];
 
 const hasAvailability = (availability) =>
   Object.values(availability || {}).some((slots) => slots?.length);
@@ -154,6 +161,33 @@ const validateAvailability = (availability, label) => {
   return messages;
 };
 
+const mapSchedulePreference = (preference) => {
+  const value = preference || "";
+  return {
+    preferContiguousDays: value === "same_day",
+    preferBackToBack: value === "back_to_back",
+    preferSameTime: value === "same_time_within_hour",
+  };
+};
+
+const getSchedulePreferenceFromFamily = (familyData = {}) => {
+  if (!familyData) return "";
+  if (schedulePreferenceValues.includes(familyData.schedulePreference)) {
+    return familyData.schedulePreference;
+  }
+
+  const storedPrefs = familyData.familySchedulingPreferences || {};
+  if (storedPrefs.preferSameTime) return "same_time_within_hour";
+  if (storedPrefs.preferBackToBack) return "back_to_back";
+  if (storedPrefs.preferContiguousDays) return "same_day";
+
+  if (familyData.preferSameTime) return "same_time_within_hour";
+  if (familyData.preferBackToBack) return "back_to_back";
+  if (familyData.preferContiguousDays) return "same_day";
+
+  return "";
+};
+
 export {
   createChild,
   createChildTouched,
@@ -161,6 +195,8 @@ export {
   defaultSubjects,
   formatDateValue,
   hasAvailability,
+  mapSchedulePreference,
+  getSchedulePreferenceFromFamily,
   normalizeTutorIds,
   validateAvailability,
 };

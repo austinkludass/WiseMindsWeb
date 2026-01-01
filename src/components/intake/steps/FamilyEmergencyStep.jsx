@@ -4,16 +4,14 @@ import {
   Typography,
   TextField,
   Grid2 as Grid,
-  Paper,
   FormControl,
   InputLabel,
   Select,
   MenuItem,
-  RadioGroup,
   FormControlLabel,
-  Radio,
   Checkbox,
 } from "@mui/material";
+import FamilySchedulingPreference from "./FamilySchedulingPreference";
 
 const relationshipOptions = [
   "Mother",
@@ -211,59 +209,10 @@ const FamilyEmergencyStep = ({ formData, setFormData }) => {
           label="Secondary guardian address is the same as primary"
         />
 
-        <Paper variant="outlined" sx={{ p: 2 }}>
-          <Stack spacing={1}>
-            <Typography variant="body1" color="text.secondary">
-              At Wise Minds, we can do our best to schedule multiple students in
-              the one time slot. This means you only need to make the one trip
-              in. Note: This is quite a logistical challenge and we do our
-              absolute best, but we cannot guarentee this will be possible.
-            </Typography>
-            <Typography variant="h6">Family Scheduling Preference</Typography>
-            <Typography variant="body1" color="text.secondary">
-              Let us know if siblings should be scheduled together or if you are
-              flexible.
-            </Typography>
-            <RadioGroup
-              name="schedulePreference"
-              value={formData.schedulePreference}
-              onChange={handleChange}
-            >
-              <Stack spacing={0.5}>
-                <FormControlLabel
-                  value="same_time_within_hour"
-                  control={<Radio />}
-                  label="Prefer siblings at the same time"
-                />
-                <Typography variant="body1" color="text.secondary">
-                  We will try to schedule your children to be at the same time.
-                </Typography>
-              </Stack>
-              <Stack spacing={0.5}>
-                <FormControlLabel
-                  value="same_day"
-                  control={<Radio />}
-                  label="Prefer siblings on the same day (+- 1 hour)"
-                />
-                <Typography variant="body1" color="text.secondary">
-                  We will try to schedule your children within 1 hour of each
-                  other.
-                </Typography>
-              </Stack>
-              <Stack spacing={0.5}>
-                <FormControlLabel
-                  value="no_preference"
-                  control={<Radio />}
-                  label="No preference"
-                />
-                <Typography variant="body1" color="text.secondary">
-                  We will schedule your students based on the best
-                  student-tutor match available within the time you provided.
-                </Typography>
-              </Stack>
-            </RadioGroup>
-          </Stack>
-        </Paper>
+        <FamilySchedulingPreference
+          formData={formData}
+          setFormData={setFormData}
+        />
       </Stack>
 
       <Stack spacing={2}>

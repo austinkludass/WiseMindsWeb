@@ -72,6 +72,7 @@ const StudentAcademicInfo = ({
   subjects,
   setSubjects,
   allowTutoringToggle = false,
+  showTutorPreferences = true,
 }) => {
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
@@ -83,6 +84,24 @@ const StudentAcademicInfo = ({
   const [tutorOptions, setTutorOptions] = useState([]);
   const [loadingTutors, setLoadingTutors] = useState(true);
   const subjectList = Array.isArray(subjects) ? subjects : [];
+  const yearLevelOptions = [
+    "Pre-Kindergarten",
+    "Kindergarten",
+    "Year 1",
+    "Year 2",
+    "Year 3",
+    "Year 4",
+    "Year 5",
+    "Year 6",
+    "Year 7",
+    "Year 8",
+    "Year 9",
+    "Year 10",
+    "Year 11",
+    "Year 12",
+    "Tertiary",
+    "Other",
+  ];
 
   useEffect(() => {
     let isMounted = true;
@@ -191,6 +210,14 @@ const StudentAcademicInfo = ({
   useEffect(() => {
     let isMounted = true;
 
+    if (!showTutorPreferences) {
+      setTutorOptions([]);
+      setLoadingTutors(false);
+      return () => {
+        isMounted = false;
+      };
+    }
+
     const fetchTutors = async () => {
       try {
         const tutorSnap = await getDocs(collection(db, "tutors"));
@@ -218,7 +245,7 @@ const StudentAcademicInfo = ({
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [showTutorPreferences]);
 
   const handleInputChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -227,7 +254,7 @@ const StudentAcademicInfo = ({
   const handleSubjectChange = (index, field, value) => {
     const newSubjects = [...subjectList];
     const updated = { ...newSubjects[index], [field]: value };
-    if (field === "selected" && !value) {
+    if (showTutorPreferences && field === "selected" && !value) {
       updated.preferredTutorIds = [];
       updated.blockedTutorIds = [];
     }
@@ -280,25 +307,6 @@ const StudentAcademicInfo = ({
     setSubjects(nextSubjects);
   };
 
-  const yearLevelOptions = [
-    "Pre-Kindergarten",
-    "Kindergarten",
-    "Year 1",
-    "Year 2",
-    "Year 3",
-    "Year 4",
-    "Year 5",
-    "Year 6",
-    "Year 7",
-    "Year 8",
-    "Year 9",
-    "Year 10",
-    "Year 11",
-    "Year 12",
-    "Tertiary",
-    "Other",
-  ];
-
   const availableSubjectOptions = selectedCurriculumId
     ? subjectOptions.filter(
         (subject) => subject.curriculumId === selectedCurriculumId
@@ -325,8 +333,9 @@ const StudentAcademicInfo = ({
     const newSubject = {
       name: "",
       hours: "",
-      preferredTutorIds: [],
-      blockedTutorIds: [],
+      ...(showTutorPreferences
+        ? { preferredTutorIds: [], blockedTutorIds: [] }
+        : {}),
       ...(allowTutoringToggle ? { selected: false } : {}),
     };
     setSubjects([...subjectList, newSubject]);
@@ -412,14 +421,12 @@ const StudentAcademicInfo = ({
           )}
           <Box sx={{ mb: 2 }}>
           {subjectList.map((subject, index) => {
-            const preferredTutorIds = getTutorIdsForSubject(
-              subject,
-              "preferredTutorIds"
-            );
-            const blockedTutorIds = getTutorIdsForSubject(
-              subject,
-              "blockedTutorIds"
-            );
+            const preferredTutorIds = showTutorPreferences
+              ? getTutorIdsForSubject(subject, "preferredTutorIds")
+              : [];
+            const blockedTutorIds = showTutorPreferences
+              ? getTutorIdsForSubject(subject, "blockedTutorIds")
+              : [];
             const overlapTutorIds = preferredTutorIds.filter((id) =>
               blockedTutorIds.includes(id)
             );
@@ -478,18 +485,21 @@ const StudentAcademicInfo = ({
                           ? subjectList[index].selected
                           : false
                         : subjectList[index]?.selected;
-                      const preferredTutorIds = normalizeTutorIds(
-                        existing.preferredTutorIds || existing.preferredTutors
-                      );
-                      const blockedTutorIds = normalizeTutorIds(
-                        existing.blockedTutorIds || existing.blockedTutors
-                      );
                       updatedSubjects[index] = {
                         id: newValue?.id || "",
                         hours: subjectList[index]?.hours || "",
                         ...(allowTutoringToggle ? { selected } : {}),
-                        preferredTutorIds,
-                        blockedTutorIds,
+                        ...(showTutorPreferences
+                          ? {
+                              preferredTutorIds: normalizeTutorIds(
+                                existing.preferredTutorIds ||
+                                  existing.preferredTutors
+                              ),
+                              blockedTutorIds: normalizeTutorIds(
+                                existing.blockedTutorIds || existing.blockedTutors
+                              ),
+                            }
+                          : {}),
                       };
                       setSubjects(updatedSubjects);
                     }}
@@ -551,7 +561,8 @@ const StudentAcademicInfo = ({
                     <DeleteIcon />
                   </IconButton>
                 </Box>
-                {allowTutoringToggle &&
+                {showTutorPreferences &&
+                  allowTutoringToggle &&
                   (Boolean(subject.selected) ||
                     preferredTutorIds.length > 0 ||
                     blockedTutorIds.length > 0) && (

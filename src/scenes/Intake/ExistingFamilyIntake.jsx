@@ -10,8 +10,11 @@ import AvailabilityFormatter from "../../utils/AvailabilityFormatter";
 import {
   createChild,
   createChildTouched,
+  defaultFamilyData,
   formatDateValue,
+  getSchedulePreferenceFromFamily,
   hasAvailability,
+  mapSchedulePreference,
   normalizeTutorIds,
   validateAvailability,
 } from "./intakeUtils";
@@ -178,6 +181,7 @@ const ExistingFamilyIntake = () => {
   const [familyForm, setFamilyForm] = useState({
     parentName: "",
     parentEmail: "",
+    schedulePreference: "",
   });
   const [children, setChildren] = useState([createChild()]);
   const [childrenTouched, setChildrenTouched] = useState([
@@ -228,6 +232,10 @@ const ExistingFamilyIntake = () => {
         if (!isMounted) return;
 
         setFamilySummary({ ...familyData, id: familyId });
+        const schedulePreference =
+          getSchedulePreferenceFromFamily(familyData) ||
+          defaultFamilyData.schedulePreference;
+
         setFamilyForm((prev) => {
           const next = { ...prev };
           if (!prev.parentName.trim()) {
@@ -235,6 +243,9 @@ const ExistingFamilyIntake = () => {
           }
           if (!prev.parentEmail.trim()) {
             next.parentEmail = familyData.parentEmail || "";
+          }
+          if (!prev.schedulePreference) {
+            next.schedulePreference = schedulePreference;
           }
           return next;
         });
@@ -396,6 +407,8 @@ const ExistingFamilyIntake = () => {
   }, [familyId]);
 
   const buildSubmissionPayload = () => {
+    const schedulePreference =
+      familyForm.schedulePreference || defaultFamilyData.schedulePreference;
     return {
       family: {
         familyId: familyId || "",
@@ -403,6 +416,8 @@ const ExistingFamilyIntake = () => {
         parentLastName: familyLastName,
         parentEmail: resolvedParentEmail,
         parentPhone: familySummary?.parentPhone || "",
+        schedulePreference,
+        familySchedulingPreferences: mapSchedulePreference(schedulePreference),
       },
       children: children.map((child) => ({
         studentId: child.studentId || "",
@@ -559,14 +574,25 @@ const ExistingFamilyIntake = () => {
   }
 
   const titleText = familyLastName
-    ? `Exisitng family intake for ${familyLastName} family`
-    : "Exisitng family intake";
+    ? `Existing intake for ${familyLastName} family`
+    : "Existing family intake";
 
   return (
     <IntakeLayout
       title={titleText}
       introTitle={familyLastName ? `${familyLastName} Family` : "Existing Family"}
-      introBody="Welcome back to Wise Minds for 2026! We're excited to have you. Please fill in this form with all the details about what you're requesting that your family receives tutoring in for the coming year (semester? year?). Please pay careful attention to the year level, which you should update to reflect the year for your children in 2026."
+      introBody={
+        <>
+          Welcome back to Wise Minds for 2026! We're excited to have you.
+          <br />
+          <br />
+          Please fill in this form with all the details about what you're
+          requesting that your family receives tutoring in for the coming
+          semester. Please pay careful attention to the{" "}
+          <strong>year level</strong>, which you should update to reflect the
+          year for your children in 2026.
+        </>
+      }
       steps={steps}
       currentStep={currentStep}
       errors={errors}

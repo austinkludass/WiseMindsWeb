@@ -14,7 +14,7 @@ import {
   defaultFamilyData,
   formatDateValue,
   hasAvailability,
-  normalizeTutorIds,
+  mapSchedulePreference,
   validateAvailability,
 } from "./intakeUtils";
 
@@ -22,22 +22,24 @@ import {
  * Query parameter support for pre-filling the intake form.
  *
  * Family/guardian:
- * - parentName | guardianName | familyName | primaryName
- * - parentFirstName | guardianFirstName | familyFirst | familyFirstName | primaryFirstName
- * - parentLastName | guardianLastName | familyLast | familyLastName | primaryLastName
- * - parentEmail | guardianEmail | familyEmail | email
- * - parentPhone | guardianPhone | familyPhone | phone
- * - parentAddress | guardianAddress | familyAddress | address
+ * - primaryGuardianName
+ * - primaryGuardianEmail
+ * - primaryGuardianPhone
+ * - primaryGuardianAddress
+ * - secondaryGuardianName
+ * - secondaryGuardianEmail
+ * - secondaryGuardianPhone
+ * - secondaryGuardianAddress
  *
  * Child (first entry is used for a single child unless childNames is supplied):
  * - childName | studentName (full name)
- * - childNames | children (list, separated by commas, semicolons, or pipes)
- * - childFirstName | studentFirstName | firstName
- * - childMiddleName | studentMiddleName | middleName
- * - childLastName | studentLastName | lastName
+ * - childNames (list, separated by commas, semicolons, or pipes)
+ * - childFirstName
+ * - childMiddleName
+ * - childLastName
  *
  * Hidden location:
- * - homeLocation | location | locationId | location_id | preferredLocation
+ * - homeLocation
  */
 /**
  * Intake submission payload contract (intakeSubmissions):
@@ -112,54 +114,15 @@ const ParentIntake = () => {
     if (!search) return;
     const params = new URLSearchParams(search);
 
-    const parentNameRaw = getParamValue(params, [
-      "parentName",
-      "guardianName",
-      "familyName",
-      "primaryName",
-    ]);
-    const parentFirst = getParamValue(params, [
-      "parentFirstName",
-      "guardianFirstName",
-      "familyFirst",
-      "familyFirstName",
-      "primaryFirstName",
-    ]);
-    const parentLast = getParamValue(params, [
-      "parentLastName",
-      "guardianLastName",
-      "familyLast",
-      "familyLastName",
-      "primaryLastName",
-    ]);
-    const parentName =
-      parentNameRaw || [parentFirst, parentLast].filter(Boolean).join(" ");
-
-    const familyEmail = getParamValue(params, [
-      "parentEmail",
-      "guardianEmail",
-      "familyEmail",
-      "email",
-    ]);
-    const familyPhone = getParamValue(params, [
-      "parentPhone",
-      "guardianPhone",
-      "familyPhone",
-      "phone",
-    ]);
-    const familyAddress = getParamValue(params, [
-      "parentAddress",
-      "guardianAddress",
-      "familyAddress",
-      "address",
-    ]);
-    const homeLocation = getParamValue(params, [
-      "homeLocation",
-      "location",
-      "locationId",
-      "location_id",
-      "preferredLocation",
-    ]);
+    const parentNameRaw = getParamValue(params, ["primaryGuardianName"]);
+    const parentEmail = getParamValue(params, ["primaryGuardianEmail"]);
+    const parentPhone = getParamValue(params, ["primaryGuardianPhone"]);
+    const parentAddress = getParamValue(params, ["primaryGuardianAddress"]);
+    const secondaryName = getParamValue(params, ["secondaryGuardianName"]);
+    const secondaryEmail = getParamValue(params, ["secondaryGuardianEmail"]);
+    const secondaryPhone = getParamValue(params, ["secondaryGuardianPhone"]);
+    const secondaryAddress = getParamValue(params, ["secondaryGuardianAddress"]);
+    const homeLocation = getParamValue(params, ["homeLocation"]);
 
     const childNamesParam = getParamValue(params, ["childNames", "children"]);
     const childNames = parseChildNamesList(childNamesParam);
@@ -194,10 +157,14 @@ const ParentIntake = () => {
         }
       };
 
-      setIfEmpty("parentName", parentName);
-      setIfEmpty("familyEmail", familyEmail);
-      setIfEmpty("familyPhone", familyPhone);
-      setIfEmpty("familyAddress", familyAddress);
+      setIfEmpty("parentName", parentNameRaw);
+      setIfEmpty("familyEmail", parentEmail);
+      setIfEmpty("familyPhone", parentPhone);
+      setIfEmpty("familyAddress", parentAddress);
+      setIfEmpty("secondaryContactName", secondaryName);
+      setIfEmpty("secondaryContactEmail", secondaryEmail);
+      setIfEmpty("secondaryContactPhone", secondaryPhone);
+      setIfEmpty("secondaryContactAddress", secondaryAddress);
 
       if (homeLocation && next.homeLocation !== homeLocation) {
         next.homeLocation = homeLocation;
@@ -206,9 +173,14 @@ const ParentIntake = () => {
       return next;
     });
 
-    const listChildren = childNames.map((name) =>
-      createChild(splitFullName(name))
-    );
+    const listChildren = childNames.map((name) => {
+      const parsed = splitFullName(name);
+      return createChild({
+        firstName: parsed.first,
+        middleName: parsed.middle,
+        lastName: parsed.last,
+      });
+    });
 
     const primaryChild = createChild({
       firstName: childFirst || splitChild?.first || "",
@@ -250,13 +222,15 @@ const ParentIntake = () => {
   }, [search]);
 
   const buildSubmissionPayload = () => {
+    const schedulePreference = familyData.schedulePreference;
     return {
       family: {
         parentName: familyData.parentName,
         parentEmail: familyData.familyEmail,
         parentPhone: familyData.familyPhone,
         parentAddress: familyData.familyAddress,
-        schedulePreference: familyData.schedulePreference,
+        schedulePreference,
+        familySchedulingPreferences: mapSchedulePreference(schedulePreference),
         secondaryName: familyData.secondaryContactName,
         secondaryEmail: familyData.secondaryContactEmail,
         secondaryPhone: familyData.secondaryContactPhone,
@@ -303,12 +277,6 @@ const ParentIntake = () => {
             id: subject.id,
             hours: subject.hours ? String(subject.hours) : "0",
             selected: Boolean(subject.selected),
-            preferredTutorIds: normalizeTutorIds(
-              subject.preferredTutorIds || subject.preferredTutors
-            ),
-            blockedTutorIds: normalizeTutorIds(
-              subject.blockedTutorIds || subject.blockedTutors
-            ),
           })),
       })),
       meta: {
@@ -430,12 +398,6 @@ const ParentIntake = () => {
     }
   };
 
-  const handleStartNew = () => {
-    setSubmitted(false);
-    setCurrentStep(0);
-    setErrors([]);
-  };
-
   if (submitted) {
     return (
       <Box sx={{ px: { xs: 2, md: 6 }, py: { xs: 4, md: 8 } }}>
@@ -444,12 +406,8 @@ const ParentIntake = () => {
             Thanks! Your submission is in.
           </Typography>
           <Typography variant="body1" color="text.secondary">
-            We'll review the details and get back to you shortly to confirm the
-            next steps.
+            Wise Minds will be in touch shortly to confirm the next steps.
           </Typography>
-          <Button variant="contained" onClick={handleStartNew}>
-            Submit another family
-          </Button>
         </Stack>
       </Box>
     );
@@ -477,6 +435,7 @@ const ParentIntake = () => {
           setChildrenTouched={setChildrenTouched}
           createChild={createChild}
           createChildTouched={createChildTouched}
+          showTutorPreferences={false}
         />
       )}
       {currentStep === 2 && (

@@ -36,6 +36,7 @@ const ChildrenStep = ({
   allowRemoveLastChild = false,
   readOnlyIdentity = false,
   allowAddChild = true,
+  showTutorPreferences = true,
 }) => {
   const [expandedIndex, setExpandedIndex] = useState(null);
 
@@ -163,6 +164,7 @@ const ChildrenStep = ({
                 setFormData={setChildFormData(index)}
                 subjects={child.subjects}
                 setSubjects={setChildSubjects(index)}
+                showTutorPreferences={showTutorPreferences}
               />
 
               {showTrialStep && (
