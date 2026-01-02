@@ -18,9 +18,11 @@ import FamilyPage from "./scenes/Student/FamilyPage";
 import InvoicesPage from "./scenes/Invoicing/InvoicesPage";
 import PayrollPage from "./scenes/Payroll/PayrollPage";
 import AdditionalHoursPage from "./scenes/Payroll/AdditionalHoursPage";
+import ParentIntake from "./scenes/Intake/ParentIntake";
+import ExistingFamilyIntake from "./scenes/Intake/ExistingFamilyIntake";
 import ProtectedRoute from "./components/Global/ProtectedRoute";
 import { ROLES } from "./utils/permissions";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { CssBaseline, ThemeProvider } from "@mui/material";
 import { ColorModeContext, useMode } from "./theme";
 import { LocalizationProvider } from "@mui/x-date-pickers";
@@ -32,6 +34,23 @@ function App() {
   const [theme, colorMode] = useMode();
   const { currentUser } = useContext(AuthContext);
 
+  const AppShell = ({ children }) => {
+    const location = useLocation();
+    const hideSidebar =
+      location.pathname.startsWith("/new-family") ||
+      location.pathname.startsWith("/existing-family");
+
+    return (
+      <div className="app">
+        {!hideSidebar && <Sidebar />}
+        <main className="content">
+          {!hideSidebar && <Topbar />}
+          {children}
+        </main>
+      </div>
+    );
+  };
+
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="en-gb">
       <ColorModeContext.Provider value={colorMode}>
@@ -39,54 +58,64 @@ function App() {
           <CssBaseline />
           <BrowserRouter>
             {currentUser ? (
-              <div className="app">
-                <Sidebar />
-                <main className="content">
-                  <Topbar />
-                  <Routes>
-                    <Route path="/" element={<Dashboard />} />
-                    <Route path="/tutors" element={<TutorList />} />
-                    <Route path="/newtutor" element={<NewTutor />} />
-                    <Route path="/tutor/:tutorId" element={<TutorProfile />} />
-                    <Route path="/students" element={<StudentList />} />
-                    <Route path="/student/:studentId" element={<StudentProfile />} />
-                    <Route path="/newstudent" element={<NewStudent />} />
-                    <Route path="/families" element={<FamilyPage />} />
-                    <Route path="/subjects" element={<SubjectList />} />
-                    <Route path="/tutoringbays" element={<TutoringBayList />} />
-                    <Route path="/lessons" element={<LessonList />} />
-                    <Route path="/settings" element={<Settings />} />
-                    <Route path="/reportbug" element={<ReportBug />} />
-                    <Route path="/calendar" element={<CalendarPage />} />
-                    <Route
-                      path="/invoices"
-                      element={
-                        <ProtectedRoute
-                          minimumRole={ROLES.HEAD_TUTOR}
-                          fallbackMessage="You need to be a Head Tutor or above to access invoices."
-                        >
-                          <InvoicesPage />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/payroll"
-                      element={
-                        <ProtectedRoute
-                          minimumRole={ROLES.HEAD_TUTOR}
-                          fallbackMessage="You need to be a Head Tutor or above to access payroll."
-                        >
-                          <PayrollPage />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route path="/additionalhours" element={<AdditionalHoursPage />} />
-                    <Route path="*" element={<Navigate to="/" />} />
-                  </Routes>
-                </main>
-              </div>
+              <AppShell>
+                <Routes>
+                  <Route path="/" element={<Dashboard />} />
+                  <Route path="/tutors" element={<TutorList />} />
+                  <Route path="/newtutor" element={<NewTutor />} />
+                  <Route path="/tutor/:tutorId" element={<TutorProfile />} />
+                  <Route path="/students" element={<StudentList />} />
+                  <Route path="/student/:studentId" element={<StudentProfile />} />
+                  <Route path="/newstudent" element={<NewStudent />} />
+                  <Route path="/families" element={<FamilyPage />} />
+                  <Route path="/subjects" element={<SubjectList />} />
+                  <Route path="/tutoringbays" element={<TutoringBayList />} />
+                  <Route path="/lessons" element={<LessonList />} />
+                  <Route path="/settings" element={<Settings />} />
+                  <Route path="/reportbug" element={<ReportBug />} />
+                  <Route path="/calendar" element={<CalendarPage />} />
+                  <Route
+                    path="/invoices"
+                    element={
+                      <ProtectedRoute
+                        minimumRole={ROLES.HEAD_TUTOR}
+                        fallbackMessage="You need to be a Head Tutor or above to access invoices."
+                      >
+                        <InvoicesPage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/payroll"
+                    element={
+                      <ProtectedRoute
+                        minimumRole={ROLES.HEAD_TUTOR}
+                        fallbackMessage="You need to be a Head Tutor or above to access payroll."
+                      >
+                        <PayrollPage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route path="/new-family" element={<ParentIntake />} />
+                  <Route
+                    path="/existing-family/:familyId"
+                    element={<ExistingFamilyIntake />}
+                  />
+                  <Route path="/existing-family" element={<ExistingFamilyIntake />} />
+                  <Route path="/additionalhours" element={<AdditionalHoursPage />} />
+                  {/* <Route path="/intake" element={<ParentIntake />} /> */}
+                  <Route path="*" element={<Navigate to="/" />} />
+                </Routes>
+              </AppShell>
             ) : (
               <Routes>
+                <Route path="/" element={<Login />} />
+                <Route path="/new-family" element={<ParentIntake />} />
+                <Route
+                  path="/existing-family/:familyId"
+                  element={<ExistingFamilyIntake />}
+                />
+                <Route path="/existing-family" element={<ExistingFamilyIntake />} />
                 <Route path="*" element={<Login />} />
               </Routes>
             )}

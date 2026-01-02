@@ -9,9 +9,19 @@ import {
 } from "@mui/material";
 import { tokens } from "../../theme";
 
-const StudentAdditionalInfo = ({ formData, setFormData, isEdit }) => {
+const StudentAdditionalInfo = ({
+  formData,
+  setFormData,
+  isEdit,
+  includeHowUserHeard = true,
+}) => {
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
+  const maxHoursValue = formData.maxHoursPerDay;
+  const maxHoursDisplay =
+    maxHoursValue === "" || maxHoursValue === null || maxHoursValue === undefined
+      ? "N/A"
+      : maxHoursValue;
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -48,11 +58,21 @@ const StudentAdditionalInfo = ({ formData, setFormData, isEdit }) => {
             label="Questions regarding tutoring of this child"
           />
           <TextField
-            name="howUserHeard"
-            value={formData.howUserHeard}
+            name="maxHoursPerDay"
+            value={formData.maxHoursPerDay}
             onChange={handleChange}
-            label="How did the person hear about Wise Minds Canberra?"
+            label="Max tutoring hours per day (optional)"
+            type="number"
+            inputProps={{ min: 0, step: 0.5 }}
           />
+          {includeHowUserHeard && (
+            <TextField
+              name="howUserHeard"
+              value={formData.howUserHeard}
+              onChange={handleChange}
+              label="How did the person hear about Wise Minds Canberra?"
+            />
+          )}
         </>
       ) : (
         <>
@@ -102,12 +122,27 @@ const StudentAdditionalInfo = ({ formData, setFormData, isEdit }) => {
               fontWeight="bold"
               sx={{ mb: "5px" }}
             >
-              How did the person hear about us?
+              Max tutoring hours per day
             </Typography>
             <Typography variant="h6" color={colors.grey[100]}>
-              {formData.howUserHeard}
+              {maxHoursDisplay}
             </Typography>
           </div>
+          {includeHowUserHeard && (
+            <div style={{ display: "flex", gap: "10px" }}>
+              <Typography
+                variant="h5"
+                color={colors.orangeAccent[400]}
+                fontWeight="bold"
+                sx={{ mb: "5px" }}
+              >
+                How did the person hear about us?
+              </Typography>
+              <Typography variant="h6" color={colors.grey[100]}>
+                {formData.howUserHeard}
+              </Typography>
+            </div>
+          )}
         </>
       )}
     </Stack>
