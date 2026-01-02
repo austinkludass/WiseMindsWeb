@@ -10,6 +10,7 @@ import PeopleAltOutlinedIcon from "@mui/icons-material/PeopleAltOutlined";
 import MenuBookOutlinedIcon from "@mui/icons-material/MenuBookOutlined";
 import HomeOutlinedIcon from "@mui/icons-material/HomeOutlined";
 import MenuOutlinedIcon from "@mui/icons-material/MenuOutlined";
+import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import OwlFacts from "../../components/Global/OwlFacts";
 import "react-pro-sidebar/dist/css/styles.css";
 
@@ -231,6 +232,24 @@ const Sidebar = () => {
                 <Item
                   title="Wise Courses"
                   to="/wisecourses"
+                  selected={selected}
+                  setSelected={setSelected}
+                />
+              </SubMenu>
+              <SubMenu
+                title="New forms 2026"
+                icon={<DescriptionOutlinedIcon />}
+                style={{ color: colors.grey[100] }}
+              >
+                <Item
+                  title="New Family"
+                  to="/new-family"
+                  selected={selected}
+                  setSelected={setSelected}
+                />
+                <Item
+                  title="Existing Family"
+                  to="/existing-family"
                   selected={selected}
                   setSelected={setSelected}
                 />
