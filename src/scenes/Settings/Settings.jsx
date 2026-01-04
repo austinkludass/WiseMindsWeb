@@ -7,10 +7,11 @@ import IntegrationsTab from "../../components/Settings/IntegrationsTab";
 import ProfileTab from "../../components/Settings/ProfileTab";
 import SettingsSidebar from "../../components/Settings/SettingsSidebar";
 import MobileSettingsTabs from "../../components/Settings/MobileSettingsTabs";
+import DataTab from "../../components/Settings/DataTab";
 
 const Settings = () => {
   const theme = useTheme();
-  const { canAccessIntegrations, canEditPermissions, loading } =
+  const { isAdmin, canAccessIntegrations, canEditPermissions, loading } =
     usePermissions();
 
   const getAvailableTabs = () => {
@@ -26,6 +27,10 @@ const Settings = () => {
 
     tabs.push("general");
     tabs.push("notifications");
+
+    if (isAdmin) {
+      tabs.push("data");
+    }
 
     return tabs;
   };
@@ -51,6 +56,8 @@ const Settings = () => {
         return <Box></Box>;
       case "notifications":
         return <Box></Box>;
+      case "data":
+        return isAdmin ? <DataTab /> : null;
       default:
         return null;
     }

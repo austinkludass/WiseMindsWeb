@@ -6,6 +6,7 @@ const tabLabels = {
   integrations: "Integrations",
   general: "General",
   notifications: "Notifications",
+  data: "Data",
 };
 
 const MobileSettingsTabs = ({ selected, onSelect, availableTabs = [] }) => {
