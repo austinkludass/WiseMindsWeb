@@ -11,6 +11,7 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import PersonIcon from "@mui/icons-material/Person";
 import IntegrationInstructionsIcon from "@mui/icons-material/IntegrationInstructions";
+import StorageIcon from "@mui/icons-material/Storage";
 
 const allTabs = [
   { key: "profile", label: "Profile", icon: <PersonIcon /> },
@@ -22,6 +23,7 @@ const allTabs = [
   },
   { key: "general", label: "General", icon: <SettingsIcon /> },
   { key: "notifications", label: "Notifications", icon: <NotificationsIcon /> },
+  { key: "data", label: "Data", icon: <StorageIcon /> },
 ];
 
 const SettingsSidebar = ({ selected, onSelect, availableTabs = [] }) => {
