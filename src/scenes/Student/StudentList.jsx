@@ -19,7 +19,10 @@ import {
   DialogContentText,
   DialogActions,
   Chip,
+  TextField,
+  InputAdornment,
 } from "@mui/material";
+import { Search as SearchIcon } from "@mui/icons-material";
 import { tokens } from "../../theme";
 import { useNavigate } from "react-router-dom";
 import {
@@ -84,6 +87,7 @@ const StudentList = () => {
   const queryClient = useQueryClient();
 
   const [viewMode, setViewMode] = useState("active");
+  const [searchQuery, setSearchQuery] = useState("");
   const [contextMenu, setContextMenu] = useState(null);
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [confirmDialog, setConfirmDialog] = useState({
@@ -224,13 +228,28 @@ const StudentList = () => {
   const handleViewModeChange = (event, newMode) => {
     if (newMode !== null) {
       setViewMode(newMode);
+      setSearchQuery("");
     }
   };
 
-  const rows = viewMode === "active" ? activeStudents : archivedStudents;
+  const baseRows = viewMode === "active" ? activeStudents : archivedStudents;
   const isLoading =
     loadingLocations ||
     (viewMode === "active" ? loadingActive : loadingArchived);
+
+  const rows = baseRows
+    .filter((student) => {
+      if (!searchQuery.trim()) return true;
+      const fullName = `${student.firstName || ""} ${
+        student.lastName || ""
+      }`.toLowerCase();
+      return fullName.includes(searchQuery.toLowerCase().trim());
+    })
+    .sort((a, b) => {
+      const nameA = `${a.firstName || ""} ${a.lastName || ""}`.toLowerCase();
+      const nameB = `${b.firstName || ""} ${b.lastName || ""}`.toLowerCase();
+      return nameA.localeCompare(nameB);
+    });
 
   const columns = [
     {
@@ -270,7 +289,7 @@ const StudentList = () => {
           color="secondary"
           onClick={() => navigate(`/student/${params.row.id}`)}
           disabled={viewMode === "archived"}
-          sx={{ visibility: viewMode === "archived" ? "collapse" : "visible"}}
+          sx={{ visibility: viewMode === "archived" ? "collapse" : "visible" }}
         >
           <ArrowCircleRightIcon sx={{ width: 25, height: 25 }} />
         </IconButton>
@@ -321,6 +340,25 @@ const StudentList = () => {
               )}
             </ToggleButton>
           </ToggleButtonGroup>
+        </Box>
+
+        <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
+          <TextField
+            placeholder="Search students"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            size="small"
+            sx={{ mb: 2, maxWidth: 200 }}
+            slotProps={{
+              input: {
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon />
+                  </InputAdornment>
+                ),
+              },
+            }}
+          />
         </Box>
 
         <Paper
@@ -419,10 +457,7 @@ const StudentList = () => {
           >
             Cancel
           </Button>
-          <Button
-            onClick={handleConfirmAction}
-            variant="contained"
-          >
+          <Button onClick={handleConfirmAction} variant="contained">
             {confirmDialog.action === "archive" ? "Archive" : "Unarchive"}
           </Button>
         </DialogActions>

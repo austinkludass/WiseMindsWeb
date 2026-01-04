@@ -20,7 +20,10 @@ import {
   DialogContentText,
   DialogActions,
   Chip,
+  TextField,
+  InputAdornment,
 } from "@mui/material";
+import { Search as SearchIcon } from "@mui/icons-material";
 import { tokens } from "../../theme";
 import { useNavigate } from "react-router-dom";
 import {
@@ -84,6 +87,7 @@ const TutorList = () => {
   const { isHeadTutorOrAbove } = usePermissions();
 
   const [viewMode, setViewMode] = useState("active");
+  const [searchQuery, setSearchQuery] = useState("");
   const [contextMenu, setContextMenu] = useState(null);
   const [selectedTutor, setSelectedTutor] = useState(null);
   const [confirmDialog, setConfirmDialog] = useState({
@@ -216,11 +220,26 @@ const TutorList = () => {
   const handleViewModeChange = (event, newMode) => {
     if (newMode !== null) {
       setViewMode(newMode);
+      setSearchQuery("");
     }
   };
 
-  const rows = viewMode === "active" ? activeTutors : archivedTutors;
+  const baseRows = viewMode === "active" ? activeTutors : archivedTutors;
   const isLoading = viewMode === "active" ? loadingActive : loadingArchived;
+
+  const rows = baseRows
+    .filter((tutor) => {
+      if (!searchQuery.trim()) return true;
+      const fullName = `${tutor.firstName || ""} ${
+        tutor.lastName || ""
+      }`.toLowerCase();
+      return fullName.includes(searchQuery.toLowerCase().trim());
+    })
+    .sort((a, b) => {
+      const nameA = `${a.firstName || ""} ${a.lastName || ""}`.toLowerCase();
+      const nameB = `${b.firstName || ""} ${b.lastName || ""}`.toLowerCase();
+      return nameA.localeCompare(nameB);
+    });
 
   const columns = [
     {
@@ -325,6 +344,25 @@ const TutorList = () => {
               )}
             </ToggleButton>
           </ToggleButtonGroup>
+        </Box>
+
+        <Box sx={{ display: "flex", justifyContent: "flex-end"}}>
+        <TextField
+          placeholder="Search tutors"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          size="small"
+          sx={{ mb: 2, maxWidth: 200 }}
+          slotProps={{
+            input: {
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon />
+                </InputAdornment>
+              ),
+            },
+          }}
+        />
         </Box>
 
         <Paper
