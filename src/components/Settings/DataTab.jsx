@@ -26,6 +26,7 @@ import {
   Category as CategoryIcon,
   Warning as WarningIcon,
   CheckCircle as CheckCircleIcon,
+  People as PeopleIcon,
 } from "@mui/icons-material";
 import { collection, getDocs, doc, writeBatch } from "firebase/firestore";
 import { db } from "../../data/firebase";
@@ -51,6 +52,12 @@ const COLLECTIONS = [
     icon: <CategoryIcon />,
     description: "Subject groupings used for lesson categorisation",
   },
+  {
+    key: "families",
+    label: "Families",
+    icon: <PeopleIcon />,
+    description: "Families and their students",
+  }
 ];
 
 const DataTab = () => {
@@ -156,6 +163,7 @@ const DataTab = () => {
       students: ["firstName", "lastName"],
       lessons: ["startDateTime", "endDateTime", "tutorId"],
       subjectGroups: ["name", "subjectIds"],
+      families: ["parentEmail"],
     };
 
     const required = requiredFields[collectionKey] || [];
@@ -344,6 +352,9 @@ const DataTab = () => {
             <li>
               <strong>Subject Groups:</strong> Must include <code>name</code>{" "}
               and <code>subjectIds</code> (array)
+            </li>
+            <li>
+              <strong>Families:</strong> Must include <code>parentEmail</code>
             </li>
           </ul>
         </Typography>
