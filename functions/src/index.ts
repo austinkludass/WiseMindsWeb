@@ -562,6 +562,9 @@ export const api = onRequest(
       case "/curriculums":
         return sendCollection("curriculums", res);
 
+      case "/intakesubmissions":
+        return sendCollection("intakeSubmissions", res);
+
       /* ---------- READ AND WRITE LESSONS ---------- */
       case "/lessons":
         if (req.method === "GET") {

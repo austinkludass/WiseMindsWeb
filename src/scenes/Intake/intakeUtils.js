@@ -8,7 +8,7 @@ const defaultFamilyData = {
   secondaryContactPhone: "",
   secondaryContactAddress: "",
   secondaryContactSameAddress: true,
-  schedulePreference: "same_day",
+  schedulePreference: "no_preference",
   usePrimaryAsEmergency: false,
   emergencyFirst: "",
   emergencyLast: "",
@@ -38,7 +38,7 @@ const defaultSubjects = [
   {
     id: "",
     hours: "",
-    selected: false,
+    selected: true,
     preferredTutorIds: [],
     blockedTutorIds: [],
   },

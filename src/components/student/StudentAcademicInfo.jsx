@@ -38,6 +38,13 @@ const renderRow = (props) => {
   });
 };
 
+const OuterElementContext = React.createContext({});
+
+const OuterElementType = React.forwardRef((props, ref) => {
+  const outerProps = React.useContext(OuterElementContext);
+  return <ul {...props} {...outerProps} ref={ref} style={{ margin: 0, padding: 0 }} />;
+});
+
 const ListboxComponent = React.forwardRef(function ListboxComponent(
   props,
   ref
@@ -49,19 +56,20 @@ const ListboxComponent = React.forwardRef(function ListboxComponent(
   const height = Math.min(8, itemCount) * itemSize + 2 * 8;
 
   return (
-    <div ref={ref} {...other}>
-      <FixedSizeList
-        height={height}
-        itemCount={itemCount}
-        itemSize={itemSize}
-        itemData={itemData}
-        overscanCount={5}
-        outerElementType={React.forwardRef((props, ref) => (
-          <ul {...props} ref={ref} style={{ margin: 0, padding: 0 }} />
-        ))}
-      >
-        {renderRow}
-      </FixedSizeList>
+    <div ref={ref}>
+      <OuterElementContext.Provider value={other}>
+        <FixedSizeList
+          width="100%"
+          height={height}
+          itemCount={itemCount}
+          itemSize={itemSize}
+          itemData={itemData}
+          overscanCount={5}
+          outerElementType={OuterElementType}
+        >
+          {renderRow}
+        </FixedSizeList>
+      </OuterElementContext.Provider>
     </div>
   );
 });
@@ -381,7 +389,7 @@ const StudentAcademicInfo = ({
       ...(showTutorPreferences
         ? { preferredTutorIds: [], blockedTutorIds: [] }
         : {}),
-      ...(allowTutoringToggle ? { selected: false } : {}),
+      ...(allowTutoringToggle ? { selected: true } : {}),
     };
     setShowUncommonByIndex((prev) => [...prev, false]);
     setSubjects([...subjectList, newSubject]);
