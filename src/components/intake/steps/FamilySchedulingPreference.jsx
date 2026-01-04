@@ -35,6 +35,16 @@ const FamilySchedulingPreference = ({ formData, setFormData }) => {
         >
           <Stack spacing={0.5}>
             <FormControlLabel
+              value="same_time_within_hour"
+              control={<Radio />}
+              label="Prefer same-time scheduling"
+            />
+            <Typography variant="body1" color="text.secondary">
+              Schedule siblings as close together as possible (overlapping so siblings aren't waiting) when possible (difficult for us to achieve)
+            </Typography>
+          </Stack>
+          <Stack spacing={0.5}>
+            <FormControlLabel
               value="same_day"
               control={<Radio />}
               label="Prefer same day scheduling"
@@ -51,16 +61,6 @@ const FamilySchedulingPreference = ({ formData, setFormData }) => {
             />
             <Typography variant="body1" color="text.secondary">
               Schedule siblings in consecutive lessons (to make pickup/dropoff easier) when possible
-            </Typography>
-          </Stack>
-          <Stack spacing={0.5}>
-            <FormControlLabel
-              value="same_time_within_hour"
-              control={<Radio />}
-              label="Prefer same-time scheduling"
-            />
-            <Typography variant="body1" color="text.secondary">
-              Schedule siblings as close together as possible (overlapping so siblings aren't waiting) when possible (difficult for us to achieve)
             </Typography>
           </Stack>
           <Stack spacing={0.5}>

@@ -29,10 +29,6 @@ const StudentBasicsStep = ({
           <Typography variant="body1">
             {fullName || "Unknown student"}
           </Typography>
-          <Typography variant="subtitle2" color="text.secondary">
-            Date of Birth
-          </Typography>
-          <Typography variant="body1">{dobLabel}</Typography>
         </Stack>
       )}
       <StudentGeneralInfo
@@ -43,7 +39,7 @@ const StudentBasicsStep = ({
         isEdit={true}
         hideFields={
           readOnlyIdentity
-            ? ["firstName", "middleName", "lastName", "dateOfBirth"]
+            ? ["firstName", "middleName", "lastName"]
             : []
         }
       />

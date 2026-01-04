@@ -485,6 +485,8 @@ const ExistingFamilyIntake = () => {
         nextErrors.push(`${label}: last name is required.`);
       if (!child.dateOfBirth)
         nextErrors.push(`${label}: date of birth is required.`);
+      if (!child.allergiesNonAna.trim())
+        nextErrors.push(`${label}: Allergies (Non-Anaphylactic) is required.`);
       if (!child.school.trim())
         nextErrors.push(`${label}: school is required.`);
       if (!child.yearLevel.trim())
