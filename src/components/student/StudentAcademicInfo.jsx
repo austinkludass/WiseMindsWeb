@@ -344,11 +344,13 @@ const StudentAcademicInfo = ({
     setSubjects(nextSubjects);
   };
 
+  const isCurriculumRequired = true;
+  const isSubjectSelectionDisabled = isCurriculumRequired && !selectedCurriculumId;
   const availableSubjectOptions = selectedCurriculumId
     ? subjectOptions.filter(
         (subject) => subject.curriculumId === selectedCurriculumId
       )
-    : subjectOptions;
+    : [];
 
   useEffect(() => {
     if (!selectedCurriculumId || subjectOptions.length === 0) return;
@@ -440,15 +442,23 @@ const StudentAcademicInfo = ({
               </MenuItem>
             ))}
           </TextField>
-          <Typography variant="body1" gutterBottom sx={{ mb: 2 }}>
+          <Typography variant="body1" gutterBottom sx={{ mb: 2, fontSize: "1.05rem" }}>
             {allowTutoringToggle
-              ? "Please list all of the subjects that the student is currently taking at school and tick what subjects you would like tutoring for. Our sessions run for 1 hour each per subject."
+              ? (
+                <>
+                  <strong>Please select a curriculum before adding subjects.</strong>{" "}
+                  Please list all of the subjects that the student is currently
+                  taking at school and tick what subjects you would like
+                  tutoring for. Our sessions run for 1 hour each per subject.
+                </>
+              )
               : "Please list all subjects being undertaken and add the desired tutoring hours:"}
           </Typography>
           <Button
             variant="contained"
             startIcon={<AddIcon />}
             onClick={addSubject}
+            disabled={isSubjectSelectionDisabled}
           >
             Add Subject
           </Button>
@@ -514,6 +524,7 @@ const StudentAcademicInfo = ({
                     loading={loadingSubjects}
                     sx={{ flex: 2, minWidth: 240 }}
                     disableListWrap
+                    disabled={isSubjectSelectionDisabled}
                     ListboxComponent={ListboxComponent}
                     options={availableSubjectOptions}
                     filterOptions={(options, { inputValue }) => {
@@ -661,7 +672,11 @@ const StudentAcademicInfo = ({
                         size="small"
                         label="Subject name"
                         sx={{ flex: 2 }}
-                        helperText={uncommonHelperText}
+                        helperText={
+                          isSubjectSelectionDisabled
+                            ? "Select a curriculum to choose subjects."
+                            : uncommonHelperText
+                        }
                         FormHelperTextProps={{ sx: { m: 0, mt: 0.5 } }}
                         InputProps={{
                           ...params.InputProps,

@@ -105,7 +105,11 @@ const FamilyEmergencyStep = ({ formData, setFormData }) => {
         <Typography variant="h5" fontWeight="bold">
           Parent or Guardian Details
         </Typography>
-        <Typography variant="body1" color="text.secondary">
+        <Typography
+          variant="body1"
+          color="text.secondary"
+          sx={{ fontSize: "1.05rem" }}
+        >
           The Primary guardian is the main point of contact for a family. They
           will receive reports, invoices and other communications directly from
           us.
@@ -153,10 +157,14 @@ const FamilyEmergencyStep = ({ formData, setFormData }) => {
           </Grid>
         </Grid>
 
-        <Typography variant="subtitle1" color="text.secondary">
+        <Typography variant="h5" fontWeight="bold">
           Optional secondary contact
         </Typography>
-        <Typography variant="body1" color="text.secondary">
+        <Typography
+          variant="body1"
+          color="text.secondary"
+          sx={{ fontSize: "1.05rem" }}
+        >
           A secondary guardian will also receive a copy of student reports,
           invoices and email communications.
         </Typography>
