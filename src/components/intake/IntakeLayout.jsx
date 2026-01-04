@@ -47,7 +47,9 @@ const IntakeLayout = ({
             <Typography variant="h6" fontWeight="bold" gutterBottom>
               {introTitle}
             </Typography>
-            <Typography variant="body1">{introBody}</Typography>
+            <Typography variant="body1" sx={{ fontSize: "1.05rem" }}>
+              {introBody}
+            </Typography>
           </Paper>
         </Box>
 

@@ -17,6 +17,7 @@ import {
   Checkbox,
   FormControlLabel,
   MenuItem,
+  Chip,
 } from "@mui/material";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../../data/firebase";
@@ -65,6 +66,40 @@ const ListboxComponent = React.forwardRef(function ListboxComponent(
   );
 });
 
+const normalizeIsCommon = (value) => {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === "true") return true;
+    if (normalized === "false") return false;
+  }
+  if (typeof value === "number") return value !== 0;
+  return true;
+};
+
+const INCLUDE_UNCOMMON_OPTION_ID = "__include_uncommon__";
+
+const getSubjectLabel = (subject) => {
+  if (!subject) return "Unknown Subject";
+  if (subject.id === INCLUDE_UNCOMMON_OPTION_ID) return "Include uncommon subjects";
+  return subject.curriculumName
+    ? `${subject.name} (${subject.curriculumName})`
+    : subject.name;
+};
+
+const sortSubjectsByCommon = (options) => {
+  const common = [];
+  const uncommon = [];
+  options.forEach((option) => {
+    if (option.isCommon === false) {
+      uncommon.push(option);
+    } else {
+      common.push(option);
+    }
+  });
+  return [...common, ...uncommon];
+};
+
 const StudentAcademicInfo = ({
   formData,
   setFormData,
@@ -83,6 +118,7 @@ const StudentAcademicInfo = ({
   const [selectedCurriculumId, setSelectedCurriculumId] = useState("");
   const [tutorOptions, setTutorOptions] = useState([]);
   const [loadingTutors, setLoadingTutors] = useState(true);
+  const [showUncommonByIndex, setShowUncommonByIndex] = useState([]);
   const subjectList = Array.isArray(subjects) ? subjects : [];
   const yearLevelOptions = [
     "Pre-Kindergarten",
@@ -166,6 +202,7 @@ const StudentAcademicInfo = ({
           return {
             id: docSnap.id,
             name: data.name || data.subject || "Unknown",
+            isCommon: normalizeIsCommon(data.isCommon),
             curriculumId,
             curriculumName:
               data.cirriculumName ||
@@ -307,11 +344,13 @@ const StudentAcademicInfo = ({
     setSubjects(nextSubjects);
   };
 
+  const isCurriculumRequired = true;
+  const isSubjectSelectionDisabled = isCurriculumRequired && !selectedCurriculumId;
   const availableSubjectOptions = selectedCurriculumId
     ? subjectOptions.filter(
         (subject) => subject.curriculumId === selectedCurriculumId
       )
-    : subjectOptions;
+    : [];
 
   useEffect(() => {
     if (!selectedCurriculumId || subjectOptions.length === 0) return;
@@ -329,6 +368,12 @@ const StudentAcademicInfo = ({
     if (hasChanges) setSubjects(nextSubjects);
   }, [selectedCurriculumId, subjectOptions, subjectList, setSubjects]);
 
+  useEffect(() => {
+    setShowUncommonByIndex((prev) =>
+      subjectList.map((_, index) => prev[index] || false)
+    );
+  }, [subjectList.length]);
+
   const addSubject = () => {
     const newSubject = {
       name: "",
@@ -338,20 +383,19 @@ const StudentAcademicInfo = ({
         : {}),
       ...(allowTutoringToggle ? { selected: false } : {}),
     };
+    setShowUncommonByIndex((prev) => [...prev, false]);
     setSubjects([...subjectList, newSubject]);
   };
 
   const removeSubject = (index) => {
     const newSubjects = subjectList.filter((_, i) => i !== index);
+    setShowUncommonByIndex((prev) => prev.filter((_, i) => i !== index));
     setSubjects(newSubjects);
   };
 
   const getSubjectDisplay = (subjectId) => {
     const match = subjectOptions.find((s) => s.id === subjectId);
-    if (!match) return "Unknown Subject";
-    return match.curriculumName
-      ? `${match.name} (${match.curriculumName})`
-      : match.name;
+    return getSubjectLabel(match);
   };
 
   return (
@@ -398,15 +442,23 @@ const StudentAcademicInfo = ({
               </MenuItem>
             ))}
           </TextField>
-          <Typography variant="body1" gutterBottom sx={{ mb: 2 }}>
+          <Typography variant="body1" gutterBottom sx={{ mb: 2, fontSize: "1.05rem" }}>
             {allowTutoringToggle
-              ? "Please list all of the subjects that the student is currently taking at school and tick what subjects you would like tutoring for. Our sessions run for 1 hour each per subject."
+              ? (
+                <>
+                  <strong>Please select a curriculum before adding subjects.</strong>{" "}
+                  Please list all of the subjects that the student is currently
+                  taking at school and tick what subjects you would like
+                  tutoring for. Our sessions run for 1 hour each per subject.
+                </>
+              )
               : "Please list all subjects being undertaken and add the desired tutoring hours:"}
           </Typography>
           <Button
             variant="contained"
             startIcon={<AddIcon />}
             onClick={addSubject}
+            disabled={isSubjectSelectionDisabled}
           >
             Add Subject
           </Button>
@@ -421,6 +473,25 @@ const StudentAcademicInfo = ({
           )}
           <Box sx={{ mb: 2 }}>
           {subjectList.map((subject, index) => {
+            const showUncommonSubjects = showUncommonByIndex[index] || false;
+            const uncommonHelperText = !showUncommonSubjects ? (
+              <Button
+                type="button"
+                variant="text"
+                size="small"
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={() =>
+                  setShowUncommonByIndex((prev) => {
+                    const next = [...prev];
+                    next[index] = true;
+                    return next;
+                  })
+                }
+                sx={{ p: 0, minWidth: 0, textTransform: "none" }}
+              >
+                Can&apos;t find your subject? Click here and try again
+              </Button>
+            ) : null;
             const preferredTutorIds = showTutorPreferences
               ? getTutorIdsForSubject(subject, "preferredTutorIds")
               : [];
@@ -453,23 +524,39 @@ const StudentAcademicInfo = ({
                     loading={loadingSubjects}
                     sx={{ flex: 2, minWidth: 240 }}
                     disableListWrap
+                    disabled={isSubjectSelectionDisabled}
                     ListboxComponent={ListboxComponent}
                     options={availableSubjectOptions}
                     filterOptions={(options, { inputValue }) => {
-                      if (!inputValue) return options;
-                      const term = inputValue.toLowerCase();
-                      return options.filter((option) => {
-                        const name = option.name?.toLowerCase() || "";
-                        const curriculum =
-                          option.curriculumName?.toLowerCase() || "";
-                        return name.includes(term) || curriculum.includes(term);
-                      });
+                      const term = (inputValue || "").trim().toLowerCase();
+                      let filtered = term
+                        ? options.filter((option) => {
+                            const name = option.name?.toLowerCase() || "";
+                            const curriculum =
+                              option.curriculumName?.toLowerCase() || "";
+                            return (
+                              name.includes(term) || curriculum.includes(term)
+                            );
+                          })
+                        : options;
+                      if (!showUncommonSubjects) {
+                        filtered = filtered.filter(
+                          (option) => option.isCommon !== false
+                        );
+                      }
+                      const sorted = sortSubjectsByCommon(filtered);
+                      if (!showUncommonSubjects) {
+                        return [
+                          ...sorted,
+                          {
+                            id: INCLUDE_UNCOMMON_OPTION_ID,
+                            name: "Include uncommon subjects",
+                          },
+                        ];
+                      }
+                      return sorted;
                     }}
-                    getOptionLabel={(option) =>
-                      option.curriculumName
-                        ? `${option.name} (${option.curriculumName})`
-                        : option.name
-                    }
+                    getOptionLabel={(option) => getSubjectLabel(option)}
                     isOptionEqualToValue={(option, value) =>
                       option.id === value.id
                     }
@@ -477,7 +564,83 @@ const StudentAcademicInfo = ({
                       availableSubjectOptions.find((s) => s.id === subject.id) ||
                       null
                     }
+                    renderOption={(props, option) => {
+                      if (option.id === INCLUDE_UNCOMMON_OPTION_ID) {
+                        const { onClick, onMouseDown, ...rest } = props;
+                        const handleEnableUncommon = (event) => {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          setShowUncommonByIndex((prev) => {
+                            const next = [...prev];
+                            next[index] = true;
+                            return next;
+                          });
+                        };
+                        return (
+                          <Box
+                            component="li"
+                            {...rest}
+                            onMouseDown={(event) => event.preventDefault()}
+                            onClick={handleEnableUncommon}
+                            onKeyDown={(event) => {
+                              if (event.key === "Enter" || event.key === " ") {
+                                handleEnableUncommon(event);
+                              }
+                            }}
+                            sx={{
+                              backgroundColor: "action.hover",
+                              justifyContent: "center",
+                              fontStyle: "italic",
+                              color: "text.secondary",
+                            }}
+                          >
+                            {getSubjectLabel(option)}
+                          </Box>
+                        );
+                      }
+
+                      return (
+                        <Box
+                          component="li"
+                          {...props}
+                          sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 1,
+                          }}
+                        >
+                          <Box
+                            sx={{
+                              flex: 1,
+                              minWidth: 0,
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            {getSubjectLabel(option)}
+                          </Box>
+                          {option.isCommon === false && (
+                            <Chip
+                              label="Uncommon"
+                              size="small"
+                              variant="outlined"
+                              color="warning"
+                              sx={{ ml: "auto" }}
+                            />
+                          )}
+                        </Box>
+                      );
+                    }}
                     onChange={(_, newValue) => {
+                      if (newValue?.id === INCLUDE_UNCOMMON_OPTION_ID) {
+                        setShowUncommonByIndex((prev) => {
+                          const next = [...prev];
+                          next[index] = true;
+                          return next;
+                        });
+                        return;
+                      }
                       const updatedSubjects = [...subjectList];
                       const existing = subjectList[index] || {};
                       const selected = allowTutoringToggle
@@ -509,6 +672,12 @@ const StudentAcademicInfo = ({
                         size="small"
                         label="Subject name"
                         sx={{ flex: 2 }}
+                        helperText={
+                          isSubjectSelectionDisabled
+                            ? "Select a curriculum to choose subjects."
+                            : uncommonHelperText
+                        }
+                        FormHelperTextProps={{ sx: { m: 0, mt: 0.5 } }}
                         InputProps={{
                           ...params.InputProps,
                           endAdornment: (

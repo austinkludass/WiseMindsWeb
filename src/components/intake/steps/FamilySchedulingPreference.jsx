@@ -15,16 +15,18 @@ const FamilySchedulingPreference = ({ formData, setFormData }) => {
   return (
     <Paper variant="outlined" sx={{ p: 2 }}>
       <Stack spacing={1}>
-        <Typography variant="body1" color="text.secondary">
+        <Typography variant="h5" fontWeight="bold">
+          Family Scheduling Preference
+        </Typography>
+        <Typography
+          variant="body1"
+          color="text.secondary"
+          sx={{ fontSize: "0.97rem" }}
+        >
           At Wise Minds, we can do our best to schedule multiple students in the
           one time slot. This means you only need to make the one trip in. Note:
           This is quite a logistical challenge and we do our absolute best, but
           we cannot guarentee this will be possible.
-        </Typography>
-        <Typography variant="h6">Family Scheduling Preference</Typography>
-        <Typography variant="body1" color="text.secondary">
-          Let us know if siblings should be scheduled together or if you are
-          flexible.
         </Typography>
         <RadioGroup
           name="schedulePreference"
