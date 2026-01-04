@@ -36,6 +36,7 @@ import { ToastContainer, toast } from "react-toastify";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Header from "../../components/Global/Header";
 import ArrowCircleRightIcon from "@mui/icons-material/ArrowCircleRight";
+import usePermissions from "../../hooks/usePermissions";
 import "react-toastify/dist/ReactToastify.css";
 
 const fetchTutors = async () => {
@@ -80,6 +81,7 @@ const TutorList = () => {
   const colors = tokens(theme.palette.mode);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { isHeadTutorOrAbove } = usePermissions();
 
   const [viewMode, setViewMode] = useState("active");
   const [contextMenu, setContextMenu] = useState(null);
@@ -287,16 +289,20 @@ const TutorList = () => {
           alignItems="center"
           mb={2}
         >
-          <Button
-            onClick={() => navigate("/newtutor")}
-            variant="contained"
-            sx={{
-              backgroundColor: `${colors.orangeAccent[700]}`,
-              fontSize: "1.3em",
-            }}
-          >
-            <Typography variant="h6">NEW</Typography>
-          </Button>
+          {isHeadTutorOrAbove ? (
+            <Button
+              onClick={() => navigate("/newtutor")}
+              variant="contained"
+              sx={{
+                backgroundColor: `${colors.orangeAccent[700]}`,
+                fontSize: "1.3em",
+              }}
+            >
+              <Typography variant="h6">NEW</Typography>
+            </Button>
+          ) : (
+            <Box />
+          )}
 
           <ToggleButtonGroup
             value={viewMode}
