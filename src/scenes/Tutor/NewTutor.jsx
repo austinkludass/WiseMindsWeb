@@ -1,4 +1,4 @@
-import { React, useState, useCallback } from "react";
+import { useState, useCallback } from "react";
 import {
   Paper,
   Typography,
@@ -11,11 +11,10 @@ import { ToastContainer, toast } from "react-toastify";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { useColor } from "react-color-palette";
-import { createUserWithEmailAndPassword } from "firebase/auth";
-import { auth, db, sb } from "../../data/firebase";
-import { doc, setDoc } from "firebase/firestore";
+import { app, sb } from "../../data/firebase";
 import { useNavigate } from "react-router-dom";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { getFunctions, httpsCallable } from "firebase/functions";
 import Grid from "@mui/material/Grid2";
 import Header from "../../components/Global/Header";
 import AvailabilitySelector from "../../components/Tutor/AvailabilitySelector";
@@ -34,6 +33,8 @@ import TutorCapabilities from "../../components/Tutor/TutorCapabilities";
 import AvailabilityFormatter from "../../utils/AvailabilityFormatter";
 import "react-toastify/dist/ReactToastify.css";
 import "dayjs/locale/en-gb";
+
+const functions = getFunctions(app, "australia-southeast1");
 
 const NewTutor = () => {
   const navigate = useNavigate();
@@ -202,73 +203,79 @@ const NewTutor = () => {
     setUploadProgress(10);
 
     try {
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        loginInfo.wiseMindsEmail,
-        loginInfo.password
-      );
-      const user = userCredential.user;
+      const reserveTutor = httpsCallable(functions, "reserveTutor");
+      const finalizeTutor = httpsCallable(functions, "finalizeTutor");
+      const { data } = await reserveTutor({
+        email: loginInfo.wiseMindsEmail,
+        password: loginInfo.password,
+      });
+
+      const tutorId = data.uid;
       setUploadProgress(30);
 
       const [avatarUrl, wwvpFileUrl, firstAidFileUrl, policeCheckFileUrl] =
         await Promise.all([
-          uploadProfileImage(user.uid),
-          uploadWwvpFile(user.uid),
-          uploadFirstAidFile(user.uid),
-          uploadPoliceCheckFile(user.uid),
+          uploadProfileImage(tutorId),
+          uploadWwvpFile(tutorId),
+          uploadFirstAidFile(tutorId),
+          uploadPoliceCheckFile(tutorId),
         ]);
-      setUploadProgress(90);
 
-      await setDoc(doc(db, "tutors", user.uid), {
-        avatar: avatarUrl,
-        wwvpFilePath: wwvpFileUrl,
-        firstAidFilePath: firstAidFileUrl,
-        policeCheckFilePath: policeCheckFileUrl,
-        tutorColor: tutorColor.hex,
-        availability: AvailabilityFormatter(availability),
-        unavailability: specificUnavailability,
-        capabilities: capabilityIds,
-        blockedStudents: blockedStudentIds,
-        firstName: profileInfo.firstName,
-        middleName: profileInfo.middleName,
-        lastName: profileInfo.lastName,
-        dateOfBirth: profileInfo.dateOfBirth?.toISOString() || null,
-        wiseMindsEmail: loginInfo.wiseMindsEmail,
-        personalEmail: contactInfo.personalEmail,
-        phone: contactInfo.phone,
-        address: contactInfo.address,
-        career: personalInfo.career,
-        degree: personalInfo.degree,
-        position: personalInfo.position,
-        homeLocation: personalInfo.homeLocation,
-        role: personalInfo.role,
-        hours: personalInfo.hours,
-        rate: personalInfo.rate,
-        emergencyName: emergencyInfo.emergencyName,
-        emergencyRelationship: emergencyInfo.emergencyRelationship,
-        emergencyPhone: emergencyInfo.emergencyPhone,
-        emergencyEmail: emergencyInfo.emergencyEmail,
-        bankName: bankInfo.bankName,
-        accountName: bankInfo.accountName,
-        bsb: bankInfo.bsb,
-        accountNumber: bankInfo.accountNumber,
-        tfn: bankInfo.tfn,
-        superCompany: bankInfo.superCompany,
-        wwvpName: wwvpInfo.wwvpName,
-        wwvpRegNumber: wwvpInfo.wwvpRegNumber,
-        wwvpCardNumber: wwvpInfo.wwvpCardNumber,
-        wwvpExpiry: wwvpInfo.wwvpExpiry?.toISOString() || null,
-        faCourseDate: firstAidInfo.faCourseDate?.toISOString() || null,
-        faProvider: firstAidInfo.faProvider,
-        faNumber: firstAidInfo.faNumber,
-        faCourseType: firstAidInfo.faCourseType,
-        faCourseCode: firstAidInfo.faCourseCode,
-        faExpiry: firstAidInfo.faExpiry?.toISOString() || null,
-        pcName: policeCheckInfo.pcName,
-        pcIsNational: policeCheckInfo.pcIsNational,
-        pcAddress: policeCheckInfo.pcAddress,
-        pcResult: policeCheckInfo.pcResult,
-        pcAPPRef: policeCheckInfo.pcAPPRef,
+      setUploadProgress(60);
+
+      await finalizeTutor({
+        uid: tutorId,
+        tutorData: {
+          avatar: avatarUrl,
+          wwvpFilePath: wwvpFileUrl,
+          firstAidFilePath: firstAidFileUrl,
+          policeCheckFilePath: policeCheckFileUrl,
+          tutorColor: tutorColor.hex,
+          availability: AvailabilityFormatter(availability),
+          unavailability: specificUnavailability,
+          capabilities: capabilityIds,
+          blockedStudents: blockedStudentIds,
+          firstName: profileInfo.firstName,
+          middleName: profileInfo.middleName,
+          lastName: profileInfo.lastName,
+          dateOfBirth: profileInfo.dateOfBirth?.toISOString() || null,
+          wiseMindsEmail: loginInfo.wiseMindsEmail,
+          personalEmail: contactInfo.personalEmail,
+          phone: contactInfo.phone,
+          address: contactInfo.address,
+          career: personalInfo.career,
+          degree: personalInfo.degree,
+          position: personalInfo.position,
+          homeLocation: personalInfo.homeLocation,
+          role: personalInfo.role,
+          hours: personalInfo.hours,
+          rate: personalInfo.rate,
+          emergencyName: emergencyInfo.emergencyName,
+          emergencyRelationship: emergencyInfo.emergencyRelationship,
+          emergencyPhone: emergencyInfo.emergencyPhone,
+          emergencyEmail: emergencyInfo.emergencyEmail,
+          bankName: bankInfo.bankName,
+          accountName: bankInfo.accountName,
+          bsb: bankInfo.bsb,
+          accountNumber: bankInfo.accountNumber,
+          tfn: bankInfo.tfn,
+          superCompany: bankInfo.superCompany,
+          wwvpName: wwvpInfo.wwvpName,
+          wwvpRegNumber: wwvpInfo.wwvpRegNumber,
+          wwvpCardNumber: wwvpInfo.wwvpCardNumber,
+          wwvpExpiry: wwvpInfo.wwvpExpiry?.toISOString() || null,
+          faCourseDate: firstAidInfo.faCourseDate?.toISOString() || null,
+          faProvider: firstAidInfo.faProvider,
+          faNumber: firstAidInfo.faNumber,
+          faCourseType: firstAidInfo.faCourseType,
+          faCourseCode: firstAidInfo.faCourseCode,
+          faExpiry: firstAidInfo.faExpiry?.toISOString() || null,
+          pcName: policeCheckInfo.pcName,
+          pcIsNational: policeCheckInfo.pcIsNational,
+          pcAddress: policeCheckInfo.pcAddress,
+          pcResult: policeCheckInfo.pcResult,
+          pcAPPRef: policeCheckInfo.pcAPPRef,
+        },
       });
       setUploadProgress(100);
 

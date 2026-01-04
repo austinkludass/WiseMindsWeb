@@ -62,7 +62,17 @@ function App() {
                 <Routes>
                   <Route path="/" element={<Dashboard />} />
                   <Route path="/tutors" element={<TutorList />} />
-                  <Route path="/newtutor" element={<NewTutor />} />
+                  <Route
+                    path="/newtutor"
+                    element={
+                      <ProtectedRoute
+                        minimumRole={ROLES.HEAD_TUTOR}
+                        fallbackMessage="You need to be a Head Tutor or above to create new tutors."
+                      >
+                        <NewTutor />
+                      </ProtectedRoute>
+                    }
+                  />
                   <Route path="/tutor/:tutorId" element={<TutorProfile />} />
                   <Route path="/students" element={<StudentList />} />
                   <Route path="/student/:studentId" element={<StudentProfile />} />

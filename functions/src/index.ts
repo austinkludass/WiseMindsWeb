@@ -1196,3 +1196,51 @@ export const lockPayroll = onCall(
     return {success: true};
   }
 );
+
+export const reserveTutor = onCall(
+  {
+    region: "australia-southeast1",
+  },
+  async (request) => {
+    const {auth, data} = request;
+
+    if (!auth) throw new Error("Not authenticated");
+
+    const adminSnap = await db.doc(`tutors/${auth.uid}`).get();
+    const role = adminSnap.data()?.role;
+    if (!adminSnap.exists || !["Admin", "Head Tutor"].includes(role)) {
+      throw new Error("Permission denied");
+    }
+
+    const user = await admin.auth().createUser({
+      email: data.email,
+      password: data.password,
+    });
+
+    return {uid: user.uid};
+  }
+);
+
+export const finalizeTutor = onCall(
+  {
+    region: "australia-southeast1",
+  },
+  async (request) => {
+    const {auth, data} = request;
+
+    if (!auth) throw new Error("Not authenticated");
+
+    const adminSnap = await db.doc(`tutors/${auth.uid}`).get();
+    const role = adminSnap.data()?.role;
+    if (!adminSnap.exists || !["Admin", "Head Tutor"].includes(role)) {
+      throw new Error("Permission denied");
+    }
+
+    await db.doc(`tutors/${data.uid}`).set({
+      ...data.tutorData,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    return {success: true};
+  }
+);
