@@ -12,6 +12,7 @@ import {
   createChildTouched,
   defaultFamilyData,
   formatDateValue,
+  getClientMeta,
   getSchedulePreferenceFromFamily,
   hasAvailability,
   mapSchedulePreference,
@@ -457,6 +458,7 @@ const ExistingFamilyIntake = () => {
         status: "existing",
         source: "existing-family-intake",
         submittedAt: new Date().toISOString(),
+        client: getClientMeta(),
       },
     };
   };

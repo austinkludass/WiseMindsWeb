@@ -13,6 +13,7 @@ import {
   createChildTouched,
   defaultFamilyData,
   formatDateValue,
+  getClientMeta,
   hasAvailability,
   mapSchedulePreference,
   validateAvailability,
@@ -284,6 +285,7 @@ const ParentIntake = () => {
         source: "parent-intake",
         submittedAt: new Date().toISOString(),
         consentAccepted: Boolean(familyData.consentAccepted),
+        client: getClientMeta(),
       },
     };
   };
