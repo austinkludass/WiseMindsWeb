@@ -59,6 +59,45 @@ const normalizeTutorIds = (value) => {
   return Array.from(new Set(ids));
 };
 
+const getClientMeta = () => {
+  if (typeof window === "undefined" || typeof navigator === "undefined") {
+    return {};
+  }
+
+  const userAgent = navigator.userAgent || "";
+  const userAgentData = navigator.userAgentData;
+  const platform = userAgentData?.platform || navigator.platform || "";
+  const language = navigator.language || "";
+  const timeZone = (() => {
+    try {
+      return Intl.DateTimeFormat().resolvedOptions().timeZone || "";
+    } catch (error) {
+      return "";
+    }
+  })();
+
+  const viewportWidth = window.innerWidth || null;
+  const viewportHeight = window.innerHeight || null;
+  const screenWidth = window.screen?.width || null;
+  const screenHeight = window.screen?.height || null;
+  const devicePixelRatio = window.devicePixelRatio || null;
+  const mobile =
+    typeof userAgentData?.mobile === "boolean"
+      ? userAgentData.mobile
+      : /Mobi|Android/i.test(userAgent);
+
+  return {
+    userAgent,
+    platform,
+    language,
+    timeZone,
+    viewport: { width: viewportWidth, height: viewportHeight },
+    screen: { width: screenWidth, height: screenHeight },
+    devicePixelRatio,
+    mobile,
+  };
+};
+
 const createChild = (overrides = {}) => ({
   firstName: "",
   middleName: "",
@@ -194,6 +233,7 @@ export {
   defaultFamilyData,
   defaultSubjects,
   formatDateValue,
+  getClientMeta,
   hasAvailability,
   mapSchedulePreference,
   getSchedulePreferenceFromFamily,
