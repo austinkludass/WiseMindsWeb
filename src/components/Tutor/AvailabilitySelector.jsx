@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from "react";
 import {
+  Box,
+  Button,
   Table,
   TableBody,
   TableCell,
@@ -8,9 +10,13 @@ import {
   TableRow,
   Paper,
   IconButton,
+  Stack,
+  Typography,
+  useMediaQuery,
+  useTheme,
 } from "@mui/material";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
-import { DesktopTimePicker } from "@mui/x-date-pickers/DesktopTimePicker";
+import { TimePicker } from "@mui/x-date-pickers/TimePicker";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -56,6 +62,8 @@ const AvailabilitySelector = ({
   maxHour = DEFAULT_MAX_HOUR,
 }) => {
   const [availability, setAvailability] = useState({});
+  const theme = useTheme();
+  const isCompact = useMediaQuery(theme.breakpoints.down("sm"));
   const resolvedMinHour = Number.isFinite(minHour)
     ? minHour
     : DEFAULT_MIN_HOUR;
@@ -128,88 +136,149 @@ const AvailabilitySelector = ({
     });
   };
 
+  const renderAddButton = (day, compact) => {
+    if (!isEdit) return null;
+    if (compact) {
+      return (
+        <Button
+          size="small"
+          variant="outlined"
+          startIcon={<AddCircleIcon />}
+          onClick={() => addTimeSlot(day)}
+        >
+          Add slot
+        </Button>
+      );
+    }
+    return (
+      <IconButton
+        sx={{ width: 55, height: 55 }}
+        color="secondary"
+        onClick={() => addTimeSlot(day)}
+      >
+        <AddCircleIcon sx={{ width: 30, height: 30 }} />
+      </IconButton>
+    );
+  };
+
+  const renderDaySlots = (day, showEmptyState) => {
+    const slots = availability[day] || [];
+    if (slots.length === 0) {
+      if (!showEmptyState) return null;
+      return (
+        <Typography variant="body2" color="text.secondary">
+          No time slots added yet.
+        </Typography>
+      );
+    }
+    return slots.map((slot, index) => (
+      <Stack
+        key={`${day}-${index}`}
+        direction={isCompact ? "column" : "row"}
+        spacing={1.5}
+        alignItems={isCompact ? "stretch" : "center"}
+        sx={{ pt: index === 0 ? 0 : isCompact ? 1 : 1.5 }}
+      >
+        <TimePicker
+          label="Start Time"
+          readOnly={!isEdit}
+          value={slot.start}
+          minTime={minTime}
+          maxTime={maxTime}
+          onChange={(newValue) =>
+            handleTimeChange(day, index, "start", newValue)
+          }
+          slotProps={{
+            textField: {
+              variant: "outlined",
+              fullWidth: true,
+            },
+          }}
+        />
+        <TimePicker
+          label="End Time"
+          readOnly={!isEdit}
+          value={slot.end}
+          minTime={minTime}
+          maxTime={maxTime}
+          onChange={(newValue) =>
+            handleTimeChange(day, index, "end", newValue)
+          }
+          slotProps={{
+            textField: {
+              variant: "outlined",
+              fullWidth: true,
+            },
+          }}
+        />
+        {isEdit && (
+          <Box
+            display="flex"
+            justifyContent={isCompact ? "flex-end" : "flex-start"}
+          >
+            <IconButton
+              color="error"
+              onClick={() => removeTimeSlot(day, index)}
+            >
+              <DeleteIcon />
+            </IconButton>
+          </Box>
+        )}
+      </Stack>
+    ));
+  };
+
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
-      <TableContainer component={Paper}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>Day</TableCell>
-              <TableCell>Available Time Slots</TableCell>
-              <TableCell></TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {daysOfWeek.map((day) => (
-              <TableRow key={day}>
-                <TableCell>{day}</TableCell>
-                <TableCell sx={{ width: 600, verticalAlign: "top" }}>
-                  {availability[day]?.map((slot, index) => (
-                    <div
-                      key={index}
-                      style={{
-                        display: "flex",
-                        gap: "10px",
-                        paddingTop: `${index === 0 ? "0px" : "15px"}`,
-                      }}
-                    >
-                      <DesktopTimePicker
-                        label="Start Time"
-                        readOnly={!isEdit}
-                        value={slot.start}
-                        minTime={minTime}
-                        maxTime={maxTime}
-                        onChange={(newValue) =>
-                          handleTimeChange(day, index, "start", newValue)
-                        }
-                        slotProps={{
-                          textField: {
-                            variant: "outlined",
-                          },
-                        }}
-                      />
-                      <DesktopTimePicker
-                        label="End Time"
-                        readOnly={!isEdit}
-                        value={slot.end}
-                        minTime={minTime}
-                        maxTime={maxTime}
-                        onChange={(newValue) =>
-                          handleTimeChange(day, index, "end", newValue)
-                        }
-                        slotProps={{
-                          textField: {
-                            variant: "outlined",
-                          },
-                        }}
-                      />
-                      {isEdit && (
-                        <IconButton
-                          color="error"
-                          onClick={() => removeTimeSlot(day, index)}
-                        >
-                          <DeleteIcon />
-                        </IconButton>
-                      )}
-                    </div>
-                  ))}
-                </TableCell>
-                <TableCell sx={{ verticalAlign: "top", width: 55, height: 55 }}>
-                  {isEdit && (
-                    <IconButton
-                      sx={{ width: 55, height: 55 }}
-                      color="secondary"
-                      onClick={() => addTimeSlot(day)}
-                    >
-                      <AddCircleIcon sx={{ width: 30, height: 30 }} />
-                    </IconButton>
-                  )}
-                </TableCell>
+      {isCompact ? (
+        <Stack spacing={2}>
+          {daysOfWeek.map((day) => (
+            <Paper key={day} variant="outlined" sx={{ p: 2 }}>
+              <Stack spacing={1.5}>
+                <Box
+                  display="flex"
+                  alignItems="center"
+                  justifyContent="space-between"
+                  gap={1}
+                >
+                  <Typography variant="subtitle1" fontWeight="bold">
+                    {day}
+                  </Typography>
+                  {renderAddButton(day, true)}
+                </Box>
+                {renderDaySlots(day, true)}
+              </Stack>
+            </Paper>
+          ))}
+        </Stack>
+      ) : (
+        <TableContainer component={Paper}>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>Day</TableCell>
+                <TableCell>Available Time Slots</TableCell>
+                <TableCell></TableCell>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
+            </TableHead>
+            <TableBody>
+              {daysOfWeek.map((day) => (
+                <TableRow key={day}>
+                  <TableCell sx={{ width: 120 }}>{day}</TableCell>
+                  <TableCell sx={{ width: 600, verticalAlign: "top" }}>
+                    {renderDaySlots(day, false)}
+                  </TableCell>
+                  <TableCell
+                    sx={{ verticalAlign: "top", width: 80, height: 55 }}
+                  >
+                    {renderAddButton(day, false)}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      )}
     </LocalizationProvider>
   );
 };
