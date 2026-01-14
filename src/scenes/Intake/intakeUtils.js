@@ -34,6 +34,17 @@ const hasAvailability = (availability) =>
 const formatDateValue = (value) =>
   value && typeof value.toISOString === "function" ? value.toISOString() : null;
 
+const parseDateValue = (value) => {
+  if (!value) return null;
+  if (value instanceof Date) return value;
+  if (typeof value?.toDate === "function") return value.toDate();
+  if (typeof value?.seconds === "number") {
+    return new Date(value.seconds * 1000);
+  }
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
 const defaultSubjects = [
   {
     id: "",
@@ -58,7 +69,6 @@ const normalizeTutorIds = (value) => {
     .filter(Boolean);
   return Array.from(new Set(ids));
 };
-
 const getClientMeta = () => {
   if (typeof window === "undefined" || typeof navigator === "undefined") {
     return {};
@@ -98,6 +108,29 @@ const getClientMeta = () => {
   };
 };
 
+const normalizeIntakeSubjects = (subjects) => {
+  if (!Array.isArray(subjects)) return [];
+  return subjects.map((subject) => {
+    const resolvedId = subject?.id || subject?.subjectId || "";
+    const preferredTutorIds = normalizeTutorIds(
+      subject?.preferredTutorIds || subject?.preferredTutors
+    );
+    const blockedTutorIds = normalizeTutorIds(
+      subject?.blockedTutorIds || subject?.blockedTutors
+    );
+    return {
+      id: resolvedId,
+      hours: subject?.hours ?? "",
+      selected:
+        typeof subject?.selected === "boolean"
+          ? subject.selected
+          : Boolean(resolvedId),
+      preferredTutorIds,
+      blockedTutorIds,
+    };
+  });
+};
+
 const createChild = (overrides = {}) => ({
   firstName: "",
   middleName: "",
@@ -121,6 +154,57 @@ const createChild = (overrides = {}) => ({
   trialAvailability: {},
   ...overrides,
 });
+
+const mapExistingSubmissionToIntakeState = (submission = {}) => {
+  const family = submission.family || {};
+  const familyForm = {
+    parentName: family.parentName || family.parentFullName || "",
+    parentEmail: family.parentEmail || family.familyEmail || "",
+    schedulePreference: getSchedulePreferenceFromFamily(family) || "",
+  };
+
+  const children = Array.isArray(submission.children)
+    ? submission.children.map((child) => {
+        const base = createChild();
+        const subjects = normalizeIntakeSubjects(child?.subjects);
+        return {
+          ...base,
+          studentId: child?.studentId || "",
+          firstName: child?.firstName || "",
+          middleName: child?.middleName || "",
+          lastName: child?.lastName || "",
+          dateOfBirth: parseDateValue(child?.dateOfBirth),
+          allergiesAna: child?.allergiesAna || "",
+          allergiesNonAna: child?.allergiesNonAna || "",
+          doesCarryEpi:
+            typeof child?.doesCarryEpi === "boolean"
+              ? child.doesCarryEpi
+              : base.doesCarryEpi,
+          doesAdminEpi:
+            typeof child?.doesAdminEpi === "boolean"
+              ? child.doesAdminEpi
+              : base.doesAdminEpi,
+          school: child?.school || "",
+          yearLevel: child?.yearLevel || "",
+          notes: child?.notes || "",
+          maxHoursPerDay: child?.maxHoursPerDay || "",
+          preferredStart: parseDateValue(child?.preferredStart),
+          trialNotes: child?.trialNotes || "",
+          canOfferFood:
+            typeof child?.canOfferFood === "boolean"
+              ? child.canOfferFood
+              : base.canOfferFood,
+          avoidFoods: child?.avoidFoods || "",
+          questions: child?.questions || "",
+          subjects: subjects.length > 0 ? subjects : base.subjects,
+          availability: child?.availability || {},
+          trialAvailability: child?.trialAvailability || {},
+        };
+      })
+    : [];
+
+  return { familyForm, children };
+};
 
 const createChildTouched = () => ({
   firstName: false,
@@ -232,11 +316,12 @@ export {
   createChildTouched,
   defaultFamilyData,
   defaultSubjects,
+  mapExistingSubmissionToIntakeState,
   formatDateValue,
-  getClientMeta,
   hasAvailability,
   mapSchedulePreference,
   getSchedulePreferenceFromFamily,
   normalizeTutorIds,
+  normalizeIntakeSubjects,
   validateAvailability,
 };
