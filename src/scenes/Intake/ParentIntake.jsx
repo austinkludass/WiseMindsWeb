@@ -20,6 +20,7 @@ import {
   hasAvailability,
   isWholeHourValue,
   mapSchedulePreference,
+  validateAvailabilityWithinBounds,
   validateAvailability,
 } from "./intakeUtils";
 
@@ -349,11 +350,23 @@ const ParentIntake = () => {
             `${label} trial availability`
           )
         );
+        nextErrors.push(
+          ...validateAvailabilityWithinBounds(
+            child.trialAvailability,
+            `${label} trial availability`
+          )
+        );
       }
 
       if (hasAvailability(child.availability)) {
         nextErrors.push(
           ...validateAvailability(
+            child.availability,
+            `${label} regular availability`
+          )
+        );
+        nextErrors.push(
+          ...validateAvailabilityWithinBounds(
             child.availability,
             `${label} regular availability`
           )
