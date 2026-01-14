@@ -71,6 +71,24 @@ const resolveBoundTime = (value, fallback) => {
   return fallback;
 };
 
+const isOutsideBounds = (value, minTime, maxTime) => {
+  if (!isValidDate(value)) return false;
+  return value < minTime || value > maxTime;
+};
+
+const formatTimeLabel = (value) =>
+  value.toLocaleTimeString("en-AU", {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
+
+const formatOpenHoursLabel = (minTime, maxTime) => {
+  const start = formatTimeLabel(minTime);
+  const end = formatTimeLabel(maxTime);
+  return `Open hours: ${start} to ${end}.`;
+};
+
 const AvailabilitySelector = ({
   initialAvailability,
   onAvailabilityChange,
@@ -182,8 +200,6 @@ const AvailabilitySelector = ({
   // Update time values
   const handleTimeChange = (day, index, type, value) => {
     if (!isValidDate(value)) return;
-    const { minTime: dayMinTime, maxTime: dayMaxTime } = getDayBounds(day);
-    if (value < dayMinTime || value > dayMaxTime) return;
     updateAvailability((prev) => {
       const updatedSlots = [...(prev[day] || [])];
       updatedSlots[index] = { ...updatedSlots[index], [type]: value };
@@ -219,6 +235,7 @@ const AvailabilitySelector = ({
   const renderDaySlots = (day, showEmptyState) => {
     const slots = availability[day] || [];
     const { minTime: dayMinTime, maxTime: dayMaxTime } = getDayBounds(day);
+    const openHoursLabel = formatOpenHoursLabel(dayMinTime, dayMaxTime);
     if (slots.length === 0) {
       if (!showEmptyState) return null;
       return (
@@ -227,61 +244,75 @@ const AvailabilitySelector = ({
         </Typography>
       );
     }
-    return slots.map((slot, index) => (
-      <Stack
-        key={`${day}-${index}`}
-        direction={isCompact ? "column" : "row"}
-        spacing={1.5}
-        alignItems={isCompact ? "stretch" : "center"}
-        sx={{ pt: index === 0 ? 0 : isCompact ? 1 : 1.5 }}
-      >
-        <TimePicker
-          label="Start Time"
-          readOnly={!isEdit}
-          value={slot.start}
-          minTime={dayMinTime}
-          maxTime={dayMaxTime}
-          onChange={(newValue) =>
-            handleTimeChange(day, index, "start", newValue)
-          }
-          slotProps={{
-            textField: {
-              variant: "outlined",
-              fullWidth: true,
-            },
-          }}
-        />
-        <TimePicker
-          label="End Time"
-          readOnly={!isEdit}
-          value={slot.end}
-          minTime={dayMinTime}
-          maxTime={dayMaxTime}
-          onChange={(newValue) =>
-            handleTimeChange(day, index, "end", newValue)
-          }
-          slotProps={{
-            textField: {
-              variant: "outlined",
-              fullWidth: true,
-            },
-          }}
-        />
-        {isEdit && (
-          <Box
-            display="flex"
-            justifyContent={isCompact ? "flex-end" : "flex-start"}
-          >
-            <IconButton
-              color="error"
-              onClick={() => removeTimeSlot(day, index)}
+    return slots.map((slot, index) => {
+      const startOutside = isOutsideBounds(slot.start, dayMinTime, dayMaxTime);
+      const endOutside = isOutsideBounds(slot.end, dayMinTime, dayMaxTime);
+      const startHelperText = startOutside
+        ? `Wise Minds is closed at the time you've entered. ${openHoursLabel}`
+        : "";
+      const endHelperText = endOutside
+        ? `Wise Minds is closed at the time you've entered. ${openHoursLabel}`
+        : "";
+      return (
+        <Stack
+          key={`${day}-${index}`}
+          direction={isCompact ? "column" : "row"}
+          spacing={1.5}
+          alignItems={isCompact ? "stretch" : "center"}
+          sx={{ pt: index === 0 ? 0 : isCompact ? 1 : 1.5 }}
+        >
+          <TimePicker
+            label="Start Time"
+            readOnly={!isEdit}
+            value={slot.start}
+            minTime={dayMinTime}
+            maxTime={dayMaxTime}
+            onChange={(newValue) =>
+              handleTimeChange(day, index, "start", newValue)
+            }
+            slotProps={{
+              textField: {
+                variant: "outlined",
+                fullWidth: true,
+                error: startOutside,
+                helperText: startHelperText,
+              },
+            }}
+          />
+          <TimePicker
+            label="End Time"
+            readOnly={!isEdit}
+            value={slot.end}
+            minTime={dayMinTime}
+            maxTime={dayMaxTime}
+            onChange={(newValue) =>
+              handleTimeChange(day, index, "end", newValue)
+            }
+            slotProps={{
+              textField: {
+                variant: "outlined",
+                fullWidth: true,
+                error: endOutside,
+                helperText: endHelperText,
+              },
+            }}
+          />
+          {isEdit && (
+            <Box
+              display="flex"
+              justifyContent={isCompact ? "flex-end" : "flex-start"}
             >
-              <DeleteIcon />
-            </IconButton>
-          </Box>
-        )}
-      </Stack>
-    ));
+              <IconButton
+                color="error"
+                onClick={() => removeTimeSlot(day, index)}
+              >
+                <DeleteIcon />
+              </IconButton>
+            </Box>
+          )}
+        </Stack>
+      );
+    });
   };
 
   return (
