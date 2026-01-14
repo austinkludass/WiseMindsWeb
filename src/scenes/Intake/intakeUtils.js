@@ -320,6 +320,72 @@ const mapExistingSubmissionToIntakeState = (submission = {}) => {
   return { familyForm, children };
 };
 
+const mapNewSubmissionToIntakeState = (submission = {}) => {
+  const family = submission.family || {};
+  const familyData = {
+    parentName: family.parentName || "",
+    familyEmail: family.parentEmail || "",
+    familyPhone: family.parentPhone || "",
+    familyAddress: family.parentAddress || "",
+    secondaryContactName: family.secondaryName || "",
+    secondaryContactEmail: family.secondaryEmail || "",
+    secondaryContactPhone: family.secondaryPhone || "",
+    secondaryContactAddress: family.secondaryAddress || "",
+    schedulePreference: getSchedulePreferenceFromFamily(family) || "no_preference",
+    usePrimaryAsEmergency: Boolean(family.usePrimaryAsEmergency),
+    emergencyFirst: family.emergencyFirst || "",
+    emergencyLast: family.emergencyLast || "",
+    emergencyRelationship: family.emergencyRelationship || "",
+    emergencyRelationshipOther: "",
+    emergencyPhone: family.emergencyPhone || "",
+    howUserHeard: family.howUserHeard || "",
+    homeLocation: family.homeLocation || "",
+    additionalNotes: family.additionalNotes || "",
+    consentAccepted: false,
+  };
+
+  const children = Array.isArray(submission.children)
+    ? submission.children.map((child) => {
+        const base = createChild();
+        const subjects = normalizeIntakeSubjects(child?.subjects);
+        return {
+          ...base,
+          firstName: child?.firstName || "",
+          middleName: child?.middleName || "",
+          lastName: child?.lastName || "",
+          dateOfBirth: parseDateValue(child?.dateOfBirth),
+          allergiesAna: child?.allergiesAna || "",
+          allergiesNonAna: child?.allergiesNonAna || "",
+          doesCarryEpi:
+            typeof child?.doesCarryEpi === "boolean"
+              ? child.doesCarryEpi
+              : base.doesCarryEpi,
+          doesAdminEpi:
+            typeof child?.doesAdminEpi === "boolean"
+              ? child.doesAdminEpi
+              : base.doesAdminEpi,
+          school: child?.school || "",
+          yearLevel: child?.yearLevel || "",
+          notes: child?.notes || "",
+          maxHoursPerDay: child?.maxHoursPerDay || "",
+          preferredStart: parseDateValue(child?.preferredStart),
+          trialNotes: child?.trialNotes || "",
+          canOfferFood:
+            typeof child?.canOfferFood === "boolean"
+              ? child.canOfferFood
+              : base.canOfferFood,
+          avoidFoods: child?.avoidFoods || "",
+          questions: child?.questions || "",
+          subjects: subjects.length > 0 ? subjects : base.subjects,
+          availability: child?.availability || {},
+          trialAvailability: child?.trialAvailability || {},
+        };
+      })
+    : [];
+
+  return { familyData, children };
+};
+
 const createChildTouched = () => ({
   firstName: false,
   lastName: false,
@@ -431,6 +497,7 @@ export {
   defaultFamilyData,
   defaultSubjects,
   mapExistingSubmissionToIntakeState,
+  mapNewSubmissionToIntakeState,
   formatDateValue,
   parseDateValue,
   getClientMeta,

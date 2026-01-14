@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
-import { Box, Button, Stack, Typography } from "@mui/material";
-import { addDoc, collection } from "firebase/firestore";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Alert, Box, Button, Stack, Typography } from "@mui/material";
+import { addDoc, collection, doc, getDoc } from "firebase/firestore";
 import { useLocation } from "react-router-dom";
 import { db } from "../../data/firebase";
 import IntakeLayout from "../../components/intake/IntakeLayout";
@@ -19,7 +19,9 @@ import {
   getRequestedTutoringHours,
   hasAvailability,
   isWholeHourValue,
+  mapNewSubmissionToIntakeState,
   mapSchedulePreference,
+  parseDateValue,
   validateAvailabilityWithinBounds,
   validateAvailability,
 } from "./intakeUtils";
@@ -95,6 +97,8 @@ const parseChildNamesList = (raw) => {
     .filter(Boolean);
 };
 
+const SUBMISSION_STORAGE_KEY = "wiseminds_new_family_submission_id";
+
 const ParentIntake = () => {
   const { search } = useLocation();
   const [currentStep, setCurrentStep] = useState(0);
@@ -106,15 +110,91 @@ const ParentIntake = () => {
   const [childrenTouched, setChildrenTouched] = useState([
     createChildTouched(),
   ]);
+  const [hydratedFromSubmission, setHydratedFromSubmission] = useState(false);
+  const [latestSubmissionMeta, setLatestSubmissionMeta] = useState(null);
+  const hasUserChangesRef = useRef(false);
+  const baseSnapshotRef = useRef(null);
 
   const steps = useMemo(
     () => [{ label: "Family" }, { label: "Children" }, { label: "Additional" }],
     []
   );
 
+  const latestSubmissionDate = latestSubmissionMeta?.submittedAt
+    ? parseDateValue(latestSubmissionMeta.submittedAt)
+    : null;
+  const latestSubmissionLabel = latestSubmissionDate
+    ? latestSubmissionDate.toLocaleString("en-AU")
+    : "";
+  const latestSubmissionMessage = latestSubmissionLabel
+    ? `Loaded your last submission from ${latestSubmissionLabel}.`
+    : "Loaded your last submission.";
+
+  const handleResetToDefaults = () => {
+    const base = baseSnapshotRef.current;
+    if (!base) return;
+    setFamilyData(base.familyData);
+    setChildren(base.children);
+    setChildrenTouched(base.children.map(() => createChildTouched()));
+    setHydratedFromSubmission(false);
+    setLatestSubmissionMeta(null);
+    localStorage.removeItem(SUBMISSION_STORAGE_KEY);
+  };
+
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [currentStep]);
+
+  useEffect(() => {
+    let isMounted = true;
+    hasUserChangesRef.current = false;
+    baseSnapshotRef.current = {
+      familyData: defaultFamilyData,
+      children: [createChild()],
+    };
+
+    const fetchPriorSubmission = async () => {
+      const storedSubmissionId = localStorage.getItem(SUBMISSION_STORAGE_KEY);
+      if (!storedSubmissionId) return;
+
+      try {
+        const submissionSnap = await getDoc(
+          doc(db, "intakeSubmissions", storedSubmissionId)
+        );
+        if (!submissionSnap.exists()) {
+          localStorage.removeItem(SUBMISSION_STORAGE_KEY);
+          return;
+        }
+
+        if (!isMounted) return;
+        if (hasUserChangesRef.current) return;
+
+        const submission = { id: submissionSnap.id, ...submissionSnap.data() };
+        const { familyData: restoredFamily, children: restoredChildren } =
+          mapNewSubmissionToIntakeState(submission);
+
+        setFamilyData(restoredFamily);
+        if (restoredChildren.length > 0) {
+          setChildren(restoredChildren);
+          setChildrenTouched(restoredChildren.map(() => createChildTouched()));
+        }
+        setHydratedFromSubmission(true);
+        setLatestSubmissionMeta({
+          id: submission.id,
+          submittedAt: submission.meta?.submittedAt || null,
+        });
+      } catch (error) {
+        console.warn("[ParentIntake] Unable to load prior submission:", error);
+        localStorage.removeItem(SUBMISSION_STORAGE_KEY);
+      }
+    };
+
+    fetchPriorSubmission();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (!search) return;
@@ -454,7 +534,8 @@ const ParentIntake = () => {
     try {
       const payload = buildSubmissionPayload();
       console.log("Intake submission payload:", JSON.stringify(payload, null, 2));
-      await addDoc(collection(db, "intakeSubmissions"), payload);
+      const docRef = await addDoc(collection(db, "intakeSubmissions"), payload);
+      localStorage.setItem(SUBMISSION_STORAGE_KEY, docRef.id);
       setSubmitted(true);
       setFamilyData(defaultFamilyData);
       setChildren([createChild()]);
@@ -492,6 +573,19 @@ const ParentIntake = () => {
       isSubmitting={isSubmitting}
       isLastStep={currentStep === steps.length - 1}
     >
+      {hydratedFromSubmission && (
+        <Alert
+          severity="info"
+          sx={{ mb: 2 }}
+          action={
+            <Button color="inherit" size="small" onClick={handleResetToDefaults}>
+              Start fresh
+            </Button>
+          }
+        >
+          {latestSubmissionMessage}
+        </Alert>
+      )}
       {currentStep === 0 && (
         <FamilyStep formData={familyData} setFormData={setFamilyData} />
       )}
