@@ -11,9 +11,12 @@ import {
   createChild,
   createChildTouched,
   defaultFamilyData,
+  DEFAULT_AVAILABILITY_THRESHOLD,
   formatDateValue,
+  getAvailabilityHours,
   getClientMeta,
   getSchedulePreferenceFromFamily,
+  getRequestedTutoringHours,
   hasAvailability,
   isWholeHourValue,
   mapExistingSubmissionToIntakeState,
@@ -656,6 +659,45 @@ const ExistingFamilyIntake = () => {
     if (validationErrors.length > 0) {
       setErrors(validationErrors);
       return;
+    }
+
+    const formatHoursLabel = (hours) => {
+      if (!Number.isFinite(hours)) return "0";
+      return Number.isInteger(hours) ? String(hours) : hours.toFixed(1);
+    };
+    const getChildLabel = (child, index) => {
+      const name = [child.firstName, child.lastName].filter(Boolean).join(" ");
+      return name || `Child ${index + 1}`;
+    };
+    const lowAvailabilityChildren = children
+      .map((child, index) => {
+        const availabilityHours = getAvailabilityHours(child.availability);
+        const requestedHours = getRequestedTutoringHours(child.subjects);
+        if (requestedHours <= 0) return null;
+        if (availabilityHours >= DEFAULT_AVAILABILITY_THRESHOLD) return null;
+        if (availabilityHours >= requestedHours) return null;
+        return {
+          label: getChildLabel(child, index),
+          hours: availabilityHours,
+        };
+      })
+      .filter(Boolean);
+
+    if (lowAvailabilityChildren.length > 0) {
+      const summary = lowAvailabilityChildren
+        .map(
+          (child) => `${child.label}: ${formatHoursLabel(child.hours)} hours`
+        )
+        .join(", ");
+      const message =
+        lowAvailabilityChildren.length === 1
+          ? `Are you sure that you want to submit this form with only ${formatHoursLabel(
+              lowAvailabilityChildren[0].hours
+            )} hours of availability? This may make it tricky for us to place your family effectively.`
+          : `Are you sure that you want to submit this form with only ${summary} of availability? This may make it tricky for us to place your family effectively.`;
+      if (!window.confirm(message)) {
+        return;
+      }
     }
 
     setErrors([]);
