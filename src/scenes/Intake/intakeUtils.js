@@ -28,6 +28,8 @@ const schedulePreferenceValues = [
   "no_preference",
 ];
 
+const DEFAULT_AVAILABILITY_THRESHOLD = 5;
+
 const hasAvailability = (availability) =>
   Object.values(availability || {}).some((slots) => slots?.length);
 
@@ -380,6 +382,7 @@ export {
   getSchedulePreferenceFromFamily,
   normalizeTutorIds,
   normalizeIntakeSubjects,
+  DEFAULT_AVAILABILITY_THRESHOLD,
   parseHoursValue,
   isWholeHourValue,
   getAvailabilityHours,
