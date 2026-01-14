@@ -131,6 +131,63 @@ const normalizeIntakeSubjects = (subjects) => {
   });
 };
 
+const parseHoursValue = (value) => {
+  if (value === null || value === undefined || value === "") return null;
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return null;
+  return parsed;
+};
+
+const isWholeHourValue = (value) => {
+  const parsed = parseHoursValue(value);
+  if (parsed === null) return true;
+  return Number.isInteger(parsed);
+};
+
+const resolveSlotDate = (value) => {
+  if (!value) return null;
+  if (value instanceof Date && !Number.isNaN(value.getTime())) return value;
+  if (typeof value?.toDate === "function") return value.toDate();
+  if (typeof value === "string" && value.includes(":")) {
+    const [hours, minutes] = value.split(":").map(Number);
+    if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return null;
+    const date = new Date();
+    date.setHours(hours, minutes, 0, 0);
+    return date;
+  }
+  return null;
+};
+
+const getAvailabilityHours = (availability) => {
+  let total = 0;
+  Object.values(availability || {}).forEach((slots) => {
+    if (!Array.isArray(slots)) return;
+    slots.forEach((slot) => {
+      const start = resolveSlotDate(slot?.start);
+      const end = resolveSlotDate(slot?.end);
+      if (!start || !end) return;
+      const durationMs = end.getTime() - start.getTime();
+      if (durationMs > 0) {
+        total += durationMs / (1000 * 60 * 60);
+      }
+    });
+  });
+  return total;
+};
+
+const getRequestedTutoringHours = (subjects = []) => {
+  if (!Array.isArray(subjects)) return 0;
+  return subjects.reduce((total, subject) => {
+    if (!subject?.id) return total;
+    if (typeof subject?.selected === "boolean" && !subject.selected) {
+      return total;
+    }
+    const hours = parseHoursValue(subject?.hours);
+    if (!Number.isFinite(hours) || hours <= 0) return total;
+    return total + hours;
+  }, 0);
+};
+
 const createChild = (overrides = {}) => ({
   firstName: "",
   middleName: "",
@@ -323,5 +380,9 @@ export {
   getSchedulePreferenceFromFamily,
   normalizeTutorIds,
   normalizeIntakeSubjects,
+  parseHoursValue,
+  isWholeHourValue,
+  getAvailabilityHours,
+  getRequestedTutoringHours,
   validateAvailability,
 };
