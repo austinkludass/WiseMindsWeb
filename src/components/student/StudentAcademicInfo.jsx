@@ -108,6 +108,13 @@ const sortSubjectsByCommon = (options) => {
   return [...common, ...uncommon];
 };
 
+const parseHoursValue = (value) => {
+  if (value === null || value === undefined || value === "") return null;
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return null;
+  return parsed;
+};
+
 const StudentAcademicInfo = ({
   formData,
   setFormData,
@@ -116,6 +123,7 @@ const StudentAcademicInfo = ({
   setSubjects,
   allowTutoringToggle = false,
   showTutorPreferences = true,
+  showHoursWarning = false,
 }) => {
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
@@ -146,6 +154,17 @@ const StudentAcademicInfo = ({
     "Tertiary",
     "Other",
   ];
+
+  const getHoursWarning = (subject) => {
+    if (!showHoursWarning) return "";
+    if (allowTutoringToggle && subject?.selected === false) return "";
+    const parsed = parseHoursValue(subject?.hours);
+    if (parsed === null) return "";
+    if (!Number.isInteger(parsed)) {
+      return "Please enter whole hours (1, 2, 3...).";
+    }
+    return "";
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -729,6 +748,8 @@ const StudentAcademicInfo = ({
                     }
                     sx={{ width: 120 }}
                     disabled={allowTutoringToggle && !subject.selected}
+                    error={Boolean(getHoursWarning(subject))}
+                    helperText={getHoursWarning(subject)}
                   />
                   <IconButton
                     color="error"

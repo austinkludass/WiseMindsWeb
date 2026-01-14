@@ -89,6 +89,21 @@ const formatOpenHoursLabel = (minTime, maxTime) => {
   return `Open hours: ${start} to ${end}.`;
 };
 
+const resolveSlotDate = (value) => {
+  if (value instanceof Date && isValidDate(value)) return value;
+  if (typeof value === "string") return timeStringToDate(value);
+  return null;
+};
+
+const isHalfHourAligned = (value) => {
+  const date = resolveSlotDate(value);
+  if (!date) return true;
+  return date.getMinutes() === 30;
+};
+
+const halfHourWarningText =
+  "Lessons start and end on the half hour (e.g. 3:30-4:30).";
+
 const AvailabilitySelector = ({
   initialAvailability,
   onAvailabilityChange,
@@ -96,6 +111,7 @@ const AvailabilitySelector = ({
   minHour = DEFAULT_MIN_HOUR,
   maxHour = DEFAULT_MAX_HOUR,
   dayTimeBounds,
+  showHalfHourWarning = false,
 }) => {
   const [availability, setAvailability] = useState({});
   const isSyncingRef = useRef(false);
@@ -247,12 +263,26 @@ const AvailabilitySelector = ({
     return slots.map((slot, index) => {
       const startOutside = isOutsideBounds(slot.start, dayMinTime, dayMaxTime);
       const endOutside = isOutsideBounds(slot.end, dayMinTime, dayMaxTime);
+      const startMisaligned =
+        showHalfHourWarning && !startOutside && !isHalfHourAligned(slot.start);
+      const endMisaligned =
+        showHalfHourWarning && !endOutside && !isHalfHourAligned(slot.end);
       const startHelperText = startOutside
         ? `Wise Minds is closed at the time you've entered. ${openHoursLabel}`
-        : "";
+        : startMisaligned
+          ? halfHourWarningText
+          : "";
       const endHelperText = endOutside
         ? `Wise Minds is closed at the time you've entered. ${openHoursLabel}`
-        : "";
+        : endMisaligned
+          ? halfHourWarningText
+          : "";
+      const startHelperProps = startMisaligned
+        ? { sx: { color: "warning.main" } }
+        : undefined;
+      const endHelperProps = endMisaligned
+        ? { sx: { color: "warning.main" } }
+        : undefined;
       return (
         <Stack
           key={`${day}-${index}`}
@@ -276,6 +306,7 @@ const AvailabilitySelector = ({
                 fullWidth: true,
                 error: startOutside,
                 helperText: startHelperText,
+                FormHelperTextProps: startHelperProps,
               },
             }}
           />
@@ -294,6 +325,7 @@ const AvailabilitySelector = ({
                 fullWidth: true,
                 error: endOutside,
                 helperText: endHelperText,
+                FormHelperTextProps: endHelperProps,
               },
             }}
           />

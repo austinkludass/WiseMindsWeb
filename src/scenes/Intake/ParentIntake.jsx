@@ -15,6 +15,7 @@ import {
   formatDateValue,
   getClientMeta,
   hasAvailability,
+  isWholeHourValue,
   mapSchedulePreference,
   validateAvailability,
 } from "./intakeUtils";
@@ -355,6 +356,16 @@ const ParentIntake = () => {
           )
         );
       }
+
+      child.subjects.forEach((subject) => {
+        if (!subject?.id) return;
+        if (typeof subject?.selected === "boolean" && !subject.selected) return;
+        if (!isWholeHourValue(subject.hours)) {
+          nextErrors.push(
+            `${label}: tutoring hours must be whole numbers (1, 2, 3...).`
+          );
+        }
+      });
     });
 
     if (!familyData.howUserHeard.trim())
