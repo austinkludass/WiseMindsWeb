@@ -1,5 +1,6 @@
 import { useState } from "react";
 import AvailabilitySelector from "../Tutor/AvailabilitySelector";
+import studentAvailabilityBounds from "./studentAvailabilityBounds";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import dayjs from "dayjs";
 import { Typography, useTheme, Stack } from "@mui/material";
@@ -31,6 +32,7 @@ const StudentTrialInfo = ({
             onAvailabilityChange={handleTrialAvailabilityChange}
             initialAvailability={trialAvailability}
             isEdit={true}
+            dayTimeBounds={studentAvailabilityBounds}
           />
           <DatePicker
             value={formData.preferredStart ? dayjs(formData.preferredStart) : null}
@@ -45,6 +47,7 @@ const StudentTrialInfo = ({
               onAvailabilityChange={() => {}}
               initialAvailability={trialAvailability}
               isEdit={false}
+              dayTimeBounds={studentAvailabilityBounds}
             />
           </div>
           <div style={{ display: "flex", gap: "10px" }}>

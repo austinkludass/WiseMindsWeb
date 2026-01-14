@@ -1,5 +1,6 @@
 import { Stack } from "@mui/material";
 import AvailabilitySelector from "../Tutor/AvailabilitySelector";
+import studentAvailabilityBounds from "./studentAvailabilityBounds";
 
 const StudentAvailabilityInfo = ({ isEdit, availability, setAvailability }) => {
   const handleAvailabilityChange = (updatedAvailability) => {
@@ -14,6 +15,7 @@ const StudentAvailabilityInfo = ({ isEdit, availability, setAvailability }) => {
             onAvailabilityChange={handleAvailabilityChange}
             initialAvailability={availability}
             isEdit={true}
+            dayTimeBounds={studentAvailabilityBounds}
           />
         </>
       ) : (
@@ -23,6 +25,7 @@ const StudentAvailabilityInfo = ({ isEdit, availability, setAvailability }) => {
               onAvailabilityChange={() => {}}
               initialAvailability={availability}
               isEdit={false}
+              dayTimeBounds={studentAvailabilityBounds}
             />
           </div>
         </>
