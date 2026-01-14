@@ -160,6 +160,9 @@ const StudentAcademicInfo = ({
     if (allowTutoringToggle && subject?.selected === false) return "";
     const parsed = parseHoursValue(subject?.hours);
     if (parsed === null) return "";
+    if (parsed <= 0) {
+      return "Please enter a positive number of hours.";
+    }
     if (!Number.isInteger(parsed)) {
       return "Please enter whole hours (1, 2, 3...).";
     }
