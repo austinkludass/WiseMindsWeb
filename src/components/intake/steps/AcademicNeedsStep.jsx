@@ -21,6 +21,7 @@ const AcademicNeedsStep = ({
         setSubjects={setSubjects}
         allowTutoringToggle={true}
         showTutorPreferences={showTutorPreferences}
+        showHoursWarning={true}
       />
     </Stack>
   );

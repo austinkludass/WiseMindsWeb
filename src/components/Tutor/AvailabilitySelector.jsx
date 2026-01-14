@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Box,
   Button,
@@ -31,14 +31,18 @@ const daysOfWeek = [
   "Sunday",
 ];
 
+const weekendDays = ["Saturday", "Sunday"];
+
 const DEFAULT_MIN_HOUR = 8;
 const DEFAULT_MAX_HOUR = 21;
 
-const timeForHour = (hour) => {
+const timeForParts = (hour, minute = 0) => {
   const date = new Date();
-  date.setHours(hour, 0, 0, 0);
+  date.setHours(hour, minute, 0, 0);
   return date;
 };
+
+const timeForHour = (hour) => timeForParts(hour, 0);
 
 const isValidDate = (value) =>
   value instanceof Date && !Number.isNaN(value.getTime());
@@ -54,14 +58,73 @@ function timeStringToDate(timeStr) {
   return date;
 }
 
+const resolveBoundTime = (value, fallback) => {
+  if (!value) return fallback;
+  if (value instanceof Date && isValidDate(value)) return value;
+  if (typeof value === "string") return timeStringToDate(value);
+  if (typeof value === "number") return timeForHour(value);
+  if (typeof value === "object") {
+    const hour = Number(value.hour);
+    const minute = Number(value.minute ?? value.minutes ?? 0);
+    if (Number.isFinite(hour) && Number.isFinite(minute)) {
+      return timeForParts(hour, minute);
+    }
+  }
+  return fallback;
+};
+
+const isOutsideBounds = (value, minTime, maxTime) => {
+  if (!isValidDate(value)) return false;
+  return value < minTime || value > maxTime;
+};
+
+const formatTimeLabel = (value) =>
+  value.toLocaleTimeString("en-AU", {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
+
+const formatOpenHoursLabel = (minTime, maxTime) => {
+  const start = formatTimeLabel(minTime);
+  const end = formatTimeLabel(maxTime);
+  return `Open hours: ${start} to ${end}.`;
+};
+
+const resolveSlotDate = (value) => {
+  if (value instanceof Date && isValidDate(value)) return value;
+  if (typeof value === "string") return timeStringToDate(value);
+  return null;
+};
+
+const isHalfHourAligned = (value, day) => {
+  const date = resolveSlotDate(value);
+  if (!date) return true;
+  const minutes = date.getMinutes();
+  if (weekendDays.includes(day)) {
+    return minutes === 0 || minutes === 30;
+  }
+  return minutes === 30;
+};
+
+const getHalfHourWarningText = (day) =>
+  weekendDays.includes(day)
+    ? "Lessons start and end on the hour or half hour (e.g. 10:00-11:00)."
+    : "Lessons start and end on the half hour (e.g. 3:30-4:30).";
+
 const AvailabilitySelector = ({
   initialAvailability,
   onAvailabilityChange,
   isEdit,
   minHour = DEFAULT_MIN_HOUR,
   maxHour = DEFAULT_MAX_HOUR,
+  dayTimeBounds,
+  showHalfHourWarning = false,
 }) => {
   const [availability, setAvailability] = useState({});
+  const isSyncingRef = useRef(false);
+  const didMountRef = useRef(false);
+  const onChangeRef = useRef(onAvailabilityChange);
   const theme = useTheme();
   const isCompact = useMediaQuery(theme.breakpoints.down("sm"));
   const resolvedMinHour = Number.isFinite(minHour)
@@ -72,6 +135,14 @@ const AvailabilitySelector = ({
     : DEFAULT_MAX_HOUR;
   const minTime = timeForHour(Math.min(resolvedMinHour, resolvedMaxHour));
   const maxTime = timeForHour(Math.max(resolvedMinHour, resolvedMaxHour));
+
+  const getDayBounds = (day) => {
+    const bounds = dayTimeBounds?.[day];
+    if (!bounds) return { minTime, maxTime };
+    const dayMin = resolveBoundTime(bounds.start, minTime);
+    const dayMax = resolveBoundTime(bounds.end, maxTime);
+    return { minTime: dayMin, maxTime: dayMax };
+  };
 
   useEffect(() => {
     if (!initialAvailability) return;
@@ -88,29 +159,54 @@ const AvailabilitySelector = ({
       }));
     }
 
+    isSyncingRef.current = true;
     setAvailability(parsed);
   }, [initialAvailability]);
 
+  useEffect(() => {
+    onChangeRef.current = onAvailabilityChange;
+  }, [onAvailabilityChange]);
+
+  useEffect(() => {
+    if (!didMountRef.current) {
+      didMountRef.current = true;
+      if (isSyncingRef.current) {
+        isSyncingRef.current = false;
+      }
+      return;
+    }
+    if (isSyncingRef.current) {
+      isSyncingRef.current = false;
+      return;
+    }
+    if (onChangeRef.current) {
+      onChangeRef.current(availability);
+    }
+  }, [availability]);
+
   const updateAvailability = (updater) => {
-    setAvailability((prev) => {
-      const next =
-        typeof updater === "function" ? updater(prev) : updater;
-      if (onAvailabilityChange) onAvailabilityChange(next);
-      return next;
-    });
+    setAvailability((prev) =>
+      typeof updater === "function" ? updater(prev) : updater
+    );
   };
 
   // Add a new time slot for a day
   const addTimeSlot = (day) => {
-    const startHour = Math.min(resolvedMinHour, resolvedMaxHour);
-    const endHour = Math.min(startHour + 1, Math.max(resolvedMinHour, resolvedMaxHour));
+    const { minTime: dayMinTime, maxTime: dayMaxTime } = getDayBounds(day);
+    const startTime = new Date(dayMinTime.getTime());
+    const endCandidate = new Date(dayMinTime.getTime());
+    endCandidate.setHours(endCandidate.getHours() + 1);
+    const endTime =
+      endCandidate > dayMaxTime
+        ? new Date(dayMaxTime.getTime())
+        : endCandidate;
     updateAvailability((prev) => ({
       ...prev,
       [day]: [
         ...(prev[day] || []),
         {
-          start: timeForHour(startHour),
-          end: timeForHour(endHour),
+          start: startTime,
+          end: endTime,
         },
       ],
     }));
@@ -128,7 +224,6 @@ const AvailabilitySelector = ({
   // Update time values
   const handleTimeChange = (day, index, type, value) => {
     if (!isValidDate(value)) return;
-    if (value < minTime || value > maxTime) return;
     updateAvailability((prev) => {
       const updatedSlots = [...(prev[day] || [])];
       updatedSlots[index] = { ...updatedSlots[index], [type]: value };
@@ -163,6 +258,8 @@ const AvailabilitySelector = ({
 
   const renderDaySlots = (day, showEmptyState) => {
     const slots = availability[day] || [];
+    const { minTime: dayMinTime, maxTime: dayMaxTime } = getDayBounds(day);
+    const openHoursLabel = formatOpenHoursLabel(dayMinTime, dayMaxTime);
     if (slots.length === 0) {
       if (!showEmptyState) return null;
       return (
@@ -171,61 +268,91 @@ const AvailabilitySelector = ({
         </Typography>
       );
     }
-    return slots.map((slot, index) => (
-      <Stack
-        key={`${day}-${index}`}
-        direction={isCompact ? "column" : "row"}
-        spacing={1.5}
-        alignItems={isCompact ? "stretch" : "center"}
-        sx={{ pt: index === 0 ? 0 : isCompact ? 1 : 1.5 }}
-      >
-        <TimePicker
-          label="Start Time"
-          readOnly={!isEdit}
-          value={slot.start}
-          minTime={minTime}
-          maxTime={maxTime}
-          onChange={(newValue) =>
-            handleTimeChange(day, index, "start", newValue)
-          }
-          slotProps={{
-            textField: {
-              variant: "outlined",
-              fullWidth: true,
-            },
-          }}
-        />
-        <TimePicker
-          label="End Time"
-          readOnly={!isEdit}
-          value={slot.end}
-          minTime={minTime}
-          maxTime={maxTime}
-          onChange={(newValue) =>
-            handleTimeChange(day, index, "end", newValue)
-          }
-          slotProps={{
-            textField: {
-              variant: "outlined",
-              fullWidth: true,
-            },
-          }}
-        />
-        {isEdit && (
-          <Box
-            display="flex"
-            justifyContent={isCompact ? "flex-end" : "flex-start"}
-          >
-            <IconButton
-              color="error"
-              onClick={() => removeTimeSlot(day, index)}
+    return slots.map((slot, index) => {
+      const startOutside = isOutsideBounds(slot.start, dayMinTime, dayMaxTime);
+      const endOutside = isOutsideBounds(slot.end, dayMinTime, dayMaxTime);
+      const startMisaligned =
+        showHalfHourWarning && !startOutside && !isHalfHourAligned(slot.start, day);
+      const endMisaligned =
+        showHalfHourWarning && !endOutside && !isHalfHourAligned(slot.end, day);
+      const startHelperText = startOutside
+        ? `Wise Minds is closed at the time you've entered. ${openHoursLabel}`
+        : startMisaligned
+          ? getHalfHourWarningText(day)
+          : "";
+      const endHelperText = endOutside
+        ? `Wise Minds is closed at the time you've entered. ${openHoursLabel}`
+        : endMisaligned
+          ? getHalfHourWarningText(day)
+          : "";
+      const startHelperProps = startMisaligned
+        ? { sx: { color: "warning.main" } }
+        : undefined;
+      const endHelperProps = endMisaligned
+        ? { sx: { color: "warning.main" } }
+        : undefined;
+      return (
+        <Stack
+          key={`${day}-${index}`}
+          direction={isCompact ? "column" : "row"}
+          spacing={1.5}
+          alignItems={isCompact ? "stretch" : "center"}
+          sx={{ pt: index === 0 ? 0 : isCompact ? 1 : 1.5 }}
+        >
+          <TimePicker
+            label="Start Time"
+            readOnly={!isEdit}
+            value={slot.start}
+            minTime={dayMinTime}
+            maxTime={dayMaxTime}
+            onChange={(newValue) =>
+              handleTimeChange(day, index, "start", newValue)
+            }
+            slotProps={{
+              textField: {
+                variant: "outlined",
+                fullWidth: true,
+                error: startOutside,
+                helperText: startHelperText,
+                FormHelperTextProps: startHelperProps,
+              },
+            }}
+          />
+          <TimePicker
+            label="End Time"
+            readOnly={!isEdit}
+            value={slot.end}
+            minTime={dayMinTime}
+            maxTime={dayMaxTime}
+            onChange={(newValue) =>
+              handleTimeChange(day, index, "end", newValue)
+            }
+            slotProps={{
+              textField: {
+                variant: "outlined",
+                fullWidth: true,
+                error: endOutside,
+                helperText: endHelperText,
+                FormHelperTextProps: endHelperProps,
+              },
+            }}
+          />
+          {isEdit && (
+            <Box
+              display="flex"
+              justifyContent={isCompact ? "flex-end" : "flex-start"}
             >
-              <DeleteIcon />
-            </IconButton>
-          </Box>
-        )}
-      </Stack>
-    ));
+              <IconButton
+                color="error"
+                onClick={() => removeTimeSlot(day, index)}
+              >
+                <DeleteIcon />
+              </IconButton>
+            </Box>
+          )}
+        </Stack>
+      );
+    });
   };
 
   return (

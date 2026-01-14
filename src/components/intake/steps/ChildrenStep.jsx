@@ -16,6 +16,7 @@ import AcademicNeedsStep from "./AcademicNeedsStep";
 import TrialStep from "./TrialStep";
 import RegularAvailabilityStep from "./RegularAvailabilityStep";
 import StudentAdditionalInfo from "../../student/StudentAdditionalInfo";
+import { getRequestedTutoringHours } from "../../../scenes/Intake/intakeUtils";
 
 const getChildLabel = (child, index) => {
   const name = [child.firstName, child.lastName].filter(Boolean).join(" ");
@@ -184,6 +185,9 @@ const ChildrenStep = ({
               <RegularAvailabilityStep
                 availability={child.availability}
                 setAvailability={setChildAvailability(index)}
+                requestedTutoringHours={getRequestedTutoringHours(
+                  child.subjects
+                )}
               />
 
               <Divider />
