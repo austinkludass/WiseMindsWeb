@@ -432,6 +432,8 @@ export {
   defaultSubjects,
   mapExistingSubmissionToIntakeState,
   formatDateValue,
+  parseDateValue,
+  getClientMeta,
   hasAvailability,
   mapSchedulePreference,
   getSchedulePreferenceFromFamily,
