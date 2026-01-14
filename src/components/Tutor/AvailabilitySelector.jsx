@@ -31,6 +31,8 @@ const daysOfWeek = [
   "Sunday",
 ];
 
+const weekendDays = ["Saturday", "Sunday"];
+
 const DEFAULT_MIN_HOUR = 8;
 const DEFAULT_MAX_HOUR = 21;
 
@@ -95,14 +97,20 @@ const resolveSlotDate = (value) => {
   return null;
 };
 
-const isHalfHourAligned = (value) => {
+const isHalfHourAligned = (value, day) => {
   const date = resolveSlotDate(value);
   if (!date) return true;
-  return date.getMinutes() === 30;
+  const minutes = date.getMinutes();
+  if (weekendDays.includes(day)) {
+    return minutes === 0 || minutes === 30;
+  }
+  return minutes === 30;
 };
 
-const halfHourWarningText =
-  "Lessons start and end on the half hour (e.g. 3:30-4:30).";
+const getHalfHourWarningText = (day) =>
+  weekendDays.includes(day)
+    ? "Lessons start and end on the hour or half hour (e.g. 10:00-11:00)."
+    : "Lessons start and end on the half hour (e.g. 3:30-4:30).";
 
 const AvailabilitySelector = ({
   initialAvailability,
@@ -264,18 +272,18 @@ const AvailabilitySelector = ({
       const startOutside = isOutsideBounds(slot.start, dayMinTime, dayMaxTime);
       const endOutside = isOutsideBounds(slot.end, dayMinTime, dayMaxTime);
       const startMisaligned =
-        showHalfHourWarning && !startOutside && !isHalfHourAligned(slot.start);
+        showHalfHourWarning && !startOutside && !isHalfHourAligned(slot.start, day);
       const endMisaligned =
-        showHalfHourWarning && !endOutside && !isHalfHourAligned(slot.end);
+        showHalfHourWarning && !endOutside && !isHalfHourAligned(slot.end, day);
       const startHelperText = startOutside
         ? `Wise Minds is closed at the time you've entered. ${openHoursLabel}`
         : startMisaligned
-          ? halfHourWarningText
+          ? getHalfHourWarningText(day)
           : "";
       const endHelperText = endOutside
         ? `Wise Minds is closed at the time you've entered. ${openHoursLabel}`
         : endMisaligned
-          ? halfHourWarningText
+          ? getHalfHourWarningText(day)
           : "";
       const startHelperProps = startMisaligned
         ? { sx: { color: "warning.main" } }
