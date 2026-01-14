@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Box,
   Button,
@@ -62,6 +62,9 @@ const AvailabilitySelector = ({
   maxHour = DEFAULT_MAX_HOUR,
 }) => {
   const [availability, setAvailability] = useState({});
+  const isSyncingRef = useRef(false);
+  const didMountRef = useRef(false);
+  const onChangeRef = useRef(onAvailabilityChange);
   const theme = useTheme();
   const isCompact = useMediaQuery(theme.breakpoints.down("sm"));
   const resolvedMinHour = Number.isFinite(minHour)
@@ -88,16 +91,35 @@ const AvailabilitySelector = ({
       }));
     }
 
+    isSyncingRef.current = true;
     setAvailability(parsed);
   }, [initialAvailability]);
 
+  useEffect(() => {
+    onChangeRef.current = onAvailabilityChange;
+  }, [onAvailabilityChange]);
+
+  useEffect(() => {
+    if (!didMountRef.current) {
+      didMountRef.current = true;
+      if (isSyncingRef.current) {
+        isSyncingRef.current = false;
+      }
+      return;
+    }
+    if (isSyncingRef.current) {
+      isSyncingRef.current = false;
+      return;
+    }
+    if (onChangeRef.current) {
+      onChangeRef.current(availability);
+    }
+  }, [availability]);
+
   const updateAvailability = (updater) => {
-    setAvailability((prev) => {
-      const next =
-        typeof updater === "function" ? updater(prev) : updater;
-      if (onAvailabilityChange) onAvailabilityChange(next);
-      return next;
-    });
+    setAvailability((prev) =>
+      typeof updater === "function" ? updater(prev) : updater
+    );
   };
 
   // Add a new time slot for a day

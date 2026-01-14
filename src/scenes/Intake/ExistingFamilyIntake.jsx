@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Box, Button, CircularProgress, Stack, Typography } from "@mui/material";
-import { addDoc, collection, doc, getDoc } from "firebase/firestore";
+import { addDoc, collection, doc, getDoc, getDocs, query, where } from "firebase/firestore";
 import { useParams } from "react-router-dom";
 import { db } from "../../data/firebase";
 import IntakeLayout from "../../components/intake/IntakeLayout";
@@ -15,18 +15,12 @@ import {
   getClientMeta,
   getSchedulePreferenceFromFamily,
   hasAvailability,
+  mapExistingSubmissionToIntakeState,
   mapSchedulePreference,
   normalizeTutorIds,
+  parseDateValue,
   validateAvailability,
 } from "./intakeUtils";
-
-const parseDateValue = (value) => {
-  if (!value) return null;
-  if (value instanceof Date) return value;
-  if (typeof value?.toDate === "function") return value.toDate();
-  const parsed = new Date(value);
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
-};
 
 const splitFullName = (fullName = "") => {
   const parts = fullName.trim().split(/\s+/).filter(Boolean);
@@ -188,6 +182,10 @@ const ExistingFamilyIntake = () => {
   const [childrenTouched, setChildrenTouched] = useState([
     createChildTouched(),
   ]);
+  const [hydratedFromSubmission, setHydratedFromSubmission] = useState(false);
+  const [latestSubmissionMeta, setLatestSubmissionMeta] = useState(null);
+  const hasUserChangesRef = useRef(false);
+  const baseSnapshotRef = useRef(null);
 
   const steps = useMemo(
     () => [{ label: "Family" }, { label: "Children" }],
@@ -198,6 +196,34 @@ const ExistingFamilyIntake = () => {
   const resolvedParentEmail =
     familyForm.parentEmail.trim() || familySummary?.parentEmail || "";
   const familyLastName = getLastName(resolvedParentName);
+  const latestSubmissionDate = latestSubmissionMeta?.submittedAt
+    ? parseDateValue(latestSubmissionMeta.submittedAt)
+    : null;
+  const latestSubmissionLabel = latestSubmissionDate
+    ? latestSubmissionDate.toLocaleString("en-AU")
+    : "";
+  const latestSubmissionMessage = latestSubmissionLabel
+    ? `Loaded your last submission from ${latestSubmissionLabel}.`
+    : "Loaded your last submission.";
+
+  const markDirty = () => {
+    hasUserChangesRef.current = true;
+  };
+
+  const handleFamilyFormChange = (nextForm) => {
+    markDirty();
+    setFamilyForm(nextForm);
+  };
+
+  const handleChildrenDataChange = (updater) => {
+    markDirty();
+    setChildren(updater);
+  };
+
+  const handleChildrenTouchedChange = (updater) => {
+    markDirty();
+    setChildrenTouched(updater);
+  };
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -205,6 +231,47 @@ const ExistingFamilyIntake = () => {
 
   useEffect(() => {
     let isMounted = true;
+    hasUserChangesRef.current = false;
+    baseSnapshotRef.current = null;
+    setHydratedFromSubmission(false);
+    setLatestSubmissionMeta(null);
+
+    const fetchLatestSubmission = async () => {
+      console.info(logPrefix, "Checking submissions for family:", familyId);
+      const submissionsQuery = query(
+        collection(db, "intakeSubmissions"),
+        where("family.familyId", "==", familyId)
+      );
+      const submissionsSnap = await getDocs(submissionsQuery);
+      const submissions = submissionsSnap.docs
+        .map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }))
+        .filter((submission) =>
+          submission?.meta?.source
+            ? submission.meta.source === "existing-family-intake"
+            : true
+        );
+
+      if (submissions.length === 0) {
+        console.info(logPrefix, "No prior submissions found.");
+        return null;
+      }
+
+      const latestSubmission = submissions.reduce((latest, current) => {
+        const latestDate = parseDateValue(latest?.meta?.submittedAt);
+        const currentDate = parseDateValue(current?.meta?.submittedAt);
+        if (!currentDate) return latest;
+        if (!latestDate || currentDate > latestDate) return current;
+        return latest;
+      }, null);
+
+      const resolved = latestSubmission || submissions[0];
+      console.info(
+        logPrefix,
+        "Latest intake submission resolved:",
+        resolved?.id || "(missing id)"
+      );
+      return resolved;
+    };
 
     const fetchFamily = async () => {
       console.info(logPrefix, "Loading intake for family id:", familyId);
@@ -237,19 +304,11 @@ const ExistingFamilyIntake = () => {
           getSchedulePreferenceFromFamily(familyData) ||
           defaultFamilyData.schedulePreference;
 
-        setFamilyForm((prev) => {
-          const next = { ...prev };
-          if (!prev.parentName.trim()) {
-            next.parentName = familyData.parentName || "";
-          }
-          if (!prev.parentEmail.trim()) {
-            next.parentEmail = familyData.parentEmail || "";
-          }
-          if (!prev.schedulePreference) {
-            next.schedulePreference = schedulePreference;
-          }
-          return next;
-        });
+        const baseFamilyForm = {
+          parentName: familyData.parentName || "",
+          parentEmail: familyData.parentEmail || "",
+          schedulePreference,
+        };
 
         const familyStudents = Array.isArray(familyData.students)
           ? familyData.students
@@ -325,67 +384,117 @@ const ExistingFamilyIntake = () => {
           normalizedStudents.map((student) => student.id || "(missing id)")
         );
 
-        if (normalizedStudents.length === 0) {
-          setChildren([createChild()]);
-          setChildrenTouched([createChildTouched()]);
-          setIsLoading(false);
-          return;
-        }
-
-        const studentDocs = await Promise.all(
-          normalizedStudents.map((student) =>
-            student.ref
-              ? (console.info(
-                  logPrefix,
-                  "Fetching student doc:",
-                  student.ref.path
-                ),
-                getDoc(student.ref))
-              : student.id
+        let baseChildren = [];
+        if (normalizedStudents.length > 0) {
+          const studentDocs = await Promise.all(
+            normalizedStudents.map((student) =>
+              student.ref
                 ? (console.info(
                     logPrefix,
                     "Fetching student doc:",
-                    `students/${student.id}`
+                    student.ref.path
                   ),
-                  getDoc(doc(db, "students", student.id)))
-                : Promise.resolve(null)
-          )
-        );
+                  getDoc(student.ref))
+                : student.id
+                  ? (console.info(
+                      logPrefix,
+                      "Fetching student doc:",
+                      `students/${student.id}`
+                    ),
+                    getDoc(doc(db, "students", student.id)))
+                  : Promise.resolve(null)
+            )
+          );
+
+          if (!isMounted) return;
+
+          baseChildren = normalizedStudents.map((student, index) => {
+            const fallbackName = student.name || "";
+            const studentSnap = studentDocs[index];
+            const studentData =
+              studentSnap &&
+              typeof studentSnap.exists === "function" &&
+              studentSnap.exists()
+                ? studentSnap.data()
+                : null;
+            console.info(
+              logPrefix,
+              "Student doc resolved:",
+              student?.id || "(missing id)",
+              studentData ? "found" : "missing"
+            );
+            return mapStudentToChild({
+              studentData,
+              fallbackName,
+              studentId: student.id || "",
+              fallbackSchool: student.school,
+              fallbackYearLevel: student.yearLevel,
+              fallbackNotes: student.notes,
+              fallbackAllergiesAna: student.allergiesAna,
+              fallbackAllergiesNonAna: student.allergiesNonAna,
+              fallbackDateOfBirth: student.dateOfBirth,
+              fallbackDoesCarryEpi: student.doesCarryEpi,
+              fallbackDoesAdminEpi: student.doesAdminEpi,
+              fallbackMaxHoursPerDay: student.maxHoursPerDay,
+            });
+          });
+        }
+
+        if (baseChildren.length === 0) {
+          baseChildren = [createChild()];
+        }
+
+        baseSnapshotRef.current = {
+          familyForm: baseFamilyForm,
+          children: baseChildren,
+        };
+
+        let resolvedFamilyForm = baseFamilyForm;
+        let resolvedChildren = baseChildren;
+        let didHydrate = false;
+        let latestSubmission = null;
+
+        try {
+          latestSubmission = await fetchLatestSubmission();
+        } catch (error) {
+          console.warn(logPrefix, "Unable to load submissions:", error);
+        }
 
         if (!isMounted) return;
 
-        const mappedChildren = normalizedStudents.map((student, index) => {
-          const fallbackName = student.name || "";
-          const studentSnap = studentDocs[index];
-          const studentData =
-            studentSnap && typeof studentSnap.exists === "function" && studentSnap.exists()
-              ? studentSnap.data()
-              : null;
-          console.info(
-            logPrefix,
-            "Student doc resolved:",
-            student?.id || "(missing id)",
-            studentData ? "found" : "missing"
+        if (latestSubmission && !hasUserChangesRef.current) {
+          const submissionState = mapExistingSubmissionToIntakeState(
+            latestSubmission
           );
-          return mapStudentToChild({
-            studentData,
-            fallbackName,
-            studentId: student.id || "",
-            fallbackSchool: student.school,
-            fallbackYearLevel: student.yearLevel,
-            fallbackNotes: student.notes,
-            fallbackAllergiesAna: student.allergiesAna,
-            fallbackAllergiesNonAna: student.allergiesNonAna,
-            fallbackDateOfBirth: student.dateOfBirth,
-            fallbackDoesCarryEpi: student.doesCarryEpi,
-            fallbackDoesAdminEpi: student.doesAdminEpi,
-            fallbackMaxHoursPerDay: student.maxHoursPerDay,
+          const submissionFamilyForm = submissionState.familyForm || {};
+          const submissionChildren = submissionState.children || [];
+          const resolvedSchedulePreference =
+            submissionFamilyForm.schedulePreference ||
+            baseFamilyForm.schedulePreference ||
+            defaultFamilyData.schedulePreference;
+          resolvedFamilyForm = {
+            ...baseFamilyForm,
+            ...submissionFamilyForm,
+            schedulePreference: resolvedSchedulePreference,
+          };
+          if (submissionChildren.length > 0) {
+            resolvedChildren = submissionChildren;
+          }
+          didHydrate = true;
+          setLatestSubmissionMeta({
+            id: latestSubmission.id,
+            submittedAt: latestSubmission.meta?.submittedAt || null,
           });
-        });
+        }
 
-        const nextChildren = mappedChildren.length > 0 ? mappedChildren : [createChild()];
-        setChildren(nextChildren);
-        setChildrenTouched(nextChildren.map(() => createChildTouched()));
+        if (!hasUserChangesRef.current) {
+          setFamilyForm(resolvedFamilyForm);
+          setChildren(resolvedChildren);
+          setChildrenTouched(resolvedChildren.map(() => createChildTouched()));
+        }
+
+        setHydratedFromSubmission(didHydrate);
+        if (!didHydrate) setLatestSubmissionMeta(null);
       } catch (error) {
         if (isMounted) {
           console.error(logPrefix, "Load failed:", error, familySnap);
@@ -553,6 +662,18 @@ const ExistingFamilyIntake = () => {
     }
   };
 
+  const handleResetToFamily = () => {
+    const baseSnapshot = baseSnapshotRef.current;
+    if (!baseSnapshot) return;
+    hasUserChangesRef.current = false;
+    setHydratedFromSubmission(false);
+    setLatestSubmissionMeta(null);
+    setErrors([]);
+    setFamilyForm(baseSnapshot.familyForm);
+    setChildren(baseSnapshot.children);
+    setChildrenTouched(baseSnapshot.children.map(() => createChildTouched()));
+  };
+
   const handleStartNew = () => {
     setSubmitted(false);
     setCurrentStep(0);
@@ -616,6 +737,24 @@ const ExistingFamilyIntake = () => {
           </Alert>
         )}
         {loadError && <Alert severity="error">{loadError}</Alert>}
+        {hydratedFromSubmission && (
+          <Alert severity="info">
+            <Stack
+              direction={{ xs: "column", sm: "row" }}
+              spacing={2}
+              alignItems={{ xs: "flex-start", sm: "center" }}
+            >
+              <Typography variant="body2">{latestSubmissionMessage}</Typography>
+              <Button
+                variant="outlined"
+                size="small"
+                onClick={handleResetToFamily}
+              >
+                Reset to family data
+              </Button>
+            </Stack>
+          </Alert>
+        )}
         <Box>
           <Typography variant="overline" color="text.secondary">
             {titleText}
@@ -627,15 +766,15 @@ const ExistingFamilyIntake = () => {
         {currentStep === 0 && (
           <ExistingFamilyStep
             formData={familyForm}
-            setFormData={setFamilyForm}
+            setFormData={handleFamilyFormChange}
           />
         )}
         {currentStep === 1 && (
           <ChildrenStep
             childrenData={children}
-            setChildrenData={setChildren}
+            setChildrenData={handleChildrenDataChange}
             childrenTouched={childrenTouched}
-            setChildrenTouched={setChildrenTouched}
+            setChildrenTouched={handleChildrenTouchedChange}
             createChild={createChild}
             createChildTouched={createChildTouched}
             showTrialStep={false}
