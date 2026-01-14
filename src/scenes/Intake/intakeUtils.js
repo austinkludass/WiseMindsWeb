@@ -1,3 +1,5 @@
+import studentAvailabilityBounds from "../../components/student/studentAvailabilityBounds";
+
 const defaultFamilyData = {
   parentName: "",
   familyEmail: "",
@@ -158,6 +160,59 @@ const resolveSlotDate = (value) => {
     return date;
   }
   return null;
+};
+
+const formatTimeLabel = (value) =>
+  value.toLocaleTimeString("en-AU", {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
+
+const getAvailabilityBoundsForDay = (day, bounds = studentAvailabilityBounds) => {
+  const dayBounds = bounds?.[day];
+  if (!dayBounds) return null;
+  const start = resolveSlotDate(dayBounds.start);
+  const end = resolveSlotDate(dayBounds.end);
+  if (!start || !end) return null;
+  return { start, end };
+};
+
+const validateAvailabilityWithinBounds = (
+  availability,
+  label,
+  bounds = studentAvailabilityBounds
+) => {
+  const messages = [];
+  const reported = new Set();
+
+  Object.entries(availability || {}).forEach(([day, slots]) => {
+    if (!Array.isArray(slots) || slots.length === 0) return;
+    const dayBounds = getAvailabilityBoundsForDay(day, bounds);
+    if (!dayBounds) return;
+
+    const outOfBounds = slots.some((slot) => {
+      const start = resolveSlotDate(slot?.start);
+      const end = resolveSlotDate(slot?.end);
+      if (!start || !end) return false;
+      return start < dayBounds.start || end > dayBounds.end;
+    });
+
+    if (outOfBounds) {
+      const key = `${label}-${day}-outside-hours`;
+      if (!reported.has(key)) {
+        const openHours = `${formatTimeLabel(dayBounds.start)} to ${formatTimeLabel(
+          dayBounds.end
+        )}`;
+        messages.push(
+          `${label}: ${day} has times outside Wise Minds opening hours (${openHours}).`
+        );
+        reported.add(key);
+      }
+    }
+  });
+
+  return messages;
 };
 
 const getAvailabilityHours = (availability) => {
@@ -387,5 +442,6 @@ export {
   isWholeHourValue,
   getAvailabilityHours,
   getRequestedTutoringHours,
+  validateAvailabilityWithinBounds,
   validateAvailability,
 };

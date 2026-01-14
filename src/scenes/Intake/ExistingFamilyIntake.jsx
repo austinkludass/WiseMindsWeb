@@ -23,6 +23,7 @@ import {
   mapSchedulePreference,
   normalizeTutorIds,
   parseDateValue,
+  validateAvailabilityWithinBounds,
   validateAvailability,
 } from "./intakeUtils";
 
@@ -612,6 +613,12 @@ const ExistingFamilyIntake = () => {
       if (hasAvailability(child.availability)) {
         nextErrors.push(
           ...validateAvailability(
+            child.availability,
+            `${label} regular availability`
+          )
+        );
+        nextErrors.push(
+          ...validateAvailabilityWithinBounds(
             child.availability,
             `${label} regular availability`
           )
