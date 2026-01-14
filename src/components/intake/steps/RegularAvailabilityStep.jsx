@@ -1,6 +1,9 @@
 import { Stack, Typography } from "@mui/material";
 import StudentAvailabilityInfo from "../../student/StudentAvailabilityInfo";
-import { getAvailabilityHours } from "../../../scenes/Intake/intakeUtils";
+import {
+  DEFAULT_AVAILABILITY_THRESHOLD,
+  getAvailabilityHours,
+} from "../../../scenes/Intake/intakeUtils";
 
 const formatHoursLabel = (hours) => {
   if (!Number.isFinite(hours)) return "0";
@@ -11,7 +14,7 @@ const RegularAvailabilityStep = ({
   availability,
   setAvailability,
   requestedTutoringHours = 0,
-  availabilityThreshold = 5,
+  availabilityThreshold = DEFAULT_AVAILABILITY_THRESHOLD,
 }) => {
   const availabilityHours = getAvailabilityHours(availability);
   const totalLabel = `${formatHoursLabel(availabilityHours)} hours/week`;
@@ -42,13 +45,14 @@ const RegularAvailabilityStep = ({
         spacing={1}
         alignItems={{ xs: "flex-start", sm: "center" }}
       >
-        <Typography variant="body2" color="text.secondary">
+        <Typography variant="subtitle1" fontWeight="bold">
           Total availability: {totalLabel}
         </Typography>
         {showLowAvailabilityWarning && (
           <Typography variant="body2" color="warning.main">
-            This is less than the tutoring hours requested. Consider adding
-            more availability.
+            You've only stated {totalLabel} of availability. This may make it
+            tricky for us to allocate your child. Please consider adding more
+            availability if you have capacity to do so.
           </Typography>
         )}
       </Stack>
