@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Box, Button, CircularProgress, Stack, Typography } from "@mui/material";
-import { addDoc, collection, doc, getDoc, getDocs, query, where } from "firebase/firestore";
+import { addDoc, collection } from "firebase/firestore";
+import { httpsCallable } from "firebase/functions";
 import { useParams } from "react-router-dom";
-import { db } from "../../data/firebase";
+import { db, functions } from "../../data/firebase";
 import IntakeLayout from "../../components/intake/IntakeLayout";
 import ChildrenStep from "../../components/intake/steps/ChildrenStep";
 import ExistingFamilyStep from "../../components/intake/steps/ExistingFamilyStep";
@@ -241,43 +242,6 @@ const ExistingFamilyIntake = () => {
     setHydratedFromSubmission(false);
     setLatestSubmissionMeta(null);
 
-    const fetchLatestSubmission = async () => {
-      console.info(logPrefix, "Checking submissions for family:", familyId);
-      const submissionsQuery = query(
-        collection(db, "intakeSubmissions"),
-        where("family.familyId", "==", familyId)
-      );
-      const submissionsSnap = await getDocs(submissionsQuery);
-      const submissions = submissionsSnap.docs
-        .map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }))
-        .filter((submission) =>
-          submission?.meta?.source
-            ? submission.meta.source === "existing-family-intake"
-            : true
-        );
-
-      if (submissions.length === 0) {
-        console.info(logPrefix, "No prior submissions found.");
-        return null;
-      }
-
-      const latestSubmission = submissions.reduce((latest, current) => {
-        const latestDate = parseDateValue(latest?.meta?.submittedAt);
-        const currentDate = parseDateValue(current?.meta?.submittedAt);
-        if (!currentDate) return latest;
-        if (!latestDate || currentDate > latestDate) return current;
-        return latest;
-      }, null);
-
-      const resolved = latestSubmission || submissions[0];
-      console.info(
-        logPrefix,
-        "Latest intake submission resolved:",
-        resolved?.id || "(missing id)"
-      );
-      return resolved;
-    };
-
     const fetchFamily = async () => {
       console.info(logPrefix, "Loading intake for family id:", familyId);
       if (!familyId) {
@@ -288,19 +252,20 @@ const ExistingFamilyIntake = () => {
 
       setIsLoading(true);
       setLoadError("");
-      let familySnap;
       try {
-        console.info(logPrefix, "Fetching family doc:", `families/${familyId}`);
-        familySnap = await getDoc(doc(db, "families", familyId));
-        if (!familySnap.exists()) {
-          console.info(logPrefix, "Family doc not found.");
+        // Fetch family, students, and latest submission via Cloud Function
+        console.info(logPrefix, "Fetching family data via Cloud Function");
+        const getSubmission = httpsCallable(functions, "getExistingFamilySubmission");
+        const result = await getSubmission({ familyId });
+        const { found, submission, family: familyData, students: studentDocs } = result.data;
+
+        if (!familyData) {
+          console.info(logPrefix, "Family not found.");
           setLoadError("We couldn't find that family.");
           setIsLoading(false);
           return;
         }
-        console.info(logPrefix, "Family doc loaded.");
-
-        const familyData = familySnap.data() || {};
+        console.info(logPrefix, "Family data loaded via Cloud Function.");
         console.info(logPrefix, "Family keys:", Object.keys(familyData));
         if (!isMounted) return;
 
@@ -315,73 +280,25 @@ const ExistingFamilyIntake = () => {
           schedulePreference,
         };
 
+        // Build student map from Cloud Function response
+        const studentMap = new Map(
+          (studentDocs || []).map((s) => [s.id, s])
+        );
+
         const familyStudents = Array.isArray(familyData.students)
           ? familyData.students
           : [];
         const normalizedStudents = familyStudents.map((student) => {
           if (!student) {
-            return {
-              id: "",
-              name: "",
-              school: "",
-              yearLevel: "",
-              notes: "",
-              allergiesAna: "",
-              allergiesNonAna: "",
-              dateOfBirth: null,
-              doesCarryEpi: false,
-              doesAdminEpi: false,
-              maxHoursPerDay: "",
-            };
+            return { id: "", name: "" };
           }
           if (typeof student === "string") {
-            return {
-              id: student,
-              name: "",
-              school: "",
-              yearLevel: "",
-              notes: "",
-              allergiesAna: "",
-              allergiesNonAna: "",
-              dateOfBirth: null,
-              doesCarryEpi: false,
-              doesAdminEpi: false,
-              maxHoursPerDay: "",
-            };
+            return { id: student, name: "" };
           }
-          if (
-            typeof student?.path === "string" &&
-            typeof student?.id === "string" &&
-            typeof student?.parent === "object"
-          ) {
-            return {
-              id: student.id,
-              name: student.name || "",
-              school: student.school || "",
-              yearLevel: student.yearLevel || "",
-              notes: student.notes || "",
-              allergiesAna: student.allergiesAna || "",
-              allergiesNonAna: student.allergiesNonAna || "",
-              dateOfBirth: student.dateOfBirth || null,
-              doesCarryEpi: student.doesCarryEpi || false,
-              doesAdminEpi: student.doesAdminEpi || false,
-              maxHoursPerDay: student.maxHoursPerDay || "",
-              ref: student,
-            };
+          if (typeof student?.id === "string") {
+            return { id: student.id, name: student.name || "" };
           }
-          return {
-            id: student.id || student.studentId || "",
-            name: student.name || student.fullName || "",
-            school: student.school || "",
-            yearLevel: student.yearLevel || "",
-            notes: student.notes || "",
-            allergiesAna: student.allergiesAna || "",
-            allergiesNonAna: student.allergiesNonAna || "",
-            dateOfBirth: student.dateOfBirth || null,
-            doesCarryEpi: student.doesCarryEpi || false,
-            doesAdminEpi: student.doesAdminEpi || false,
-            maxHoursPerDay: student.maxHoursPerDay || "",
-          };
+          return { id: student.studentId || "", name: student.name || "" };
         });
         console.info(
           logPrefix,
@@ -391,37 +308,11 @@ const ExistingFamilyIntake = () => {
 
         let baseChildren = [];
         if (normalizedStudents.length > 0) {
-          const studentDocs = await Promise.all(
-            normalizedStudents.map((student) =>
-              student.ref
-                ? (console.info(
-                    logPrefix,
-                    "Fetching student doc:",
-                    student.ref.path
-                  ),
-                  getDoc(student.ref))
-                : student.id
-                  ? (console.info(
-                      logPrefix,
-                      "Fetching student doc:",
-                      `students/${student.id}`
-                    ),
-                    getDoc(doc(db, "students", student.id)))
-                  : Promise.resolve(null)
-            )
-          );
-
           if (!isMounted) return;
 
-          baseChildren = normalizedStudents.map((student, index) => {
+          baseChildren = normalizedStudents.map((student) => {
             const fallbackName = student.name || "";
-            const studentSnap = studentDocs[index];
-            const studentData =
-              studentSnap &&
-              typeof studentSnap.exists === "function" &&
-              studentSnap.exists()
-                ? studentSnap.data()
-                : null;
+            const studentData = studentMap.get(student.id) || null;
             console.info(
               logPrefix,
               "Student doc resolved:",
@@ -457,13 +348,7 @@ const ExistingFamilyIntake = () => {
         let resolvedFamilyForm = baseFamilyForm;
         let resolvedChildren = baseChildren;
         let didHydrate = false;
-        let latestSubmission = null;
-
-        try {
-          latestSubmission = await fetchLatestSubmission();
-        } catch (error) {
-          console.warn(logPrefix, "Unable to load submissions:", error);
-        }
+        const latestSubmission = found ? submission : null;
 
         if (!isMounted) return;
 
@@ -502,7 +387,7 @@ const ExistingFamilyIntake = () => {
         if (!didHydrate) setLatestSubmissionMeta(null);
       } catch (error) {
         if (isMounted) {
-          console.error(logPrefix, "Load failed:", error, familySnap);
+          console.error(logPrefix, "Load failed:", error);
           setLoadError(
             error?.message
               ? `Unable to load family details: ${error.message}`
