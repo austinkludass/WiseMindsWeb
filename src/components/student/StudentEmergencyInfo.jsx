@@ -25,13 +25,13 @@ const StudentEmergencyInfo = ({ formData, isEdit, setFormData }) => {
         <>
           <TextField
             name="emergencyFirst"
-            value={formData.emergencyFirst}
+            value={formData.emergencyFirst ?? ""}
             onChange={handleChange}
             label="First Name"
           />
           <TextField
             name="emergencyLast"
-            value={formData.emergencyLast}
+            value={formData.emergencyLast ?? ""}
             onChange={handleChange}
             label="Last Name"
           />
@@ -41,7 +41,7 @@ const StudentEmergencyInfo = ({ formData, isEdit, setFormData }) => {
               name="emergencyRelationship"
               label="Relationship"
               labelId="relationship-select-label"
-              value={formData.emergencyRelationship}
+              value={formData.emergencyRelationship ?? ""}
               onChange={handleChange}
             >
               <MenuItem value={"daughter"}>Daughter</MenuItem>
@@ -56,7 +56,7 @@ const StudentEmergencyInfo = ({ formData, isEdit, setFormData }) => {
           </FormControl>
           <TextField
             name="emergencyPhone"
-            value={formData.emergencyPhone}
+            value={formData.emergencyPhone ?? ""}
             onChange={handleChange}
             label="Phone"
           />

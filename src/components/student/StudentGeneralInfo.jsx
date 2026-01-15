@@ -49,7 +49,7 @@ const StudentGeneralInfo = ({
           {!isHidden("firstName") && (
             <TextField
               name="firstName"
-              value={formData.firstName}
+              value={formData.firstName ?? ""}
               onChange={handleChange}
               onBlur={handleBlur}
               required
@@ -60,7 +60,7 @@ const StudentGeneralInfo = ({
           {!isHidden("middleName") && (
             <TextField
               name="middleName"
-              value={formData.middleName}
+              value={formData.middleName ?? ""}
               onChange={handleChange}
               label="Middle Name"
             />
@@ -68,7 +68,7 @@ const StudentGeneralInfo = ({
           {!isHidden("lastName") && (
             <TextField
               name="lastName"
-              value={formData.lastName}
+              value={formData.lastName ?? ""}
               onChange={handleChange}
               label="Last Name"
             />
@@ -82,13 +82,13 @@ const StudentGeneralInfo = ({
           )}
           <TextField
             name="allergiesNonAna"
-            value={formData.allergiesNonAna}
+            value={formData.allergiesNonAna ?? ""}
             onChange={handleChange}
             label="Allergies (Non-Anaphylactic)"
           />
           <TextField
             name="allergiesAna"
-            value={formData.allergiesAna}
+            value={formData.allergiesAna ?? ""}
             onChange={handleChange}
             label="Allergies (Anaphylactic)"
           />
@@ -97,7 +97,7 @@ const StudentGeneralInfo = ({
             control={
               <Switch
                 id="doesCarryEpi"
-                checked={formData.doesCarryEpi}
+                checked={formData.doesCarryEpi ?? false}
                 onChange={handleSwitchChange}
               />
             }
@@ -108,7 +108,7 @@ const StudentGeneralInfo = ({
             control={
               <Switch
                 id="doesAdminEpi"
-                checked={formData.doesAdminEpi}
+                checked={formData.doesAdminEpi ?? false}
                 onChange={handleSwitchChange}
               />
             }

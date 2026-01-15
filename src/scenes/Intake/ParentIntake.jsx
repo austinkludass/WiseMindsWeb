@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Box, Button, Stack, Typography } from "@mui/material";
-import { addDoc, collection, doc, getDoc } from "firebase/firestore";
+import { addDoc, collection } from "firebase/firestore";
+import { httpsCallable } from "firebase/functions";
 import { useLocation } from "react-router-dom";
-import { db } from "../../data/firebase";
+import { db, functions } from "../../data/firebase";
 import IntakeLayout from "../../components/intake/IntakeLayout";
 import FamilyStep from "../../components/intake/steps/FamilyStep";
 import ChildrenStep from "../../components/intake/steps/ChildrenStep";
@@ -158,10 +159,11 @@ const ParentIntake = () => {
       if (!storedSubmissionId) return;
 
       try {
-        const submissionSnap = await getDoc(
-          doc(db, "intakeSubmissions", storedSubmissionId)
-        );
-        if (!submissionSnap.exists()) {
+        const getSubmission = httpsCallable(functions, "getNewFamilySubmission");
+        const result = await getSubmission({ submissionId: storedSubmissionId });
+        const { found, submission } = result.data;
+
+        if (!found || !submission) {
           localStorage.removeItem(SUBMISSION_STORAGE_KEY);
           return;
         }
@@ -169,7 +171,6 @@ const ParentIntake = () => {
         if (!isMounted) return;
         if (hasUserChangesRef.current) return;
 
-        const submission = { id: submissionSnap.id, ...submissionSnap.data() };
         const { familyData: restoredFamily, children: restoredChildren } =
           mapNewSubmissionToIntakeState(submission);
 
@@ -184,7 +185,6 @@ const ParentIntake = () => {
           submittedAt: submission.meta?.submittedAt || null,
         });
       } catch (error) {
-        console.warn("[ParentIntake] Unable to load prior submission:", error);
         localStorage.removeItem(SUBMISSION_STORAGE_KEY);
       }
     };
@@ -533,7 +533,6 @@ const ParentIntake = () => {
 
     try {
       const payload = buildSubmissionPayload();
-      console.log("Intake submission payload:", JSON.stringify(payload, null, 2));
       const docRef = await addDoc(collection(db, "intakeSubmissions"), payload);
       localStorage.setItem(SUBMISSION_STORAGE_KEY, docRef.id);
       setSubmitted(true);

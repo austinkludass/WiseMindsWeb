@@ -1247,3 +1247,140 @@ export const finalizeTutor = onCall(
     return {success: true};
   }
 );
+
+/**
+ * Fetches a prior intake submission by ID for new family form rehydration.
+ * Called from ParentIntake when a submissionId is found in localStorage.
+ * Acts as a secure gateway - clients cannot read intakeSubmissions directly.
+ */
+export const getNewFamilySubmission = onCall(
+  {
+    region: "australia-southeast1",
+  },
+  async (request) => {
+    const {submissionId} = request.data || {};
+
+    if (!submissionId || typeof submissionId !== "string") {
+      throw new Error("Missing or invalid submissionId");
+    }
+
+    const submissionRef = db.collection("intakeSubmissions").doc(submissionId);
+    const submissionSnap = await submissionRef.get();
+
+    if (!submissionSnap.exists) {
+      return {found: false, submission: null};
+    }
+
+    return {
+      found: true,
+      submission: {
+        id: submissionSnap.id,
+        ...submissionSnap.data(),
+      },
+    };
+  }
+);
+
+/**
+ * Fetches the most recent intake submission for an existing family.
+ * Called from ExistingFamilyIntake to rehydrate the form with prior data.
+ * Also returns family and student data to avoid direct Firestore reads.
+ */
+export const getExistingFamilySubmission = onCall(
+  {
+    region: "australia-southeast1",
+  },
+  async (request) => {
+    const {familyId} = request.data || {};
+
+    if (!familyId || typeof familyId !== "string") {
+      throw new Error("Missing or invalid familyId");
+    }
+
+    const familyRef = db.collection("families").doc(familyId);
+    const familySnap = await familyRef.get();
+
+    if (!familySnap.exists) {
+      return {found: false, family: null, students: [], submission: null};
+    }
+
+    const familyData: any = {id: familySnap.id, ...familySnap.data()};
+
+    // Fetch student details if family has students
+    const studentRefs = familyData.students || [];
+    const studentDetails: any[] = [];
+    for (const studentRef of studentRefs) {
+      const studentId = typeof studentRef === "string" ?
+        studentRef :
+        studentRef?.id || studentRef?.ref?.id;
+      if (studentId) {
+        const studentSnap = await db
+          .collection("students").doc(studentId).get();
+        if (studentSnap.exists) {
+          studentDetails.push({id: studentSnap.id, ...studentSnap.data()});
+        }
+      }
+    }
+
+    // Fetch latest submission
+    const submissionsQuery = db
+      .collection("intakeSubmissions")
+      .where("family.familyId", "==", familyId)
+      .orderBy("meta.submittedAt", "desc")
+      .limit(1);
+
+    const submissionsSnap = await submissionsQuery.get();
+
+    const submission = submissionsSnap.empty ?
+      null :
+      {id: submissionsSnap.docs[0].id, ...submissionsSnap.docs[0].data()};
+
+    return {
+      found: !submissionsSnap.empty,
+      submission,
+      family: familyData,
+      students: studentDetails,
+    };
+  }
+);
+
+/**
+ * Fetches subjects, curriculums, and tutors for intake form dropdowns.
+ * Called from StudentAcademicInfo to populate subject/tutor selection.
+ * Allows unauthenticated access to reference data without exposing Firestore.
+ */
+export const getIntakeFormData = onCall(
+  {
+    region: "australia-southeast1",
+  },
+  async () => {
+    const [subjectsSnap, curriculumsSnap, tutorsSnap] = await Promise.all([
+      db.collection("subjects").get(),
+      db.collection("curriculums").get(),
+      db.collection("tutors").get(),
+    ]);
+
+    const subjects = subjectsSnap.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+
+    const curriculums = curriculumsSnap.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+
+    const tutors = tutorsSnap.docs.map((doc) => {
+      const data = doc.data() || {};
+      const firstName = data.firstName || "";
+      const lastName = data.lastName || "";
+      const name = [firstName, lastName].filter(Boolean).join(" ");
+      return {
+        id: doc.id,
+        name: name || data.name || "Unnamed tutor",
+      };
+    });
+
+    return {subjects, curriculums, tutors};
+  }
+);
