@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Box, Button, Stack, Typography } from "@mui/material";
 import { addDoc, collection } from "firebase/firestore";
-import { httpsCallable } from "firebase/functions";
+import { getFunctions, httpsCallable } from "firebase/functions";
 import { useLocation } from "react-router-dom";
-import { db, functions } from "../../data/firebase";
+import { db, app } from "../../data/firebase";
 import IntakeLayout from "../../components/intake/IntakeLayout";
 import FamilyStep from "../../components/intake/steps/FamilyStep";
 import ChildrenStep from "../../components/intake/steps/ChildrenStep";
@@ -26,6 +26,8 @@ import {
   validateAvailabilityWithinBounds,
   validateAvailability,
 } from "./intakeUtils";
+
+const functions = getFunctions(app, "australia-southeast1");
 
 /**
  * Query parameter support for pre-filling the intake form.
