@@ -1301,7 +1301,7 @@ export const getExistingFamilySubmission = onCall(
     const familySnap = await familyRef.get();
 
     if (!familySnap.exists) {
-      throw new Error("Family not found");
+      return {found: false, family: null, students: [], submission: null};
     }
 
     const familyData: any = {id: familySnap.id, ...familySnap.data()};

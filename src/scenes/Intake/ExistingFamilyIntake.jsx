@@ -171,7 +171,6 @@ const mapStudentToChild = ({
 
 const ExistingFamilyIntake = () => {
   const { familyId } = useParams();
-  const logPrefix = "[ExistingFamilyIntake]";
   const [currentStep, setCurrentStep] = useState(0);
   const [errors, setErrors] = useState([]);
   const [loadError, setLoadError] = useState("");
@@ -243,7 +242,6 @@ const ExistingFamilyIntake = () => {
     setLatestSubmissionMeta(null);
 
     const fetchFamily = async () => {
-      console.info(logPrefix, "Loading intake for family id:", familyId);
       if (!familyId) {
         setLoadError("Missing family id.");
         setIsLoading(false);
@@ -254,19 +252,15 @@ const ExistingFamilyIntake = () => {
       setLoadError("");
       try {
         // Fetch family, students, and latest submission via Cloud Function
-        console.info(logPrefix, "Fetching family data via Cloud Function");
         const getSubmission = httpsCallable(functions, "getExistingFamilySubmission");
         const result = await getSubmission({ familyId });
         const { found, submission, family: familyData, students: studentDocs } = result.data;
 
         if (!familyData) {
-          console.info(logPrefix, "Family not found.");
           setLoadError("We couldn't find that family.");
           setIsLoading(false);
           return;
         }
-        console.info(logPrefix, "Family data loaded via Cloud Function.");
-        console.info(logPrefix, "Family keys:", Object.keys(familyData));
         if (!isMounted) return;
 
         setFamilySummary({ ...familyData, id: familyId });
@@ -300,11 +294,6 @@ const ExistingFamilyIntake = () => {
           }
           return { id: student.studentId || "", name: student.name || "" };
         });
-        console.info(
-          logPrefix,
-          "Family students:",
-          normalizedStudents.map((student) => student.id || "(missing id)")
-        );
 
         let baseChildren = [];
         if (normalizedStudents.length > 0) {
@@ -313,12 +302,6 @@ const ExistingFamilyIntake = () => {
           baseChildren = normalizedStudents.map((student) => {
             const fallbackName = student.name || "";
             const studentData = studentMap.get(student.id) || null;
-            console.info(
-              logPrefix,
-              "Student doc resolved:",
-              student?.id || "(missing id)",
-              studentData ? "found" : "missing"
-            );
             return mapStudentToChild({
               studentData,
               fallbackName,
@@ -387,7 +370,6 @@ const ExistingFamilyIntake = () => {
         if (!didHydrate) setLatestSubmissionMeta(null);
       } catch (error) {
         if (isMounted) {
-          console.error(logPrefix, "Load failed:", error);
           setLoadError(
             error?.message
               ? `Unable to load family details: ${error.message}`
@@ -597,7 +579,6 @@ const ExistingFamilyIntake = () => {
 
     try {
       const payload = buildSubmissionPayload();
-      console.log("Existing family intake payload:", JSON.stringify(payload, null, 2));
       await addDoc(collection(db, "intakeSubmissions"), payload);
       setSubmitted(true);
     } catch (error) {

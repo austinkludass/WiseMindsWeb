@@ -185,7 +185,6 @@ const ParentIntake = () => {
           submittedAt: submission.meta?.submittedAt || null,
         });
       } catch (error) {
-        console.warn("[ParentIntake] Unable to load prior submission:", error);
         localStorage.removeItem(SUBMISSION_STORAGE_KEY);
       }
     };
@@ -534,7 +533,6 @@ const ParentIntake = () => {
 
     try {
       const payload = buildSubmissionPayload();
-      console.log("Intake submission payload:", JSON.stringify(payload, null, 2));
       const docRef = await addDoc(collection(db, "intakeSubmissions"), payload);
       localStorage.setItem(SUBMISSION_STORAGE_KEY, docRef.id);
       setSubmitted(true);

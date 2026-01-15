@@ -187,11 +187,6 @@ const StudentAcademicInfo = ({
         const curriculumMap = new Map(
           curriculumList.map((curriculum) => [curriculum.id, curriculum.name])
         );
-        console.info(
-          "[StudentAcademicInfo] cirriculums:",
-          curriculumList.length,
-          curriculumList.map((curriculum) => curriculum.name)
-        );
         const curriculumNameToId = new Map(
           curriculumList.map((curriculum) => [
             curriculum.name.toLowerCase(),
@@ -245,25 +240,12 @@ const StudentAcademicInfo = ({
               "",
           };
         });
-        console.info(
-          "[StudentAcademicInfo] subjects:",
-          allSubjects.length,
-          allSubjects.slice(0, 5).map((subject) => ({
-            id: subject.id,
-            name: subject.name,
-            curriculumId: subject.curriculumId,
-          }))
-        );
         setSubjectOptions(allSubjects);
 
         if (showTutorPreferences) {
           setTutorOptions(tutors);
         }
       } catch (error) {
-        console.error(
-          "[StudentAcademicInfo] Failed to load form data:",
-          error
-        );
         if (isMounted) {
           setSubjectOptions([]);
           setCurriculums([]);
@@ -352,6 +334,19 @@ const StudentAcademicInfo = ({
       )
     : [];
 
+  // Auto-detect curriculum from stored subject IDs when rehydrating
+  useEffect(() => {
+    if (selectedCurriculumId || subjectOptions.length === 0) return;
+    const firstSubjectWithId = subjectList.find((s) => s.id);
+    if (!firstSubjectWithId) return;
+    const matchedSubject = subjectOptions.find(
+      (opt) => opt.id === firstSubjectWithId.id
+    );
+    if (matchedSubject?.curriculumId) {
+      setSelectedCurriculumId(matchedSubject.curriculumId);
+    }
+  }, [selectedCurriculumId, subjectOptions, subjectList]);
+
   useEffect(() => {
     if (!selectedCurriculumId || subjectOptions.length === 0) return;
     const validIds = new Set(
@@ -406,7 +401,7 @@ const StudentAcademicInfo = ({
             fullWidth
             label="School"
             name="school"
-            value={formData.school}
+            value={formData.school ?? ""}
             onChange={handleInputChange}
             variant="outlined"
           />
@@ -414,7 +409,7 @@ const StudentAcademicInfo = ({
             fullWidth
             label="Year Level"
             name="yearLevel"
-            value={formData.yearLevel}
+            value={formData.yearLevel ?? ""}
             onChange={handleInputChange}
             variant="outlined"
             select
@@ -565,8 +560,9 @@ const StudentAcademicInfo = ({
                       null
                     }
                     renderOption={(props, option) => {
+                      const { key, ...restProps } = props;
                       if (option.id === INCLUDE_UNCOMMON_OPTION_ID) {
-                        const { onClick, onMouseDown, ...rest } = props;
+                        const { onClick, onMouseDown, ...rest } = restProps;
                         const handleEnableUncommon = (event) => {
                           event.preventDefault();
                           event.stopPropagation();
@@ -578,6 +574,7 @@ const StudentAcademicInfo = ({
                         };
                         return (
                           <Box
+                            key={key}
                             component="li"
                             {...rest}
                             onMouseDown={(event) => event.preventDefault()}
@@ -601,8 +598,9 @@ const StudentAcademicInfo = ({
 
                       return (
                         <Box
+                          key={key}
                           component="li"
-                          {...props}
+                          {...restProps}
                           sx={{
                             display: "flex",
                             alignItems: "center",
@@ -797,7 +795,7 @@ const StudentAcademicInfo = ({
             fullWidth
             label="Additional notes about tutoring hours (optional)"
             name="notes"
-            value={formData.notes}
+            value={formData.notes ?? ""}
             onChange={handleInputChange}
             multiline
             rows={2}

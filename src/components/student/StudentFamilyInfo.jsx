@@ -34,7 +34,7 @@ const StudentFamilyInfo = ({
         <>
           <TextField
             name="familyPhone"
-            value={formData.familyPhone}
+            value={formData.familyPhone ?? ""}
             onChange={handleChange}
             onBlur={handleBlur}
             required
@@ -43,7 +43,7 @@ const StudentFamilyInfo = ({
           />
           <TextField
             name="familyEmail"
-            value={formData.familyEmail}
+            value={formData.familyEmail ?? ""}
             onChange={handleChange}
             onBlur={handleBlur}
             required
@@ -52,7 +52,7 @@ const StudentFamilyInfo = ({
           />
           <TextField
             name="familyAddress"
-            value={formData.familyAddress}
+            value={formData.familyAddress ?? ""}
             onChange={handleChange}
             label="Address"
           />
