@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Box, Button, CircularProgress, Stack, Typography } from "@mui/material";
 import { addDoc, collection } from "firebase/firestore";
-import { httpsCallable } from "firebase/functions";
+import { getFunctions, httpsCallable } from "firebase/functions";
 import { useParams } from "react-router-dom";
-import { db, functions } from "../../data/firebase";
+import { db, app } from "../../data/firebase";
 import IntakeLayout from "../../components/intake/IntakeLayout";
 import ChildrenStep from "../../components/intake/steps/ChildrenStep";
 import ExistingFamilyStep from "../../components/intake/steps/ExistingFamilyStep";
@@ -27,6 +27,8 @@ import {
   validateAvailabilityWithinBounds,
   validateAvailability,
 } from "./intakeUtils";
+
+const functions = getFunctions(app, "australia-southeast1");
 
 const splitFullName = (fullName = "") => {
   const parts = fullName.trim().split(/\s+/).filter(Boolean);
