@@ -1284,7 +1284,7 @@ export const getNewFamilySubmission = onCall(
 /**
  * Fetches the most recent intake submission for an existing family.
  * Called from ExistingFamilyIntake to rehydrate the form with prior data.
- * Validates that the familyId exists before querying submissions.
+ * Also returns family and student data to avoid direct Firestore reads.
  */
 export const getExistingFamilySubmission = onCall(
   {
@@ -1304,6 +1304,25 @@ export const getExistingFamilySubmission = onCall(
       throw new Error("Family not found");
     }
 
+    const familyData: any = {id: familySnap.id, ...familySnap.data()};
+
+    // Fetch student details if family has students
+    const studentRefs = familyData.students || [];
+    const studentDetails: any[] = [];
+    for (const studentRef of studentRefs) {
+      const studentId = typeof studentRef === "string" ?
+        studentRef :
+        studentRef?.id || studentRef?.ref?.id;
+      if (studentId) {
+        const studentSnap = await db
+          .collection("students").doc(studentId).get();
+        if (studentSnap.exists) {
+          studentDetails.push({id: studentSnap.id, ...studentSnap.data()});
+        }
+      }
+    }
+
+    // Fetch latest submission
     const submissionsQuery = db
       .collection("intakeSubmissions")
       .where("family.familyId", "==", familyId)
@@ -1312,17 +1331,15 @@ export const getExistingFamilySubmission = onCall(
 
     const submissionsSnap = await submissionsQuery.get();
 
-    if (submissionsSnap.empty) {
-      return {found: false, submission: null};
-    }
+    const submission = submissionsSnap.empty ?
+      null :
+      {id: submissionsSnap.docs[0].id, ...submissionsSnap.docs[0].data()};
 
-    const doc = submissionsSnap.docs[0];
     return {
-      found: true,
-      submission: {
-        id: doc.id,
-        ...doc.data(),
-      },
+      found: !submissionsSnap.empty,
+      submission,
+      family: familyData,
+      students: studentDetails,
     };
   }
 );
