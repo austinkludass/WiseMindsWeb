@@ -39,7 +39,7 @@ const StudentAdditionalInfo = ({
             control={
               <Switch
                 id="canOfferFood"
-                checked={formData.canOfferFood}
+                checked={formData.canOfferFood ?? false}
                 onChange={handleSwitchChange}
               />
             }
@@ -47,19 +47,19 @@ const StudentAdditionalInfo = ({
           />
           <TextField
             name="avoidFoods"
-            value={formData.avoidFoods}
+            value={formData.avoidFoods ?? ""}
             onChange={handleChange}
             label="Do not provide the child with the following food/drink"
           />
           <TextField
             name="questions"
-            value={formData.questions}
+            value={formData.questions ?? ""}
             onChange={handleChange}
             label="Questions regarding tutoring of this child"
           />
           <TextField
             name="maxHoursPerDay"
-            value={formData.maxHoursPerDay}
+            value={formData.maxHoursPerDay ?? ""}
             onChange={handleChange}
             label="Max tutoring hours per day (optional)"
             type="number"
@@ -68,7 +68,7 @@ const StudentAdditionalInfo = ({
           {includeHowUserHeard && (
             <TextField
               name="howUserHeard"
-              value={formData.howUserHeard}
+              value={formData.howUserHeard ?? ""}
               onChange={handleChange}
               label="How did the person hear about Wise Minds Canberra?"
             />
