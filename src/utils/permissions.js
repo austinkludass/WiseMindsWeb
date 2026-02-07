@@ -78,6 +78,16 @@ export const canEditPermissions = (userRole) => {
   return isAdmin(userRole);
 };
 
+export const canViewAndEditAddress = (userRole, currentUserId, profileTutorId) => {
+  if (currentUserId === profileTutorId) return true;
+  return isHeadTutorOrAbove(userRole);
+};
+
+export const canViewEditOnTutors = (userRole, currentUserId, profileTutorId) => {
+  if (currentUserId === profileTutorId) return true;
+  return isHeadTutorOrAbove(userRole);
+};
+
 export default {
   ROLES,
   PERMISSIONS,
@@ -92,4 +102,6 @@ export default {
   canEditSubjects,
   canEditLocations,
   canEditPermissions,
+  canViewAndEditAddress,
+  canViewEditOnTutors,
 };
