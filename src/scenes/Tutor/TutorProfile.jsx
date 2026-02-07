@@ -46,9 +46,10 @@ const TutorProfile = () => {
   const dateFields = ["dateOfBirth", "wwvpExpiry", "faCourseDate", "faExpiry"];
   const [isSaving, setIsSaving] = useState(false);
 
-  const { canViewBankingTax, canViewBlockedStudents, userId } =
+  const { canViewBankingTax, canViewBlockedStudents, canViewEditOnTutors } =
     usePermissions();
   const canSeeBankingTax = canViewBankingTax(tutorId);
+  const canSeeEditButton = canViewEditOnTutors(tutorId);
   const canSeeBlockedStudents = canViewBlockedStudents;
 
   const setForm = (key, value) =>
@@ -231,7 +232,7 @@ const TutorProfile = () => {
               f.toLowerCase().includes("expiry")) &&
             value
               ? dayjs(value)
-              : value ?? "";
+              : (value ?? "");
         });
       }
       setForms(initialForms);
@@ -327,7 +328,7 @@ const TutorProfile = () => {
     formConfigs[key].fields.forEach((f) => {
       const value = tutor[f];
       resetData[f] =
-        dateFields.includes(f) && value ? dayjs(value) : value ?? "";
+        dateFields.includes(f) && value ? dayjs(value) : (value ?? "");
     });
     setForm(key, resetData);
     toggleEdit(key, false);
@@ -420,12 +421,14 @@ const TutorProfile = () => {
                   </Button>
                 </Box>
               ) : (
-                <Button
-                  variant="outlined"
-                  onClick={() => toggleEdit(key, true)}
-                >
-                  Edit
-                </Button>
+                canSeeEditButton && (
+                  <Button
+                    variant="outlined"
+                    onClick={() => toggleEdit(key, true)}
+                  >
+                    Edit
+                  </Button>
+                )
               )
             }
           >

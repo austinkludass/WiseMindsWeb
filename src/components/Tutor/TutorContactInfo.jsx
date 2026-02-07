@@ -9,11 +9,16 @@ import {
   useTheme,
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import usePermissions from "../../hooks/usePermissions";
 import { tokens } from "../../theme";
+import { useParams } from "react-router-dom";
 
 const TutorContactInfo = ({ formData, setFormData, isEdit }) => {
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
+  const { tutorId } = useParams();
+  const { canViewEditAddress } = usePermissions();
+  const canSeeAddress = canViewEditAddress(tutorId);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -40,12 +45,14 @@ const TutorContactInfo = ({ formData, setFormData, isEdit }) => {
                 value={formData.phone}
                 onChange={handleChange}
               />
-              <TextField
-                name="address"
-                label="Address"
-                value={formData.address}
-                onChange={handleChange}
-              />
+              {canSeeAddress && (
+                <TextField
+                  name="address"
+                  label="Address"
+                  value={formData.address}
+                  onChange={handleChange}
+                />
+              )}
             </>
           ) : (
             <>
@@ -75,19 +82,21 @@ const TutorContactInfo = ({ formData, setFormData, isEdit }) => {
                   {formData.phone}
                 </Typography>
               </div>
-              <div style={{ display: "flex", gap: "10px" }}>
-                <Typography
-                  variant="h5"
-                  color={colors.orangeAccent[400]}
-                  fontWeight="bold"
-                  sx={{ mb: "5px" }}
-                >
-                  Address
-                </Typography>
-                <Typography variant="h6" color={colors.grey[100]}>
-                  {formData.address}
-                </Typography>
-              </div>
+              {canSeeAddress && (
+                <div style={{ display: "flex", gap: "10px" }}>
+                  <Typography
+                    variant="h5"
+                    color={colors.orangeAccent[400]}
+                    fontWeight="bold"
+                    sx={{ mb: "5px" }}
+                  >
+                    Address
+                  </Typography>
+                  <Typography variant="h6" color={colors.grey[100]}>
+                    {formData.address}
+                  </Typography>
+                </div>
+              )}
             </>
           )}
         </Stack>

@@ -13,6 +13,8 @@ import {
   canEditSubjects,
   canEditLocations,
   canEditPermissions,
+  canViewAndEditAddress,
+  canViewEditOnTutors,
 } from "../utils/permissions";
 
 const usePermissions = () => {
@@ -79,9 +81,16 @@ const usePermissions = () => {
       canEditSubjects: canEditSubjects(role),
       canEditLocations: canEditLocations(role),
       canViewBlockedStudents: canViewBlockedStudents(role),
+      canViewAndEditTutorRate: isAdmin(role),
 
       canViewBankingTax: (profileTutorId) =>
         canViewBankingTax(role, currentUser?.uid, profileTutorId),
+
+      canViewEditAddress: (profileTutorId) =>
+        canViewAndEditAddress(role, currentUser?.uid, profileTutorId),
+
+      canViewEditOnTutors: (profileTutorId) =>
+        canViewEditOnTutors(role, currentUser?.uid, profileTutorId),
     };
   }, [role, tutorData, loading, error, currentUser?.uid]);
 

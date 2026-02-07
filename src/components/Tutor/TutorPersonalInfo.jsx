@@ -19,12 +19,15 @@ import { tokens } from "../../theme";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../../data/firebase";
 import { ToastContainer, toast } from "react-toastify";
+import usePermissions from "../../hooks/usePermissions";
 import "react-toastify/dist/ReactToastify.css";
 
 const TutorPersonalInfo = ({ formData, setFormData, isEdit }) => {
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
+  const { canViewAndEditTutorRate } = usePermissions();
   const [locations, setLocations] = useState([]);
+  const canSeeAndEditRate = canViewAndEditTutorRate;
 
   useEffect(() => {
     const fetchLocations = async () => {
@@ -106,13 +109,15 @@ const TutorPersonalInfo = ({ formData, setFormData, isEdit }) => {
                   ))}
                 </Select>
               </FormControl>
-              <TextField
-                name="rate"
-                type="number"
-                label="Rate ($)"
-                value={formData.rate}
-                onChange={handleChange}
-              />
+              {canSeeAndEditRate && (
+                <TextField
+                  name="rate"
+                  type="number"
+                  label="Rate ($)"
+                  value={formData.rate}
+                  onChange={handleChange}
+                />
+              )}
               <Box sx={{ paddingLeft: 2, paddingRight: 2 }}>
                 <Typography gutterBottom>Hours</Typography>
                 <Slider
@@ -199,6 +204,21 @@ const TutorPersonalInfo = ({ formData, setFormData, isEdit }) => {
                   {formData.role}
                 </Typography>
               </div>
+              {canSeeAndEditRate && (
+                <div style={{ display: "flex", gap: "10px" }}>
+                  <Typography
+                    variant="h5"
+                    color={colors.orangeAccent[400]}
+                    fontWeight="bold"
+                    sx={{ mb: "5px" }}
+                  >
+                    Rate ($)
+                  </Typography>
+                  <Typography variant="h6" color={colors.grey[100]}>
+                    {formData.rate}
+                  </Typography>
+                </div>
+              )}
               <div style={{ display: "flex", gap: "10px" }}>
                 <Typography
                   variant="h5"
@@ -210,19 +230,6 @@ const TutorPersonalInfo = ({ formData, setFormData, isEdit }) => {
                 </Typography>
                 <Typography variant="h6" color={colors.grey[100]}>
                   {formData.hours[0]} - {formData.hours[1]}
-                </Typography>
-              </div>
-              <div style={{ display: "flex", gap: "10px" }}>
-                <Typography
-                  variant="h5"
-                  color={colors.orangeAccent[400]}
-                  fontWeight="bold"
-                  sx={{ mb: "5px" }}
-                >
-                  Rate ($)
-                </Typography>
-                <Typography variant="h6" color={colors.grey[100]}>
-                  {formData.rate}
                 </Typography>
               </div>
             </>
