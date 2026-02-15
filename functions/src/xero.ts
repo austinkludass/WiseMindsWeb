@@ -424,7 +424,7 @@ export const exportInvoicesToXero = onCall(
           Type: "ACCREC",
           Contact: {ContactID: contact.ContactID},
           Date: dayjs(invoice.weekEnd).format("YYYY-MM-DD"),
-          DueDate: dayjs(invoice.weekEnd).add(14, "day").format("YYYY-MM-DD"),
+          DueDate: dayjs(invoice.weekEnd).add(7, "day").format("YYYY-MM-DD"),
           LineAmountTypes: "Inclusive",
           LineItems: lineItems,
           Reference: `WM-${weekStart}`,

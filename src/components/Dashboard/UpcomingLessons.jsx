@@ -114,7 +114,11 @@ const MiniEventCard = ({ event }) => {
     <Box
       sx={{
         height: "100%",
-        background: event.tutorColor ?? colors.orangeAccent[500],
+        background:
+          event.type === "Unconfirmed"
+            ? "#eed600"
+            : (event.tutorColor ?? colors.orangeAccent[500]),
+        border: event.type === "Unconfirmed" ? "4px solid #FF9800" : "none",
         borderRadius: "2px",
         px: 0.5,
         overflow: "hidden",
@@ -177,7 +181,8 @@ const UpcomingLessons = () => {
           where("tutorId", "==", currentUser.uid),
           where("startDateTime", ">=", nowDate.toISOString()),
           where("startDateTime", "<=", sevenDaysLater.toISOString()),
-          orderBy("startDateTime", "asc")
+          where("type", "!=", "Cancelled"),
+          orderBy("startDateTime", "asc"),
         );
 
         const querySnap = await getDocs(q);
@@ -205,7 +210,8 @@ const UpcomingLessons = () => {
         lessonRef,
         where("tutorId", "==", currentUser.uid),
         where("startDateTime", ">=", startDate.toISOString()),
-        where("startDateTime", "<=", endDate.toISOString())
+        where("startDateTime", "<=", endDate.toISOString()),
+        where("type", "!=", "Cancelled"),
       );
 
       const newUnsubscribe = onSnapshot(q, (snap) => {
@@ -228,7 +234,7 @@ const UpcomingLessons = () => {
 
       setUnsubscribe(() => newUnsubscribe);
     },
-    [currentUser, unsubscribe]
+    [currentUser, unsubscribe],
   );
 
   const handleRangeChange = useCallback(
@@ -237,7 +243,7 @@ const UpcomingLessons = () => {
       const endDate = dayjs(range[range.length - 1]).endOf("week");
       subscribeWeek(startDate, endDate);
     },
-    [subscribeWeek]
+    [subscribeWeek],
   );
 
   useEffect(() => {
@@ -294,7 +300,7 @@ const UpcomingLessons = () => {
         header: MiniWeekHeader,
       },
     }),
-    []
+    [],
   );
 
   return (

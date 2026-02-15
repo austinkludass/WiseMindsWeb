@@ -66,9 +66,16 @@ const EventCard = React.memo(
           height="100%"
           sx={{
             background:
-              event.type !== "Cancelled"
-                ? event.tutorColor
-                : "repeating-linear-gradient(45deg, #424242, #424242 15px, #990000 20px)",
+              event.type === "Cancelled"
+                ? "repeating-linear-gradient(45deg, #424242, #424242 15px, #990000 20px)"
+                : event.type === "Unconfirmed"
+                  ? "#eed600"
+                  : event.tutorColor,
+
+            border:
+              event.type === "Unconfirmed"
+                ? "6px solid #FF9800"
+                : "none",
           }}
         >
           <Typography variant="subtitle2" noWrap>
@@ -167,7 +174,7 @@ const EventCard = React.memo(
         </Box>
       </>
     );
-  }
+  },
 );
 
 export default EventCard;
