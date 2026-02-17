@@ -6,6 +6,7 @@ import Notifications from "../../components/Dashboard/Notifications";
 import Summaryboard from "../../components/Dashboard/Summaryboard";
 import Noticeboard from "../../components/Dashboard/Noticeboard";
 import StatsCard from "../../components/Dashboard/StatsCard";
+import TopTutors from "../../components/Dashboard/TopTutors";
 import Header from "../../components/Global/Header";
 
 const Dashboard = () => {
@@ -53,7 +54,7 @@ const Dashboard = () => {
           justifyContent="center"
           overflow="hidden"
         >
-          <Summaryboard />
+          <TopTutors />
         </Box>
 
         <Box
