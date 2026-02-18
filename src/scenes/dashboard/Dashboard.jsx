@@ -3,6 +3,7 @@ import { tokens } from "../../theme";
 import usePermissions from "../../hooks/usePermissions";
 import UpcomingLessons from "../../components/Dashboard/UpcomingLessons";
 import Notifications from "../../components/Dashboard/Notifications";
+import TutorProgress from "../../components/Dashboard/TutorProgress";
 import Summaryboard from "../../components/Dashboard/Summaryboard";
 import Noticeboard from "../../components/Dashboard/Noticeboard";
 import StatsCard from "../../components/Dashboard/StatsCard";
@@ -65,7 +66,7 @@ const Dashboard = () => {
           justifyContent="center"
           overflow="hidden"
         >
-          <Summaryboard />
+          <TutorProgress />
         </Box>
 
         <Box
