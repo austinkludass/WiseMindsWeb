@@ -565,6 +565,9 @@ export const api = onRequest(
       case "/intakesubmissions":
         return sendCollection("intakeSubmissions", res);
 
+      case "/payroll":
+        return sendCollection("payroll", res);
+
       /* ---------- READ AND WRITE LESSONS ---------- */
       case "/lessons":
         if (req.method === "GET") {
