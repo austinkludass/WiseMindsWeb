@@ -208,14 +208,36 @@ function requireApiKey(req: any, res: any): boolean {
 
 async function sendCollection(
   collectionName: string,
-  res: any
+  res: any,
+  subcollections: string[] = []
 ) {
   const snap = await db.collection(collectionName).get();
-  const arr = snap.docs.map((d) => ({
-    id: d.id,
-    ...d.data(),
-  }));
-  return res.json(arr);
+
+  const results = await Promise.all(
+    snap.docs.map(async (doc) => {
+      const baseData = {
+        id: doc.id,
+        ...doc.data(),
+      };
+
+      if (subcollections.length === 0) {
+        return baseData;
+      }
+
+      for (const subName of subcollections) {
+        const subSnap = await doc.ref.collection(subName).get();
+
+        baseData[subName] = subSnap.docs.map((subDoc) => ({
+          id: subDoc.id,
+          ...subDoc.data(),
+        }));
+      }
+
+      return baseData;
+    })
+  );
+
+  return res.json(results);
 }
 
 function validateLessonPayload(data: any) {
@@ -557,7 +579,7 @@ export const api = onRequest(
         return sendCollection("families", res);
 
       case "/invoices":
-        return sendCollection("invoices", res);
+        return sendCollection("invoices", res, ["items"]);
 
       case "/curriculums":
         return sendCollection("curriculums", res);
@@ -566,7 +588,7 @@ export const api = onRequest(
         return sendCollection("intakeSubmissions", res);
 
       case "/payroll":
-        return sendCollection("payroll", res);
+        return sendCollection("payroll", res, ["items"]);
 
       /* ---------- READ AND WRITE LESSONS ---------- */
       case "/lessons":
