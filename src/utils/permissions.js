@@ -9,8 +9,8 @@ export const ROLES = {
 const ROLE_LEVELS = {
   [ROLES.MINION]: 1,
   [ROLES.TUTOR]: 2,
-  [ROLES.HEAD_TUTOR]: 3,
-  [ROLES.SENIOR_TUTOR]: 4,
+  [ROLES.SENIOR_TUTOR]: 3,
+  [ROLES.HEAD_TUTOR]: 4,
   [ROLES.ADMIN]: 5,
 };
 
