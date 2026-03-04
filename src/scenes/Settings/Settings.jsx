@@ -5,6 +5,7 @@ import Header from "../../components/Global/Header";
 import PermissionsTab from "../../components/Settings/PermissionsTab";
 import IntegrationsTab from "../../components/Settings/IntegrationsTab";
 import ProfileTab from "../../components/Settings/ProfileTab";
+import NotificationsTab from "../../components/Settings/NotificationsTab";
 import SettingsSidebar from "../../components/Settings/SettingsSidebar";
 import MobileSettingsTabs from "../../components/Settings/MobileSettingsTabs";
 import DataTab from "../../components/Settings/DataTab";
@@ -55,7 +56,7 @@ const Settings = () => {
       case "general":
         return <Box></Box>;
       case "notifications":
-        return <Box></Box>;
+        return <NotificationsTab />;
       case "data":
         return isAdmin ? <DataTab /> : null;
       default:

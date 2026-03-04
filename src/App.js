@@ -21,6 +21,7 @@ import AdditionalHoursPage from "./scenes/Payroll/AdditionalHoursPage";
 import ParentIntake from "./scenes/Intake/ParentIntake";
 import ExistingFamilyIntake from "./scenes/Intake/ExistingFamilyIntake";
 import ProtectedRoute from "./components/Global/ProtectedRoute";
+import useFCMToken from "./hooks/useFCMToken";
 import { ROLES } from "./utils/permissions";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { CssBaseline, ThemeProvider } from "@mui/material";
@@ -33,6 +34,7 @@ import { useContext } from "react";
 function App() {
   const [theme, colorMode] = useMode();
   const { currentUser } = useContext(AuthContext);
+  useFCMToken(currentUser?.uid);
 
   const AppShell = ({ children }) => {
     const location = useLocation();
