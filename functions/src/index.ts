@@ -1296,27 +1296,42 @@ export const onDirectMessageCreated = onDocumentCreated(
     const recipientSnap = await db.collection("tutors").doc(recipientId).get();
     if (!recipientSnap.exists) return;
 
-    const fcmToken = recipientSnap.data()?.fcmToken;
-    if (!fcmToken) return;
+    const fcmTokens: string[] = recipientSnap.data()?.fcmTokens || [];
+    if (fcmTokens.length === 0) return;
 
-    try {
-      await admin.messaging().send({
-        token: fcmToken,
-        notification: {
-          title: `New message from ${senderName}`,
-          body: text.length > 100 ? text.substring(0, 97) + "..." : text,
-        },
-        webpush: {
-          fcmOptions: {
-            link: "/",
-          },
-        },
+    const invalidTokens: string[] = [];
+
+    await Promise.all(
+      fcmTokens.map(async (token) => {
+        try {
+          await admin.messaging().send({
+            token,
+            notification: {
+              title: `New message from ${senderName}`,
+              body: text.length > 100 ? text.substring(0, 97) + "..." : text,
+            },
+            webpush: {
+              fcmOptions: {
+                link: "/",
+              },
+            },
+          });
+        } catch (err) {
+          logger.error("FCM send failed for token: ", err);
+          if (
+            (err as any).code ==="messaging/registration-token-not-registered"
+          ) {
+            invalidTokens.push(token);
+          }
+        }
+      })
+    );
+
+    // Clean up any expired/invalid tokens
+    if (invalidTokens.length > 0) {
+      await db.collection("tutors").doc(recipientId).update({
+        fcmTokens: admin.firestore.FieldValue.arrayRemove(...invalidTokens),
       });
-    } catch (err) {
-      logger.error("FCM send failed: ", err);
-      if ((err as any).code === "messaging/registration-token-not-registered") {
-        await db.collection("tutors").doc(recipientId).update({fcmToken: null});
-      }
     }
   }
 );

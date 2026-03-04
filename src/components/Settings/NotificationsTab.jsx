@@ -11,7 +11,13 @@ import {
 import NotificationsActiveIcon from "@mui/icons-material/NotificationsActive";
 import NotificationsOffIcon from "@mui/icons-material/NotificationsOff";
 import { getToken } from "firebase/messaging";
-import { doc, updateDoc, getDoc } from "firebase/firestore";
+import {
+  doc,
+  updateDoc,
+  getDoc,
+  arrayUnion,
+  arrayRemove,
+} from "firebase/firestore";
 import { messaging, db } from "../../data/firebase";
 import { AuthContext } from "../../context/AuthContext";
 
@@ -39,8 +45,28 @@ const NotificationsTab = () => {
 
     const checkSavedToken = async () => {
       const snap = await getDoc(doc(db, "tutors", currentUser.uid));
-      if (snap.exists() && snap.data().fcmToken) {
-        setSavedToken(snap.data().fcmToken);
+      if (!snap.exists()) return;
+
+      const tokens = snap.data().fcmTokens || [];
+
+      if (
+        Notification.permission === "granted" &&
+        "serviceWorker" in navigator
+      ) {
+        try {
+          const registration = await navigator.serviceWorker.getRegistration(
+            "/firebase-messaging-sw.js"
+          );
+          if (registration) {
+            const currentToken = await getToken(messaging, {
+              vapidKey: VAPID_KEY,
+              serviceWorkerRegistration: registration,
+            });
+            if (currentToken && tokens.includes(currentToken)) {
+              setSavedToken(currentToken);
+            }
+          }
+        } catch {}
       }
     };
     checkSavedToken();
@@ -73,7 +99,7 @@ const NotificationsTab = () => {
       }
 
       await updateDoc(doc(db, "tutors", currentUser.uid), {
-        fcmToken: token,
+        fcmTokens: arrayUnion(token),
       });
 
       setSavedToken(token);
@@ -85,13 +111,16 @@ const NotificationsTab = () => {
   };
 
   const handleDisable = async () => {
-    if (!currentUser?.uid) return;
-    await updateDoc(doc(db, "tutors", currentUser.uid), { fcmToken: null });
+    if (!currentUser?.uid || !savedToken) return;
+    await updateDoc(doc(db, "tutors", currentUser.uid), {
+      fcmTokens: arrayRemove(savedToken),
+    });
     setSavedToken(null);
     setStatus(Notification.permission === "granted" ? "granted" : "idle");
   };
 
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  const isAndroid = /Android/.test(navigator.userAgent);
   const isStandalone = window.matchMedia("(display-mode: standalone)").matches;
 
   return (
@@ -109,6 +138,13 @@ const NotificationsTab = () => {
           On iPhone, you need to add this app to your Home Screen first. In
           Safari, tap the <strong>Share</strong> button then{" "}
           <strong>Add to Home Screen</strong>, then open the app from there.
+        </Alert>
+      )}
+      {isAndroid && (
+        <Alert severity="info" sx={{ mb: 3 }}>
+          If notifications stop arriving, go to your phone's{" "}
+          <strong>Settings → Apps → Chrome → Battery</strong> and set it to{" "}
+          <strong>Unrestricted</strong>.
         </Alert>
       )}
 
