@@ -1,7 +1,10 @@
 import * as admin from "firebase-admin";
 import {logger} from "firebase-functions";
 import {onSchedule} from "firebase-functions/v2/scheduler";
-import {onDocumentWritten} from "firebase-functions/v2/firestore";
+import {
+  onDocumentWritten,
+  onDocumentCreated,
+} from "firebase-functions/v2/firestore";
 import {onCall} from "firebase-functions/https";
 import {onRequest} from "firebase-functions/https";
 import dayjs from "dayjs";
@@ -1270,6 +1273,51 @@ export const finalizeTutor = onCall(
     });
 
     return {success: true};
+  }
+);
+
+export const onDirectMessageCreated = onDocumentCreated(
+  {
+    document: "directMessages/{dmId}/messages/{messageId}",
+    region: "australia-southeast1",
+  },
+  async (event) => {
+    const message = event.data?.data();
+    if (!message) return;
+
+    const dmId = event.params.dmId as string;
+    const senderId = message.senderId as string;
+    const senderName = message.senderName as string;
+    const text = message.message as string;
+
+    const [uid1, uid2] = dmId.split("_");
+    const recipientId = uid1 === senderId ? uid2 : uid1;
+
+    const recipientSnap = await db.collection("tutors").doc(recipientId).get();
+    if (!recipientSnap.exists) return;
+
+    const fcmToken = recipientSnap.data()?.fcmToken;
+    if (!fcmToken) return;
+
+    try {
+      await admin.messaging().send({
+        token: fcmToken,
+        notification: {
+          title: `New message from ${senderName}`,
+          body: text.length > 100 ? text.substring(0, 97) + "..." : text,
+        },
+        webpush: {
+          fcmOptions: {
+            link: "/",
+          },
+        },
+      });
+    } catch (err) {
+      logger.error("FCM send failed: ", err);
+      if ((err as any).code === "messaging/registration-token-not-registered") {
+        await db.collection("tutors").doc(recipientId).update({fcmToken: null});
+      }
+    }
   }
 );
 
