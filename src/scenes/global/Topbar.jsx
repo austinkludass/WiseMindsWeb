@@ -29,6 +29,7 @@ const searchOptions = [
   { label: "Invoices", task: "", path: "/invoices"},
   { label: "Lessons", task: "", path: "/lessons" },
   { label: "Locations", task: "", path: "/tutoringbays" },
+  { label: "Messages", task: "", path: "/messages" },
   { label: "Payroll", task: "", path: "/payroll" },
   { label: "Report Bug", task: "", path: "/reportbug" },
   { label: "Settings", task: "", path: "/settings" },
@@ -40,6 +41,7 @@ const searchOptions = [
   { label: "Tutoring Bays", task: "", path: "/tutoringbays"},
   { label: "Tutors", task: "", path: "/tutors" },
   { label: "Tutors", task: "Add New", path: "/newtutor" },
+  { label: "Senior Tutor", task: "", path: "/seniorTutor" },
 ];
 
 const Topbar = () => {
