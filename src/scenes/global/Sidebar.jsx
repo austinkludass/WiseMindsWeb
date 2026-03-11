@@ -11,6 +11,7 @@ import MenuBookOutlinedIcon from "@mui/icons-material/MenuBookOutlined";
 import HomeOutlinedIcon from "@mui/icons-material/HomeOutlined";
 import MenuOutlinedIcon from "@mui/icons-material/MenuOutlined";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
+import ChatIcon from "@mui/icons-material/Chat";
 import OwlFacts from "../../components/Global/OwlFacts";
 import "react-pro-sidebar/dist/css/styles.css";
 
@@ -170,6 +171,12 @@ const Sidebar = () => {
                   setSelected={setSelected}
                 />
                 <Item
+                  title="Senior Tutor"
+                  to="/seniorTutor"
+                  selected={selected}
+                  setSelected={setSelected}
+                />
+                <Item
                   title="Tutor Absences"
                   to="/tutorabsences"
                   selected={selected}
@@ -266,6 +273,13 @@ const Sidebar = () => {
                   setSelected={setSelected}
                 />
               </SubMenu>
+              <Item
+                title="Messages"
+                to="/messages"
+                icon={<ChatIcon />}
+                selected={selected}
+                setSelected={setSelected}
+              />
               <Item
                 title="Settings"
                 to="/settings"

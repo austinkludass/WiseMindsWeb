@@ -17,13 +17,21 @@ import CalendarPage from "./scenes/Lesson/CalendarPage";
 import FamilyPage from "./scenes/Student/FamilyPage";
 import InvoicesPage from "./scenes/Invoicing/InvoicesPage";
 import PayrollPage from "./scenes/Payroll/PayrollPage";
+import SeniorTutorPage from "./scenes/Tutor/SeniorTutorPage";
+import MessagesPage from "./scenes/Messages/MessagesPage";
 import AdditionalHoursPage from "./scenes/Payroll/AdditionalHoursPage";
 import ParentIntake from "./scenes/Intake/ParentIntake";
 import ExistingFamilyIntake from "./scenes/Intake/ExistingFamilyIntake";
 import ProtectedRoute from "./components/Global/ProtectedRoute";
 import useFCMToken from "./hooks/useFCMToken";
 import { ROLES } from "./utils/permissions";
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+  useLocation,
+} from "react-router-dom";
 import { CssBaseline, ThemeProvider } from "@mui/material";
 import { ColorModeContext, useMode } from "./theme";
 import { LocalizationProvider } from "@mui/x-date-pickers";
@@ -65,6 +73,17 @@ function App() {
                   <Route path="/" element={<Dashboard />} />
                   <Route path="/tutors" element={<TutorList />} />
                   <Route
+                    path="/seniorTutor"
+                    element={
+                      <ProtectedRoute
+                        minimumRole={ROLES.ADMIN}
+                        fallbackMessage="You need to be Admin to manage the Senior Tutor assignment."
+                      >
+                        <SeniorTutorPage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
                     path="/newtutor"
                     element={
                       <ProtectedRoute
@@ -86,6 +105,7 @@ function App() {
                   <Route path="/settings" element={<Settings />} />
                   <Route path="/reportbug" element={<ReportBug />} />
                   <Route path="/calendar" element={<CalendarPage />} />
+                  <Route path="messages" element={<MessagesPage />} />
                   <Route
                     path="/invoices"
                     element={
