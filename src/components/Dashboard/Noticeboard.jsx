@@ -50,6 +50,9 @@ const CHANNEL_ACCESS = {
   admins: ["Admin"],
   "head-tutors": ["Admin", "Head Tutor"],
   "senior-tutors": ["Admin", "Head Tutor", "Senior Tutor"],
+  minions: ["Admin", "Minion"],
+  "outside-of-work": ["Admin", "Head Tutor", "Senior Tutor", "Tutor", "Minion"],
+  cover: ["Admin", "Head Tutor", "Senior Tutor", "Tutor", "Minion"],
   all: ["Admin", "Head Tutor", "Senior Tutor", "Tutor", "Minion"],
 };
 
@@ -57,10 +60,13 @@ const CHANNEL_LABELS = {
   admins: "Admins",
   "head-tutors": "Head Tutors",
   "senior-tutors": "Senior Tutors",
+  minions: "Minions",
+  "outside-of-work": "Outside of Work",
+  cover: "Cover",
   all: "All",
 };
 
-const PRIVATE_CHANNELS = ["admins", "head-tutors", "senior-tutors"];
+const PRIVATE_CHANNELS = ["admins", "head-tutors", "senior-tutors", "minions"];
 
 const getAccessibleChannels = (role) =>
   Object.entries(CHANNEL_ACCESS)
@@ -284,7 +290,7 @@ const NewDMDialog = ({
       t.uid !== currentUserUid &&
       `${t.firstName} ${t.lastName}`
         .toLowerCase()
-        .includes(search.toLowerCase())
+        .includes(search.toLowerCase()),
   );
 
   return (
@@ -492,7 +498,7 @@ const Noticeboard = () => {
           const latestMsgQuery = query(
             collection(db, "directMessages", dmId, "messages"),
             orderBy("timestamp", "desc"),
-            limit(1)
+            limit(1),
           );
           const latestMsgSnap = await getDocs(latestMsgQuery);
           const latestTimestamp = latestMsgSnap.empty
@@ -526,7 +532,7 @@ const Noticeboard = () => {
           db,
           "directMessages",
           getDmId(currentUserUid, activeDM.uid),
-          "messages"
+          "messages",
         )
       : collection(db, "chatMessages", activeChannel, "messages");
 
@@ -535,7 +541,7 @@ const Noticeboard = () => {
     const q = query(
       messagesPath,
       orderBy("timestamp", "desc"),
-      limit(PAGE_SIZE)
+      limit(PAGE_SIZE),
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -576,7 +582,7 @@ const Noticeboard = () => {
           db,
           "directMessages",
           getDmId(currentUserUid, activeDM.uid),
-          "messages"
+          "messages",
         )
       : collection(db, "chatMessages", activeChannel, "messages");
 
@@ -584,7 +590,7 @@ const Noticeboard = () => {
       messagesPath,
       orderBy("timestamp", "desc"),
       startAfter(oldestDocSnapshot),
-      limit(PAGE_SIZE)
+      limit(PAGE_SIZE),
     );
 
     const snapshot = await getDocs(q);
@@ -696,8 +702,8 @@ const Noticeboard = () => {
   const chatSubtitle = activeDM
     ? "Direct Message"
     : PRIVATE_CHANNELS.includes(activeChannel)
-    ? "Private Channel"
-    : "Public Channel";
+      ? "Private Channel"
+      : "Public Channel";
 
   const sidebarContent = (
     <SidebarContent
