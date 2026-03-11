@@ -39,27 +39,27 @@ import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { AuthContext } from "./context/AuthContext";
 import { useContext } from "react";
 
+const AppShell = ({ children }) => {
+  const location = useLocation();
+  const hideSidebar =
+    location.pathname.startsWith("/new-family") ||
+    location.pathname.startsWith("/existing-family");
+
+  return (
+    <div className="app">
+      {!hideSidebar && <Sidebar />}
+      <main className="content">
+        {!hideSidebar && <Topbar />}
+        {children}
+      </main>
+    </div>
+  );
+};
+
 function App() {
   const [theme, colorMode] = useMode();
   const { currentUser } = useContext(AuthContext);
   useFCMToken(currentUser?.uid);
-
-  const AppShell = ({ children }) => {
-    const location = useLocation();
-    const hideSidebar =
-      location.pathname.startsWith("/new-family") ||
-      location.pathname.startsWith("/existing-family");
-
-    return (
-      <div className="app">
-        {!hideSidebar && <Sidebar />}
-        <main className="content">
-          {!hideSidebar && <Topbar />}
-          {children}
-        </main>
-      </div>
-    );
-  };
 
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="en-gb">
