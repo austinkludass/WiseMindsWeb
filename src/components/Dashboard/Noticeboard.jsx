@@ -19,6 +19,7 @@ import {
   DialogContent,
   InputAdornment,
   Tooltip,
+  Popover,
 } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
 import TagIcon from "@mui/icons-material/Tag";
@@ -27,6 +28,7 @@ import AddIcon from "@mui/icons-material/Add";
 import SearchIcon from "@mui/icons-material/Search";
 import CloseIcon from "@mui/icons-material/Close";
 import PersonIcon from "@mui/icons-material/Person";
+import PeopleOutlineIcon from "@mui/icons-material/PeopleOutline";
 import { tokens } from "../../theme";
 import { AuthContext } from "../../context/AuthContext";
 import {
@@ -73,9 +75,125 @@ const getAccessibleChannels = (role) =>
     .filter(([, roles]) => roles.includes(role))
     .map(([channelId]) => channelId);
 
+const getChannelMembers = (channelId, tutors) => {
+  const allowedRoles = CHANNEL_ACCESS[channelId] || [];
+  return tutors
+    .filter((t) => allowedRoles.includes(t.role))
+    .sort((a, b) => a.firstName.localeCompare(b.firstName));
+};
+
 const DRAWER_WIDTH = 240;
 
 const getDmId = (uid1, uid2) => [uid1, uid2].sort().join("_");
+
+// Show members of a channel in a popover
+const ChannelMembersPopover = ({
+  anchorEl,
+  onClose,
+  channelId,
+  tutors,
+  colors,
+}) => {
+  const open = Boolean(anchorEl);
+  const members = getChannelMembers(channelId, tutors);
+
+  return (
+    <Popover
+      open={open}
+      anchorEl={anchorEl}
+      onClose={onClose}
+      anchorOrigin={{ vertical: "center", horizontal: "right" }}
+      transformOrigin={{ vertical: "center", horizontal: "left" }}
+      slotProps={{
+        paper: {
+          sx: {
+            bgcolor: colors.primary[400],
+            backgroundImage: "none",
+            borderRadius: "8px",
+            boxShadow: "0 4px 20px rgba(0,0,0,0.3)",
+            minWidth: 200,
+            maxWidth: 260,
+            ml: 1,
+          },
+        },
+      }}
+    >
+      <Box p={1.5}>
+        <Typography
+          variant="overline"
+          sx={{
+            color: colors.orangeAccent[400],
+            fontWeight: 700,
+            letterSpacing: "0.1em",
+            fontSize: "0.65rem",
+            display: "block",
+            mb: 1,
+          }}
+        >
+          Members - {members.length}
+        </Typography>
+
+        {members.length === 0 ? (
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{ fontStyle: "italic", fontSize: "0.8rem" }}
+          >
+            No members found
+          </Typography>
+        ) : (
+          <List dense disablePadding>
+            {members.map((tutor) => {
+              const initials = `${tutor.firstName[0]}${
+                tutor.lastName ? tutor.lastName[0] : ""
+              }`;
+              return (
+                <ListItem key={tutor.uid} disablePadding sx={{ mb: 0.5 }}>
+                  <Box
+                    display="flex"
+                    alignItems="center"
+                    gap={1}
+                    px={0.5}
+                    py={0.25}
+                  >
+                    <Avatar
+                      src={tutor.avatar || undefined}
+                      sx={{
+                        width: 26,
+                        height: 26,
+                        fontSize: "0.65rem",
+                        bgcolor: tutor.tutorColor || colors.orangeAccent[700],
+                        color: "white",
+                        flexShrink: 0,
+                      }}
+                    >
+                      {initials}
+                    </Avatar>
+                    <Box>
+                      <Typography
+                        variant="body2"
+                        sx={{ fontSize: "0.82rem", lineHeight: 1.2 }}
+                      >
+                        {tutor.firstName} {tutor.lastName}
+                      </Typography>
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        sx={{ fontSize: "0.7rem" }}
+                      >
+                        {tutor.role}
+                      </Typography>
+                    </Box>
+                  </Box>
+                </ListItem>
+              );
+            })}
+          </List>
+        )}
+      </Box>
+    </Popover>
+  );
+};
 
 // Sidebar component for noticeboard
 const SidebarContent = ({
@@ -87,192 +205,237 @@ const SidebarContent = ({
   onSelectDM,
   activeDM,
   onNewDM,
-}) => (
-  <Box
-    sx={{
-      width: DRAWER_WIDTH,
-      height: "100%",
-      display: "flex",
-      flexDirection: "column",
-      overflow: "hidden",
-    }}
-  >
-    {/* Channels Section */}
-    <Box sx={{ px: 2, pt: 2, pb: 1 }}>
-      <Typography
-        variant="overline"
-        sx={{
-          color: colors.orangeAccent[400],
-          fontWeight: 700,
-          letterSpacing: "0.12em",
-          fontSize: "0.65rem",
-        }}
-      >
-        Channels
-      </Typography>
-    </Box>
+  allTutors,
+}) => {
+  const [membersAnchorEl, setMembersAnchorEl] = useState(null);
+  const [membersChannelId, setMembersChannelId] = useState(null);
 
-    <List dense disablePadding>
-      {accessibleChannels.map((channelId) => {
-        const isPrivate = PRIVATE_CHANNELS.includes(channelId);
-        const isActive = activeChannel === channelId && !activeDM;
-        return (
-          <ListItem key={channelId} disablePadding>
-            <ListItemButton
-              selected={isActive}
-              onClick={() => onSelectChannel(channelId)}
-              sx={{
-                mx: 1,
-                borderRadius: "6px",
-                "&.Mui-selected": {
-                  bgcolor: `${colors.orangeAccent[400]}22`,
-                  "&:hover": { bgcolor: `${colors.orangeAccent[400]}33` },
-                },
-                "&:hover": { bgcolor: colors.primary[400] },
-              }}
-            >
-              <ListItemIcon sx={{ minWidth: 32 }}>
-                {isPrivate ? (
-                  <LockIcon
-                    sx={{
-                      fontSize: 16,
-                      color: isActive
-                        ? colors.orangeAccent[400]
-                        : colors.grey[400],
-                    }}
-                  />
-                ) : (
-                  <TagIcon
-                    sx={{
-                      fontSize: 16,
-                      color: isActive
-                        ? colors.orangeAccent[400]
-                        : colors.grey[400],
-                    }}
-                  />
-                )}
-              </ListItemIcon>
-              <ListItemText
-                primary={CHANNEL_LABELS[channelId]}
-                slotProps={{
-                  primary: {
-                    fontSize: "0.85rem",
-                    fontWeight: isActive ? 600 : 400,
-                    color: isActive ? colors.orangeAccent[400] : "inherit",
-                  },
-                }}
-              />
-            </ListItemButton>
-          </ListItem>
-        );
-      })}
-    </List>
+  const handleMembersOpen = (event, channelId) => {
+    event.stopPropagation();
+    setMembersAnchorEl(event.currentTarget);
+    setMembersChannelId(channelId);
+  };
 
-    <Divider sx={{ my: 1.5, borderColor: colors.primary[300] }} />
+  const handleMembersClose = () => {
+    setMembersAnchorEl(null);
+    setMembersChannelId(null);
+  };
 
-    {/* Direct Messages Section */}
+  return (
     <Box
       sx={{
-        px: 2,
-        pb: 0.5,
+        width: DRAWER_WIDTH,
+        height: "100%",
         display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
+        flexDirection: "column",
+        overflow: "hidden",
       }}
     >
-      <Typography
-        variant="overline"
-        sx={{
-          color: colors.orangeAccent[400],
-          fontWeight: 700,
-          letterSpacing: "0.12em",
-          fontSize: "0.65rem",
-        }}
-      >
-        Direct Messages
-      </Typography>
-      <Tooltip title="New Message" placement="right">
-        <IconButton
-          size="small"
-          onClick={onNewDM}
+      {/* Channels Section */}
+      <Box sx={{ px: 2, pt: 2, pb: 1 }}>
+        <Typography
+          variant="overline"
           sx={{
-            color: colors.grey[400],
-            "&:hover": { color: colors.orangeAccent[400] },
-            p: 0.25,
+            color: colors.orangeAccent[400],
+            fontWeight: 700,
+            letterSpacing: "0.12em",
+            fontSize: "0.65rem",
           }}
         >
-          <AddIcon fontSize="small" />
-        </IconButton>
-      </Tooltip>
-    </Box>
+          Channels
+        </Typography>
+      </Box>
 
-    <List dense disablePadding sx={{ flex: 1, overflowY: "auto" }}>
-      {existingDMs.length === 0 && (
-        <ListItem>
-          <ListItemText
-            primary="No messages yet"
-            slotProps={{
-              primary: {
-                fontSize: "0.75rem",
-                color: colors.grey[500],
-                fontStyle: "italic",
-              },
-            }}
-          />
-        </ListItem>
-      )}
-      {existingDMs.map((tutor) => {
-        const isActive = activeDM?.uid === tutor.uid;
-        const initials = `${tutor.firstName[0]}${
-          tutor.lastName ? tutor.lastName[0] : ""
-        }`;
-        return (
-          <ListItem key={tutor.uid} disablePadding>
-            <ListItemButton
-              selected={isActive}
-              onClick={() => onSelectDM(tutor)}
-              sx={{
-                mx: 1,
-                borderRadius: "6px",
-                "&.Mui-selected": {
-                  bgcolor: `${colors.orangeAccent[400]}22`,
-                  "&:hover": { bgcolor: `${colors.orangeAccent[400]}33` },
-                },
-                "&:hover": { bgcolor: colors.primary[400] },
-              }}
-            >
-              <ListItemIcon sx={{ minWidth: 36 }}>
-                <Avatar
-                  src={tutor.avatar || undefined}
-                  sx={{
-                    width: 24,
-                    height: 24,
-                    fontSize: "0.65rem",
-                    bgcolor: tutor.tutorColor || colors.grey[600],
-                    color: "white",
-                  }}
-                >
-                  {initials}
-                </Avatar>
-              </ListItemIcon>
-              <ListItemText
-                primary={`${tutor.firstName} ${tutor.lastName}`}
-                slotProps={{
-                  primary: {
-                    fontSize: "0.85rem",
-                    fontWeight: isActive ? 600 : 400,
-                    color: isActive ? colors.orangeAccent[400] : "inherit",
-                    noWrap: true,
+      <List dense disablePadding>
+        {accessibleChannels.map((channelId) => {
+          const isPrivate = PRIVATE_CHANNELS.includes(channelId);
+          const isActive = activeChannel === channelId && !activeDM;
+          return (
+            <ListItem key={channelId} disablePadding>
+              <ListItemButton
+                selected={isActive}
+                onClick={() => onSelectChannel(channelId)}
+                sx={{
+                  mx: 1,
+                  borderRadius: "6px",
+                  "&.Mui-selected": {
+                    bgcolor: `${colors.orangeAccent[400]}22`,
+                    "&:hover": { bgcolor: `${colors.orangeAccent[400]}33` },
+                  },
+                  "&:hover": {
+                    bgcolor: colors.primary[400],
+                    "& .members-btn": { opacity: 1 },
                   },
                 }}
-              />
-            </ListItemButton>
+              >
+                <ListItemIcon sx={{ minWidth: 32 }}>
+                  {isPrivate ? (
+                    <LockIcon
+                      sx={{
+                        fontSize: 16,
+                        color: isActive
+                          ? colors.orangeAccent[400]
+                          : colors.grey[400],
+                      }}
+                    />
+                  ) : (
+                    <TagIcon
+                      sx={{
+                        fontSize: 16,
+                        color: isActive
+                          ? colors.orangeAccent[400]
+                          : colors.grey[400],
+                      }}
+                    />
+                  )}
+                </ListItemIcon>
+                <ListItemText
+                  primary={CHANNEL_LABELS[channelId]}
+                  slotProps={{
+                    primary: {
+                      fontSize: "0.85rem",
+                      fontWeight: isActive ? 600 : 400,
+                      color: isActive ? colors.orangeAccent[400] : "inherit",
+                    },
+                  }}
+                />
+                <Tooltip title="View members" placement="right">
+                  <IconButton
+                    size="small"
+                    className="members-btn"
+                    onClick={(e) => handleMembersOpen(e, channelId)}
+                    sx={{
+                      opacity: 0,
+                      transition: "opacity 0.15s",
+                      p: 0.25,
+                      ml: 0.5,
+                      color: colors.grey[400],
+                      "&:hover": { color: colors.orangeAccent[400] },
+                    }}
+                  >
+                    <PeopleOutlineIcon sx={{ fontSize: 15 }} />
+                  </IconButton>
+                </Tooltip>
+              </ListItemButton>
+            </ListItem>
+          );
+        })}
+      </List>
+
+      <ChannelMembersPopover
+        anchorEl={membersAnchorEl}
+        onClose={handleMembersClose}
+        channelId={membersChannelId}
+        tutors={allTutors}
+        colors={colors}
+      />
+
+      <Divider sx={{ my: 1.5, borderColor: colors.primary[300] }} />
+
+      {/* Direct Messages Section */}
+      <Box
+        sx={{
+          px: 2,
+          pb: 0.5,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
+        <Typography
+          variant="overline"
+          sx={{
+            color: colors.orangeAccent[400],
+            fontWeight: 700,
+            letterSpacing: "0.12em",
+            fontSize: "0.65rem",
+          }}
+        >
+          Direct Messages
+        </Typography>
+        <Tooltip title="New Message" placement="right">
+          <IconButton
+            size="small"
+            onClick={onNewDM}
+            sx={{
+              color: colors.grey[400],
+              "&:hover": { color: colors.orangeAccent[400] },
+              p: 0.25,
+            }}
+          >
+            <AddIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+      </Box>
+
+      <List dense disablePadding sx={{ flex: 1, overflowY: "auto" }}>
+        {existingDMs.length === 0 && (
+          <ListItem>
+            <ListItemText
+              primary="No messages yet"
+              slotProps={{
+                primary: {
+                  fontSize: "0.75rem",
+                  color: colors.grey[500],
+                  fontStyle: "italic",
+                },
+              }}
+            />
           </ListItem>
-        );
-      })}
-    </List>
-  </Box>
-);
+        )}
+        {existingDMs.map((tutor) => {
+          const isActive = activeDM?.uid === tutor.uid;
+          const initials = `${tutor.firstName[0]}${
+            tutor.lastName ? tutor.lastName[0] : ""
+          }`;
+          return (
+            <ListItem key={tutor.uid} disablePadding>
+              <ListItemButton
+                selected={isActive}
+                onClick={() => onSelectDM(tutor)}
+                sx={{
+                  mx: 1,
+                  borderRadius: "6px",
+                  "&.Mui-selected": {
+                    bgcolor: `${colors.orangeAccent[400]}22`,
+                    "&:hover": { bgcolor: `${colors.orangeAccent[400]}33` },
+                  },
+                  "&:hover": { bgcolor: colors.primary[400] },
+                }}
+              >
+                <ListItemIcon sx={{ minWidth: 36 }}>
+                  <Avatar
+                    src={tutor.avatar || undefined}
+                    sx={{
+                      width: 24,
+                      height: 24,
+                      fontSize: "0.65rem",
+                      bgcolor: tutor.tutorColor || colors.grey[600],
+                      color: "white",
+                    }}
+                  >
+                    {initials}
+                  </Avatar>
+                </ListItemIcon>
+                <ListItemText
+                  primary={`${tutor.firstName} ${tutor.lastName}`}
+                  slotProps={{
+                    primary: {
+                      fontSize: "0.85rem",
+                      fontWeight: isActive ? 600 : 400,
+                      color: isActive ? colors.orangeAccent[400] : "inherit",
+                      noWrap: true,
+                    },
+                  }}
+                />
+              </ListItemButton>
+            </ListItem>
+          );
+        })}
+      </List>
+    </Box>
+  );
+};
 
 // Dialog for new direct message tutor selection
 const NewDMDialog = ({
@@ -290,7 +453,7 @@ const NewDMDialog = ({
       t.uid !== currentUserUid &&
       `${t.firstName} ${t.lastName}`
         .toLowerCase()
-        .includes(search.toLowerCase()),
+        .includes(search.toLowerCase())
   );
 
   return (
@@ -498,7 +661,7 @@ const Noticeboard = () => {
           const latestMsgQuery = query(
             collection(db, "directMessages", dmId, "messages"),
             orderBy("timestamp", "desc"),
-            limit(1),
+            limit(1)
           );
           const latestMsgSnap = await getDocs(latestMsgQuery);
           const latestTimestamp = latestMsgSnap.empty
@@ -532,7 +695,7 @@ const Noticeboard = () => {
           db,
           "directMessages",
           getDmId(currentUserUid, activeDM.uid),
-          "messages",
+          "messages"
         )
       : collection(db, "chatMessages", activeChannel, "messages");
 
@@ -541,7 +704,7 @@ const Noticeboard = () => {
     const q = query(
       messagesPath,
       orderBy("timestamp", "desc"),
-      limit(PAGE_SIZE),
+      limit(PAGE_SIZE)
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -582,7 +745,7 @@ const Noticeboard = () => {
           db,
           "directMessages",
           getDmId(currentUserUid, activeDM.uid),
-          "messages",
+          "messages"
         )
       : collection(db, "chatMessages", activeChannel, "messages");
 
@@ -590,7 +753,7 @@ const Noticeboard = () => {
       messagesPath,
       orderBy("timestamp", "desc"),
       startAfter(oldestDocSnapshot),
-      limit(PAGE_SIZE),
+      limit(PAGE_SIZE)
     );
 
     const snapshot = await getDocs(q);
@@ -702,8 +865,8 @@ const Noticeboard = () => {
   const chatSubtitle = activeDM
     ? "Direct Message"
     : PRIVATE_CHANNELS.includes(activeChannel)
-      ? "Private Channel"
-      : "Public Channel";
+    ? "Private Channel"
+    : "Public Channel";
 
   const sidebarContent = (
     <SidebarContent
@@ -716,6 +879,7 @@ const Noticeboard = () => {
       activeDM={activeDM}
       onNewDM={() => setDmDialogOpen(true)}
       currentUserUid={currentUserUid}
+      allTutors={allTutors}
     />
   );
 
