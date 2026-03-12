@@ -23,6 +23,8 @@ import {
   Popover,
   Menu,
   MenuItem,
+  LinearProgress,
+  Chip,
 } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
 import TagIcon from "@mui/icons-material/Tag";
@@ -35,6 +37,13 @@ import PeopleOutlineIcon from "@mui/icons-material/PeopleOutline";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
+import AttachFileIcon from "@mui/icons-material/AttachFile";
+import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
+import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
+import TableChartIcon from "@mui/icons-material/TableChart";
+import DescriptionIcon from "@mui/icons-material/Description";
+import ImageIcon from "@mui/icons-material/Image";
+import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import { tokens } from "../../theme";
 import { AuthContext } from "../../context/AuthContext";
 import {
@@ -53,7 +62,13 @@ import {
   updateDoc,
   deleteDoc,
 } from "firebase/firestore";
-import { db } from "../../data/firebase";
+import {
+  ref,
+  uploadBytesResumable,
+  getDownloadURL,
+  deleteObject,
+} from "firebase/storage";
+import { db, sb } from "../../data/firebase";
 import { format } from "date-fns";
 
 const CHANNEL_ACCESS = {
@@ -78,6 +93,22 @@ const CHANNEL_LABELS = {
 
 const PRIVATE_CHANNELS = ["admins", "head-tutors", "senior-tutors", "minions"];
 
+const ALLOWED_MIME_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/gif",
+  "image/webp",
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+];
+
+const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
+
+const DRAWER_WIDTH = 240;
+
 const getAccessibleChannels = (role) =>
   Object.entries(CHANNEL_ACCESS)
     .filter(([, roles]) => roles.includes(role))
@@ -90,9 +121,41 @@ const getChannelMembers = (channelId, tutors) => {
     .sort((a, b) => a.firstName.localeCompare(b.firstName));
 };
 
-const DRAWER_WIDTH = 240;
-
 const getDmId = (uid1, uid2) => [uid1, uid2].sort().join("_");
+
+const formatBytes = (bytes) => {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+};
+
+const isImageType = (type) => type?.startsWith("image/");
+
+const getFileIcon = (type) => {
+  if (!type) return <InsertDriveFileIcon />;
+  if (type.startsWith("image/")) return <ImageIcon />;
+  if (type === "application/pdf") return <PictureAsPdfIcon />;
+  if (type.includes("sheet") || type.includes("excel"))
+    return <TableChartIcon />;
+  if (type.includes("word") || type.includes("document"))
+    return <DescriptionIcon />;
+  return <InsertDriveFileIcon />;
+};
+
+const getStoragePath = (
+  activeDM,
+  activeChannel,
+  currentUserUid,
+  messageId,
+  filename
+) => {
+  const safeName = filename.replace(/[^a-zA-Z0-9._-]/g, "_");
+  if (activeDM) {
+    const dmId = getDmId(currentUserUid, activeDM.uid);
+    return `chat-attachments/dms/${dmId}/${messageId}_${safeName}`;
+  }
+  return `chat-attachments/channels/${activeChannel}/${messageId}_${safeName}`;
+};
 
 // Show members of a channel in a popover
 const ChannelMembersPopover = ({
@@ -576,7 +639,7 @@ const NewDMDialog = ({
 };
 
 // Confirm delete dialog
-const DeleteConfirmDialog = ({ open, onClose, onConfirm, colors }) => (
+const DeleteConfirmDialog = ({ open, onClose, onConfirm, colors, deleting }) => (
   <Dialog
     open={open}
     onClose={onClose}
@@ -594,11 +657,12 @@ const DeleteConfirmDialog = ({ open, onClose, onConfirm, colors }) => (
     <DialogTitle>Delete message?</DialogTitle>
     <DialogContent>
       <Typography variant="body2" color="text.secondary">
-        This will permanently delete the message. This action cannot be undone.
+        This will permanently delete the message and any attached file. This
+        action cannot be undone.
       </Typography>
     </DialogContent>
     <DialogActions sx={{ px: 3, pb: 2 }}>
-      <Button onClick={onClose} size="small">
+      <Button onClick={onClose} size="small" disabled={deleting}>
         Cancel
       </Button>
       <Button
@@ -606,18 +670,164 @@ const DeleteConfirmDialog = ({ open, onClose, onConfirm, colors }) => (
         size="small"
         variant="contained"
         color="error"
+        disabled={deleting}
       >
-        Delete
+        {deleting ? "Deleting..." : "Delete"}
       </Button>
     </DialogActions>
   </Dialog>
 );
+
+// Attachment Preview (inline in message)
+const AttachmentPreview = ({ attachment, colors }) => {
+  if (!attachment) return null;
+  const { url, name, size, type } = attachment;
+
+  if (isImageType(type)) {
+    return (
+      <Box
+        component="a"
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+        sx={{ display: "block", mt: 0.75, cursor: "pointer" }}
+      >
+        <Box
+          component="img"
+          src={url}
+          alt={name}
+          sx={{
+            maxWidth: "100%",
+            maxHeight: 220,
+            borderRadius: "6px",
+            display: "block",
+            objectFit: "contain",
+            border: `1px solid ${colors.primary[300]}`,
+          }}
+        />
+        <Typography
+          variant="caption"
+          color="text.secondary"
+          sx={{ display: "block", mt: 0.25 }}
+        >
+          {name} · {formatBytes(size)}
+        </Typography>
+      </Box>
+    );
+  }
+
+  return (
+    <Box
+      component="a"
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      sx={{ textDecoration: "none", display: "inline-block", mt: 0.75 }}
+    >
+      <Chip
+        icon={getFileIcon(type)}
+        label={
+          <Box display="flex" alignItems="center" gap={0.5}>
+            <Typography
+              variant="caption"
+              sx={{
+                fontWeight: 600,
+                maxWidth: 160,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {name}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              · {formatBytes(size)}
+            </Typography>
+            <OpenInNewIcon sx={{ fontSize: 12, opacity: 0.6 }} />
+          </Box>
+        }
+        size="small"
+        variant="outlined"
+        sx={{
+          borderColor: colors.orangeAccent[400] + "66",
+          color: "inherit",
+          cursor: "pointer",
+          height: "auto",
+          py: 0.5,
+          "&:hover": {
+            borderColor: colors.orangeAccent[400],
+            bgcolor: colors.orangeAccent[400] + "11",
+          },
+          "& .MuiChip-label": { px: 1 },
+        }}
+      />
+    </Box>
+  );
+};
+
+// Pending Attachment Bar (shown above input before sending)
+const PendingAttachmentBar = ({ file, onRemove, colors }) => {
+  if (!file) return null;
+  const isOversized = file.size > MAX_FILE_SIZE_BYTES;
+
+  return (
+    <Box
+      mb={1}
+      px={1.5}
+      py={1}
+      bgcolor={colors.primary[500]}
+      borderRadius="6px"
+      display="flex"
+      alignItems="center"
+      justifyContent="space-between"
+      gap={1}
+      sx={{
+        border: isOversized ? `1px solid` : "none",
+        borderColor: "error.main",
+      }}
+    >
+      <Box
+        display="flex"
+        alignItems="center"
+        gap={1}
+        sx={{ overflow: "hidden" }}
+      >
+        {getFileIcon(file.type)}
+        <Box sx={{ overflow: "hidden" }}>
+          <Typography
+            variant="caption"
+            sx={{
+              display: "block",
+              fontWeight: 600,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {file.name}
+          </Typography>
+          <Typography
+            variant="caption"
+            color={isOversized ? "error" : "text.secondary"}
+          >
+            {formatBytes(file.size)}
+            {isOversized ? " — exceeds 10 MB limit" : ""}
+          </Typography>
+        </Box>
+      </Box>
+      <IconButton size="small" onClick={onRemove} sx={{ flexShrink: 0 }}>
+        <CloseIcon fontSize="small" />
+      </IconButton>
+    </Box>
+  );
+};
 
 // Full Noticeboard component with sidebar and chat area
 const Noticeboard = () => {
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
   const containerRef = useRef(null);
+  const fileInputRef = useRef(null);
   const { currentUser } = useContext(AuthContext);
 
   const [containerWidth, setContainerWidth] = useState(9999);
@@ -639,6 +849,7 @@ const Noticeboard = () => {
   const [oldestDocSnapshot, setOldestDocSnapshot] = useState(null);
   const [hasMoreMessages, setHasMoreMessages] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const PAGE_SIZE = 50;
 
   const isLoadingMoreRef = useRef(false);
@@ -651,6 +862,11 @@ const Noticeboard = () => {
   const [editingText, setEditingText] = useState("");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [msgToDelete, setMsgToDelete] = useState(null);
+
+  // Attachment state
+  const [pendingFile, setPendingFile] = useState(null);
+  const [uploadProgress, setUploadProgress] = useState(null);
+  const [attachmentError, setAttachmentError] = useState("");
 
   // Track container width for responsive drawer
   useEffect(() => {
@@ -762,9 +978,8 @@ const Noticeboard = () => {
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      if (snapshot.empty) return;
       const msgs = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
-      setOldestDocSnapshot(snapshot.docs[snapshot.docs.length - 1]);
+      setOldestDocSnapshot(snapshot.docs[snapshot.docs.length - 1] ?? null);
       setHasMoreMessages(snapshot.docs.length === PAGE_SIZE);
       setMessages(msgs.reverse());
     });
@@ -839,6 +1054,136 @@ const Noticeboard = () => {
     return doc(db, "chatMessages", activeChannel, "messages", msgId);
   };
 
+  // File selection
+  const handleFileSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setAttachmentError("");
+
+    if (!ALLOWED_MIME_TYPES.includes(file.type)) {
+      setAttachmentError(
+        "File type not supported. Allowed: images, PDF, Word, Excel."
+      );
+      e.target.value = "";
+      return;
+    }
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      setPendingFile(file);
+      e.target.value = "";
+      return;
+    }
+    setPendingFile(file);
+    e.target.value = "";
+  };
+
+  // Upload attachment to Storage
+  const uploadAttachment = (file, path) =>
+    new Promise((resolve, reject) => {
+      const storageRef = ref(sb, path);
+      const uploadTask = uploadBytesResumable(storageRef, file, {
+        customMetadata: { uploaderId: currentUserUid },
+      });
+      uploadTask.on(
+        "state_changed",
+        (snapshot) =>
+          setUploadProgress(
+            Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100)
+          ),
+        (error) => reject(error),
+        async () => {
+          const url = await getDownloadURL(uploadTask.snapshot.ref);
+          resolve(url);
+        }
+      );
+    });
+
+  // Send message
+  const handleSend = async () => {
+    const hasText = newMessage.trim().length > 0;
+    const hasFile = pendingFile !== null;
+    if (!hasText && !hasFile) return;
+    if (!currentUser?.uid) return;
+    if (pendingFile && pendingFile.size > MAX_FILE_SIZE_BYTES) {
+      setAttachmentError(
+        "File exceeds the 10 MB limit. Please remove it before sending."
+      );
+      return;
+    }
+
+    setAttachmentError("");
+    let attachment = null;
+
+    if (hasFile) {
+      const tempId = `${Date.now()}_${currentUserUid}`;
+      const path = getStoragePath(
+        activeDM,
+        activeChannel,
+        currentUserUid,
+        tempId,
+        pendingFile.name
+      );
+      try {
+        const url = await uploadAttachment(pendingFile, path);
+        attachment = {
+          url,
+          name: pendingFile.name,
+          size: pendingFile.size,
+          type: pendingFile.type,
+          storagePath: path,
+        };
+      } catch {
+        setAttachmentError("Upload failed. Please try again.");
+        setUploadProgress(null);
+        return;
+      }
+      setUploadProgress(null);
+      setPendingFile(null);
+    }
+
+    const messageData = {
+      senderId: currentUser.uid,
+      senderName,
+      message: newMessage.trim(),
+      timestamp: serverTimestamp(),
+      replyTo: replyTo
+        ? {
+            messageId: replyTo.messageId,
+            senderName: replyTo.senderName,
+            message: replyTo.message,
+          }
+        : null,
+      attachment: attachment || null,
+    };
+
+    if (activeDM) {
+      const dmId = getDmId(currentUser.uid, activeDM.uid);
+      const dmRef = doc(db, "directMessages", dmId);
+      const dmSnap = await getDoc(dmRef);
+      if (!dmSnap.exists()) {
+        await setDoc(dmRef, {
+          participants: [currentUser.uid, activeDM.uid],
+          createdAt: serverTimestamp(),
+        });
+      }
+      setExistingDMs((prev) => [
+        activeDM,
+        ...prev.filter((d) => d.uid !== activeDM.uid),
+      ]);
+      await addDoc(
+        collection(db, "directMessages", dmId, "messages"),
+        messageData
+      );
+    } else {
+      await addDoc(
+        collection(db, "chatMessages", activeChannel, "messages"),
+        messageData
+      );
+    }
+
+    setNewMessage("");
+    setReplyTo(null);
+  };
+
   // Edit handlers
   const handleEditStart = (msg) => {
     setEditingMsgId(msg.id);
@@ -872,70 +1217,19 @@ const Noticeboard = () => {
 
   const handleDeleteConfirm = async () => {
     if (!msgToDelete) return;
+    setDeleting(true);
+    if (msgToDelete.attachment?.storagePath) {
+      try {
+        await deleteObject(ref(sb, msgToDelete.attachment.storagePath));
+      } catch {}
+    }
     await deleteDoc(getMessageDocRef(msgToDelete.id));
+    setDeleting(false);
     setDeleteDialogOpen(false);
     setMsgToDelete(null);
   };
 
-  const handleSend = async () => {
-    if (!newMessage.trim()) return;
-    if (!currentUser?.uid) return;
-
-    if (activeDM) {
-      const dmId = getDmId(currentUser.uid, activeDM.uid);
-      const dmRef = doc(db, "directMessages", dmId);
-      const dmSnap = await getDoc(dmRef);
-
-      if (!dmSnap.exists()) {
-        await setDoc(dmRef, {
-          participants: [currentUser.uid, activeDM.uid],
-          createdAt: serverTimestamp(),
-        });
-      }
-
-      // Move tutor to top of DM list on new message
-      setExistingDMs((prev) => [
-        activeDM,
-        ...prev.filter((d) => d.uid !== activeDM.uid),
-      ]);
-
-      await addDoc(collection(db, "directMessages", dmId, "messages"), {
-        senderId: currentUser.uid,
-        senderName,
-        message: newMessage.trim(),
-        timestamp: serverTimestamp(),
-        replyTo: replyTo
-          ? {
-              messageId: replyTo.messageId,
-              senderName: replyTo.senderName,
-              message: replyTo.message,
-            }
-          : null,
-      });
-
-      setNewMessage("");
-      setReplyTo(null);
-      return;
-    }
-
-    await addDoc(collection(db, "chatMessages", activeChannel, "messages"), {
-      senderId: currentUser.uid,
-      senderName,
-      message: newMessage.trim(),
-      timestamp: serverTimestamp(),
-      replyTo: replyTo
-        ? {
-            messageId: replyTo.messageId,
-            senderName: replyTo.senderName,
-            message: replyTo.message,
-          }
-        : null,
-    });
-
-    setNewMessage("");
-    setReplyTo(null);
-  };
-
+  // Navigation
   const handleSelectChannel = (channelId) => {
     setActiveChannel(channelId);
     setActiveDM(null);
@@ -1223,6 +1517,7 @@ const Noticeboard = () => {
                         fullWidth
                         multiline
                         value={editingText}
+                        autoFocus
                         onChange={(e) => setEditingText(e.target.value)}
                         onKeyDown={(e) => {
                           if (e.key === "Enter" && !e.shiftKey) {
@@ -1231,7 +1526,6 @@ const Noticeboard = () => {
                           }
                           if (e.key === "Escape") handleEditCancel();
                         }}
-                        autoFocus
                       />
                       <Box display="flex" gap={0.5} justifyContent="flex-end">
                         <Button size="small" onClick={handleEditCancel}>
@@ -1247,7 +1541,15 @@ const Noticeboard = () => {
                       </Box>
                     </Box>
                   ) : (
-                    <Typography variant="body1">{msg.message}</Typography>
+                    <>
+                      {msg.message && (
+                        <Typography variant="body1">{msg.message}</Typography>
+                      )}
+                      <AttachmentPreview
+                        attachment={msg.attachment}
+                        colors={colors}
+                      />
+                    </>
                   )}
 
                   {/* Timestamp + reply + three-dot menu */}
@@ -1327,6 +1629,41 @@ const Noticeboard = () => {
           })}
         </Box>
 
+        {/* Upload progress bar */}
+        {uploadProgress !== null && (
+          <Box mb={1}>
+            <Typography variant="caption" color="text.secondary">
+              Uploading... {uploadProgress}%
+            </Typography>
+            <LinearProgress
+              variant="determinate"
+              value={uploadProgress}
+              sx={{ mt: 0.5, borderRadius: 4 }}
+            />
+          </Box>
+        )}
+
+        {/* Pending attachment preview */}
+        <PendingAttachmentBar
+          file={pendingFile}
+          onRemove={() => {
+            setPendingFile(null);
+            setAttachmentError("");
+          }}
+          colors={colors}
+        />
+
+        {/* Attachment error */}
+        {attachmentError && (
+          <Typography
+            variant="caption"
+            color="error"
+            sx={{ mb: 0.5, display: "block" }}
+          >
+            {attachmentError}
+          </Typography>
+        )}
+
         {replyTo && (
           <Box
             mb={1}
@@ -1349,7 +1686,33 @@ const Noticeboard = () => {
           </Box>
         )}
 
-        <Box display="flex" gap="8px">
+        <Box display="flex" gap="8px" alignItems="center">
+          {/* Hidden file input */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept={ALLOWED_MIME_TYPES.join(",")}
+            style={{ display: "none" }}
+            onChange={handleFileSelect}
+          />
+          <Tooltip title="Attach file (max 10 MB)">
+            <span>
+              <IconButton
+                size="small"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadProgress !== null}
+                sx={{
+                  color: pendingFile
+                    ? colors.orangeAccent[400]
+                    : colors.grey[400],
+                  "&:hover": { color: colors.orangeAccent[400] },
+                }}
+              >
+                <AttachFileIcon fontSize="small" />
+              </IconButton>
+            </span>
+          </Tooltip>
+
           <TextField
             variant="outlined"
             size="small"
@@ -1370,7 +1733,11 @@ const Noticeboard = () => {
               }
             }}
           />
-          <Button variant="contained" onClick={handleSend}>
+          <Button
+            variant="contained"
+            onClick={handleSend}
+            disabled={uploadProgress !== null}
+          >
             Send
           </Button>
         </Box>
@@ -1425,6 +1792,7 @@ const Noticeboard = () => {
         }}
         onConfirm={handleDeleteConfirm}
         colors={colors}
+        deleting={deleting}
       />
     </Box>
   );
