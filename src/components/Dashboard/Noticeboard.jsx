@@ -1828,7 +1828,7 @@ const Noticeboard = () => {
                       <Typography variant="caption">
                         Replying to <b>{msg.replyTo.senderName}</b>{" "}
                       </Typography>
-                      <Typography variant="caption" noWrap>
+                      <Typography variant="caption">
                         "{msg.replyTo.message}"
                       </Typography>
                     </Box>
