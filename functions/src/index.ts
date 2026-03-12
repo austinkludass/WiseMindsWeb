@@ -1336,6 +1336,80 @@ export const onDirectMessageCreated = onDocumentCreated(
   }
 );
 
+export const onSeniorTutorDMCreated = onDocumentCreated(
+  {
+    document: "seniorTutorDMs/{senderId}/messages/{messageId}",
+    region: "australia-southeast1",
+  },
+  async (event) => {
+    const message = event.data?.data();
+    if (!message) return;
+
+    const senderId = event.params.senderId as string;
+    const messageSenderId = message.senderId as string;
+    const senderName = message.senderName as string;
+    const text = message.message as string;
+    const today = dayjs().tz(tz);
+    const dayOfWeek = today.day();
+    const daysSinceSaturday = dayOfWeek === 6 ? 0 : dayOfWeek + 1;
+    const weekKey = today.subtract(daysSinceSaturday, "day")
+      .format("YYYY-MM-DD");
+    const assignmentSnap = await db
+      .collection("seniorTutorAssignments")
+      .doc(weekKey)
+      .get();
+
+    if (!assignmentSnap.exists) return;
+    const seniorTutorId = assignmentSnap.data()?.tutorId as string | undefined;
+    if (!seniorTutorId) return;
+
+    const recipientId =
+      messageSenderId === seniorTutorId ? senderId : seniorTutorId;
+
+    if (recipientId === messageSenderId) return;
+
+    const recipientSnap = await db.collection("tutors").doc(recipientId).get();
+    if (!recipientSnap.exists) return;
+
+    const fcmTokens: string[] = recipientSnap.data()?.fcmTokens || [];
+    if (fcmTokens.length === 0) return;
+
+    const invalidTokens: string[] = [];
+
+    await Promise.all(
+      fcmTokens.map(async (token) => {
+        try {
+          await admin.messaging().send({
+            token,
+            notification: {
+              title: `New message from ${senderName}`,
+              body: text.length > 100 ? text.substring(0, 97) + "..." : text,
+            },
+            webpush: {
+              fcmOptions: {
+                link: "/",
+              },
+            },
+          });
+        } catch (err) {
+          logger.error("FCM send failed for token: ", err);
+          if (
+            (err as any).code === "messaging/registration-token-not-registered"
+          ) {
+            invalidTokens.push(token);
+          }
+        }
+      })
+    );
+
+    if (invalidTokens.length > 0) {
+      await db.collection("tutors").doc(recipientId).update({
+        fcmTokens: admin.firestore.FieldValue.arrayRemove(...invalidTokens),
+      });
+    }
+  }
+);
+
 /**
  * Fetches a prior intake submission by ID for new family form rehydration.
  * Called from ParentIntake when a submissionId is found in localStorage.
