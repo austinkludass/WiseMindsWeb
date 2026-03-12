@@ -17,9 +17,12 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
+  DialogActions,
   InputAdornment,
   Tooltip,
   Popover,
+  Menu,
+  MenuItem,
 } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
 import TagIcon from "@mui/icons-material/Tag";
@@ -29,6 +32,9 @@ import SearchIcon from "@mui/icons-material/Search";
 import CloseIcon from "@mui/icons-material/Close";
 import PersonIcon from "@mui/icons-material/Person";
 import PeopleOutlineIcon from "@mui/icons-material/PeopleOutline";
+import MoreVertIcon from "@mui/icons-material/MoreVert";
+import EditIcon from "@mui/icons-material/Edit";
+import DeleteIcon from "@mui/icons-material/Delete";
 import { tokens } from "../../theme";
 import { AuthContext } from "../../context/AuthContext";
 import {
@@ -44,6 +50,8 @@ import {
   getDoc,
   getDocs,
   setDoc,
+  updateDoc,
+  deleteDoc,
 } from "firebase/firestore";
 import { db } from "../../data/firebase";
 import { format } from "date-fns";
@@ -567,6 +575,44 @@ const NewDMDialog = ({
   );
 };
 
+// Confirm delete dialog
+const DeleteConfirmDialog = ({ open, onClose, onConfirm, colors }) => (
+  <Dialog
+    open={open}
+    onClose={onClose}
+    slotProps={{
+      paper: {
+        sx: {
+          bgcolor: colors.primary[400],
+          backgroundImage: "none",
+          borderRadius: "10px",
+          minWidth: 300,
+        },
+      },
+    }}
+  >
+    <DialogTitle>Delete message?</DialogTitle>
+    <DialogContent>
+      <Typography variant="body2" color="text.secondary">
+        This will permanently delete the message. This action cannot be undone.
+      </Typography>
+    </DialogContent>
+    <DialogActions sx={{ px: 3, pb: 2 }}>
+      <Button onClick={onClose} size="small">
+        Cancel
+      </Button>
+      <Button
+        onClick={onConfirm}
+        size="small"
+        variant="contained"
+        color="error"
+      >
+        Delete
+      </Button>
+    </DialogActions>
+  </Dialog>
+);
+
 // Full Noticeboard component with sidebar and chat area
 const Noticeboard = () => {
   const theme = useTheme();
@@ -597,6 +643,14 @@ const Noticeboard = () => {
 
   const isLoadingMoreRef = useRef(false);
   const scrollHeightBeforeRef = useRef(0);
+
+  // Edit & delete state
+  const [menuAnchorEl, setMenuAnchorEl] = useState(null);
+  const [menuMsg, setMenuMsg] = useState(null);
+  const [editingMsgId, setEditingMsgId] = useState(null);
+  const [editingText, setEditingText] = useState("");
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [msgToDelete, setMsgToDelete] = useState(null);
 
   // Track container width for responsive drawer
   useEffect(() => {
@@ -709,12 +763,9 @@ const Noticeboard = () => {
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       if (snapshot.empty) return;
-
       const msgs = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
-
       setOldestDocSnapshot(snapshot.docs[snapshot.docs.length - 1]);
       setHasMoreMessages(snapshot.docs.length === PAGE_SIZE);
-
       setMessages(msgs.reverse());
     });
 
@@ -762,20 +813,68 @@ const Noticeboard = () => {
       const olderMsgs = snapshot.docs
         .map((d) => ({ id: d.id, ...d.data() }))
         .reverse();
-
       setOldestDocSnapshot(snapshot.docs[snapshot.docs.length - 1]);
       setHasMoreMessages(snapshot.docs.length === PAGE_SIZE);
-
       const container = messagesContainerRef.current;
       scrollHeightBeforeRef.current = container?.scrollHeight ?? 0;
       isLoadingMoreRef.current = true;
-
       setMessages((prev) => [...olderMsgs, ...prev]);
     } else {
       setHasMoreMessages(false);
     }
 
     setLoadingMore(false);
+  };
+
+  const getMessageDocRef = (msgId) => {
+    if (activeDM) {
+      return doc(
+        db,
+        "directMessages",
+        getDmId(currentUserUid, activeDM.uid),
+        "messages",
+        msgId
+      );
+    }
+    return doc(db, "chatMessages", activeChannel, "messages", msgId);
+  };
+
+  // Edit handlers
+  const handleEditStart = (msg) => {
+    setEditingMsgId(msg.id);
+    setEditingText(msg.message);
+    setMenuAnchorEl(null);
+    setMenuMsg(null);
+  };
+
+  const handleEditSave = async (msgId) => {
+    if (!editingText.trim()) return;
+    await updateDoc(getMessageDocRef(msgId), {
+      message: editingText.trim(),
+      edited: true,
+    });
+    setEditingMsgId(null);
+    setEditingText("");
+  };
+
+  const handleEditCancel = () => {
+    setEditingMsgId(null);
+    setEditingText("");
+  };
+
+  // Delete handlers
+  const handleDeletePrompt = (msg) => {
+    setMsgToDelete(msg);
+    setDeleteDialogOpen(true);
+    setMenuAnchorEl(null);
+    setMenuMsg(null);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!msgToDelete) return;
+    await deleteDoc(getMessageDocRef(msgToDelete.id));
+    setDeleteDialogOpen(false);
+    setMsgToDelete(null);
   };
 
   const handleSend = async () => {
@@ -1053,68 +1152,179 @@ const Noticeboard = () => {
             </Box>
           )}
 
-          {messages.map((msg) => (
-            <Box
-              key={msg.id}
-              p="10px"
-              bgcolor={colors.primary[500]}
-              borderRadius="6px"
-            >
-              <Typography
-                variant="body2"
-                color={colors.orangeAccent[400]}
-                sx={{ fontWeight: "bold" }}
-              >
-                {msg.senderName}
-              </Typography>
+          {messages.map((msg) => {
+            const isOwn = msg.senderId === currentUserUid;
+            const isEditing = editingMsgId === msg.id;
 
-              {msg.replyTo && (
+            return (
+              <Box
+                key={msg.id}
+                display="flex"
+                flexDirection="column"
+                alignItems={isOwn ? "flex-end" : "flex-start"}
+              >
                 <Box
                   sx={{
-                    borderLeft: `3px solid ${colors.orangeAccent[400]}`,
-                    pl: 1,
-                    mb: 0.5,
-                    opacity: 0.8,
+                    maxWidth: "75%",
+                    p: "10px",
+                    borderRadius: isOwn
+                      ? "12px 12px 2px 12px"
+                      : "12px 12px 12px 2px",
+                    bgcolor: isOwn
+                      ? `${colors.orangeAccent[400]}22`
+                      : colors.primary[500],
+                    border: isOwn
+                      ? `1px solid ${colors.orangeAccent[400]}44`
+                      : "none",
+                    position: "relative",
+                    "&:hover .msg-actions": { opacity: 1 },
                   }}
                 >
-                  <Typography variant="caption">
-                    Replying to <b>{msg.replyTo.senderName}</b>{" "}
-                  </Typography>
-                  <Typography variant="caption" noWrap>
-                    "{msg.replyTo.message}"
-                  </Typography>
+                  {/* Sender name - always show in channels, hide own name in DMs */}
+                  {(!isOwn || !activeDM) && (
+                    <Typography
+                      variant="body2"
+                      color={colors.orangeAccent[400]}
+                      sx={{ fontWeight: "bold", mb: 0.25 }}
+                    >
+                      {msg.senderName}
+                    </Typography>
+                  )}
+
+                  {/* Reply preview */}
+                  {msg.replyTo && (
+                    <Box
+                      sx={{
+                        borderLeft: `3px solid ${colors.orangeAccent[400]}`,
+                        pl: 1,
+                        mb: 0.5,
+                        opacity: 0.8,
+                      }}
+                    >
+                      <Typography variant="caption">
+                        Replying to <b>{msg.replyTo.senderName}</b>{" "}
+                      </Typography>
+                      <Typography variant="caption" noWrap>
+                        "{msg.replyTo.message}"
+                      </Typography>
+                    </Box>
+                  )}
+
+                  {/* Message body - inline edit when active */}
+                  {isEditing ? (
+                    <Box
+                      display="flex"
+                      flexDirection="column"
+                      gap={0.75}
+                      mt={0.5}
+                    >
+                      <TextField
+                        size="small"
+                        fullWidth
+                        multiline
+                        value={editingText}
+                        onChange={(e) => setEditingText(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && !e.shiftKey) {
+                            e.preventDefault();
+                            handleEditSave(msg.id);
+                          }
+                          if (e.key === "Escape") handleEditCancel();
+                        }}
+                        autoFocus
+                      />
+                      <Box display="flex" gap={0.5} justifyContent="flex-end">
+                        <Button size="small" onClick={handleEditCancel}>
+                          Cancel
+                        </Button>
+                        <Button
+                          size="small"
+                          variant="contained"
+                          onClick={() => handleEditSave(msg.id)}
+                        >
+                          Save
+                        </Button>
+                      </Box>
+                    </Box>
+                  ) : (
+                    <Typography variant="body1">{msg.message}</Typography>
+                  )}
+
+                  {/* Timestamp + reply + three-dot menu */}
+                  {!isEditing && (
+                    <Box
+                      display="flex"
+                      justifyContent={isOwn ? "flex-end" : "space-between"}
+                      alignItems="center"
+                      mt={0.5}
+                      gap={1}
+                    >
+                      <Typography fontSize={10} color="text.secondary">
+                        {msg.timestamp?.toDate
+                          ? format(
+                              msg.timestamp.toDate(),
+                              "dd MMM yyyy, h:mm a"
+                            )
+                          : "Sending..."}
+                        {msg.edited && (
+                          <Typography
+                            component="span"
+                            fontSize={10}
+                            color="text.secondary"
+                            sx={{ ml: 0.5, fontStyle: "italic" }}
+                          >
+                            (edited)
+                          </Typography>
+                        )}
+                      </Typography>
+
+                      <Box display="flex" alignItems="center" gap={0.25}>
+                        <Button
+                          size="small"
+                          sx={{
+                            minWidth: 0,
+                            fontSize: "0.7rem",
+                            py: 0,
+                            px: 0.75,
+                          }}
+                          onClick={() =>
+                            setReplyTo({
+                              messageId: msg.id,
+                              senderName: msg.senderName,
+                              message: msg.message,
+                            })
+                          }
+                        >
+                          Reply
+                        </Button>
+
+                        {/* Three-dot menu - only visible on own messages */}
+                        {isOwn && (
+                          <IconButton
+                            size="small"
+                            className="msg-actions"
+                            onClick={(e) => {
+                              setMenuAnchorEl(e.currentTarget);
+                              setMenuMsg(msg);
+                            }}
+                            sx={{
+                              opacity: 0,
+                              transition: "opacity 0.15s",
+                              p: 0.25,
+                              color: colors.grey[400],
+                              "&:hover": { color: colors.orangeAccent[400] },
+                            }}
+                          >
+                            <MoreVertIcon sx={{ fontSize: 15 }} />
+                          </IconButton>
+                        )}
+                      </Box>
+                    </Box>
+                  )}
                 </Box>
-              )}
-
-              <Typography variant="body1">{msg.message}</Typography>
-
-              <Box
-                sx={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "end",
-                }}
-              >
-                <Typography fontSize={10} color="text.secondary">
-                  {msg.timestamp?.toDate
-                    ? format(msg.timestamp.toDate(), "dd MMM yyyy, h:mm a")
-                    : "Sending..."}
-                </Typography>
-                <Button
-                  size="small"
-                  onClick={() =>
-                    setReplyTo({
-                      messageId: msg.id,
-                      senderName: msg.senderName,
-                      message: msg.message,
-                    })
-                  }
-                >
-                  Reply
-                </Button>
               </Box>
-            </Box>
-          ))}
+            );
+          })}
         </Box>
 
         {replyTo && (
@@ -1166,6 +1376,38 @@ const Noticeboard = () => {
         </Box>
       </Box>
 
+      {/* Context menu for own messages */}
+      <Menu
+        anchorEl={menuAnchorEl}
+        open={Boolean(menuAnchorEl)}
+        onClose={() => {
+          setMenuAnchorEl(null);
+          setMenuMsg(null);
+        }}
+        slotProps={{
+          paper: {
+            sx: {
+              bgcolor: colors.primary[400],
+              backgroundImage: "none",
+              minWidth: 140,
+            },
+          },
+        }}
+      >
+        <MenuItem
+          onClick={() => handleEditStart(menuMsg)}
+          sx={{ gap: 1, fontSize: "0.875rem" }}
+        >
+          <EditIcon sx={{ fontSize: 16 }} /> Edit
+        </MenuItem>
+        <MenuItem
+          onClick={() => handleDeletePrompt(menuMsg)}
+          sx={{ gap: 1, fontSize: "0.875rem", color: "error.main" }}
+        >
+          <DeleteIcon sx={{ fontSize: 16 }} /> Delete
+        </MenuItem>
+      </Menu>
+
       <NewDMDialog
         open={dmDialogOpen}
         onClose={() => setDmDialogOpen(false)}
@@ -1173,6 +1415,16 @@ const Noticeboard = () => {
         colors={colors}
         currentUserUid={currentUserUid}
         tutors={allTutors}
+      />
+
+      <DeleteConfirmDialog
+        open={deleteDialogOpen}
+        onClose={() => {
+          setDeleteDialogOpen(false);
+          setMsgToDelete(null);
+        }}
+        onConfirm={handleDeleteConfirm}
+        colors={colors}
       />
     </Box>
   );
