@@ -44,6 +44,7 @@ import TableChartIcon from "@mui/icons-material/TableChart";
 import DescriptionIcon from "@mui/icons-material/Description";
 import ImageIcon from "@mui/icons-material/Image";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
+import SupportAgentIcon from "@mui/icons-material/SupportAgent";
 import { tokens } from "../../theme";
 import { AuthContext } from "../../context/AuthContext";
 import {
@@ -70,6 +71,7 @@ import {
 } from "firebase/storage";
 import { db, sb } from "../../data/firebase";
 import { format } from "date-fns";
+import dayjs from "dayjs";
 
 const CHANNEL_ACCESS = {
   admins: ["Admin"],
@@ -106,8 +108,8 @@ const ALLOWED_MIME_TYPES = [
 ];
 
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
-
 const DRAWER_WIDTH = 240;
+const SENIOR_TUTOR_DM_COLLECTION = "seniorTutorDMs";
 
 const getAccessibleChannels = (role) =>
   Object.entries(CHANNEL_ACCESS)
@@ -122,6 +124,7 @@ const getChannelMembers = (channelId, tutors) => {
 };
 
 const getDmId = (uid1, uid2) => [uid1, uid2].sort().join("_");
+const getCurrentWeekKey = () => dayjs().startOf("week").format("YYYY-MM-DD");
 
 const formatBytes = (bytes) => {
   if (bytes < 1024) return `${bytes} B`;
@@ -156,6 +159,24 @@ const getStoragePath = (
   }
   return `chat-attachments/channels/${activeChannel}/${messageId}_${safeName}`;
 };
+
+const LiveDot = ({ size = 8 }) => (
+  <Box
+    sx={{
+      width: size,
+      height: size,
+      borderRadius: "50%",
+      bgcolor: "success.main",
+      flexShrink: 0,
+      animation: "livePulse 1.8s infinite",
+      "@keyframes livePulse": {
+        "0%": { boxShadow: "0 0 0 0 rgba(34,197,94,0.7)" },
+        "70%": { boxShadow: "0 0 0 6px rgba(34,197,94,0)" },
+        "100%": { boxShadow: "0 0 0 0 rgba(34,197,94,0)" },
+      },
+    }}
+  />
+);
 
 // Show members of a channel in a popover
 const ChannelMembersPopover = ({
@@ -277,6 +298,11 @@ const SidebarContent = ({
   activeDM,
   onNewDM,
   allTutors,
+  seniorTutorAssignment,
+  activeSeniorTutorDM,
+  onSelectSeniorTutorDM,
+  seniorTutorInboxSenders,
+  isSeniorTutor,
 }) => {
   const [membersAnchorEl, setMembersAnchorEl] = useState(null);
   const [membersChannelId, setMembersChannelId] = useState(null);
@@ -291,6 +317,8 @@ const SidebarContent = ({
     setMembersAnchorEl(null);
     setMembersChannelId(null);
   };
+
+  const noSeniorTutor = !seniorTutorAssignment?.tutorId;
 
   return (
     <Box
@@ -320,7 +348,8 @@ const SidebarContent = ({
       <List dense disablePadding>
         {accessibleChannels.map((channelId) => {
           const isPrivate = PRIVATE_CHANNELS.includes(channelId);
-          const isActive = activeChannel === channelId && !activeDM;
+          const isActive =
+            activeChannel === channelId && !activeDM && !activeSeniorTutorDM;
           return (
             <ListItem key={channelId} disablePadding>
               <ListItemButton
@@ -455,10 +484,8 @@ const SidebarContent = ({
           </ListItem>
         )}
         {existingDMs.map((tutor) => {
-          const isActive = activeDM?.uid === tutor.uid;
-          const initials = `${tutor.firstName[0]}${
-            tutor.lastName ? tutor.lastName[0] : ""
-          }`;
+          const isActive = activeDM?.uid === tutor.uid && !activeSeniorTutorDM;
+          const initials = `${tutor.firstName[0]}${tutor.lastName ? tutor.lastName[0] : ""}`;
           return (
             <ListItem key={tutor.uid} disablePadding>
               <ListItemButton
@@ -503,6 +530,167 @@ const SidebarContent = ({
             </ListItem>
           );
         })}
+      </List>
+
+      {/* Live Senior Tutor */}
+      <Divider sx={{ borderColor: colors.primary[300] }} />
+
+      <Box
+        sx={{
+          px: 2,
+          pt: 1.5,
+          pb: 0.75,
+          display: "flex",
+          alignItems: "center",
+          gap: 1,
+        }}
+      >
+        <LiveDot />
+        <Typography
+          variant="overline"
+          sx={{
+            color: "success.main",
+            fontWeight: 700,
+            letterSpacing: "0.12em",
+            fontSize: "0.65rem",
+            lineHeight: 1,
+          }}
+        >
+          Live Senior Tutor
+        </Typography>
+      </Box>
+
+      <List dense disablePadding sx={{ pb: 1.5 }}>
+        {isSeniorTutor ? (
+          // ST sees separate conversation per sender
+          seniorTutorInboxSenders.length === 0 ? (
+            <ListItem>
+              <ListItemText
+                primary="No messages yet"
+                slotProps={{
+                  primary: {
+                    fontSize: "0.75rem",
+                    color: colors.grey[500],
+                    fontStyle: "italic",
+                  },
+                }}
+              />
+            </ListItem>
+          ) : (
+            seniorTutorInboxSenders.map((sender) => {
+              const isActive = activeSeniorTutorDM === sender.uid;
+              const initials = `${sender.firstName[0]}${sender.lastName ? sender.lastName[0] : ""}`;
+              return (
+                <ListItem key={sender.uid} disablePadding>
+                  <ListItemButton
+                    selected={isActive}
+                    onClick={() => onSelectSeniorTutorDM(sender.uid)}
+                    sx={{
+                      mx: 1,
+                      borderRadius: "6px",
+                      "&.Mui-selected": {
+                        bgcolor: "rgba(34,197,94,0.12)",
+                        "&:hover": { bgcolor: "rgba(34,197,94,0.18)" },
+                      },
+                      "&:hover": { bgcolor: colors.primary[400] },
+                    }}
+                  >
+                    <ListItemIcon sx={{ minWidth: 36 }}>
+                      <Avatar
+                        src={sender.avatar || undefined}
+                        sx={{
+                          width: 24,
+                          height: 24,
+                          fontSize: "0.65rem",
+                          bgcolor: sender.tutorColor || colors.grey[600],
+                          color: "white",
+                        }}
+                      >
+                        {initials}
+                      </Avatar>
+                    </ListItemIcon>
+                    <ListItemText
+                      primary={`${sender.firstName} ${sender.lastName}`}
+                      slotProps={{
+                        primary: {
+                          fontSize: "0.85rem",
+                          fontWeight: isActive ? 600 : 400,
+                          color: isActive ? "success.main" : "inherit",
+                          noWrap: true,
+                        },
+                      }}
+                    />
+                  </ListItemButton>
+                </ListItem>
+              );
+            })
+          )
+        ) : (
+          // Everyone else sees a single entry to message the ST
+          <Tooltip
+            title={
+              noSeniorTutor
+                ? "No senior tutor assigned this week"
+                : `Message ${seniorTutorAssignment.tutorName}`
+            }
+            placement="right"
+          >
+            <span>
+              <ListItemButton
+                disabled={noSeniorTutor}
+                selected={activeSeniorTutorDM === "self"}
+                onClick={() => !noSeniorTutor && onSelectSeniorTutorDM("self")}
+                sx={{
+                  mx: 1,
+                  borderRadius: "6px",
+                  "&.Mui-selected": {
+                    bgcolor: "rgba(34,197,94,0.12)",
+                    "&:hover": { bgcolor: "rgba(34,197,94,0.18)" },
+                  },
+                  "&:hover": { bgcolor: colors.primary[400] },
+                  "&.Mui-disabled": { opacity: 0.45 },
+                }}
+              >
+                <ListItemIcon sx={{ minWidth: 36 }}>
+                  <Box sx={{ position: "relative", width: 24, height: 24 }}>
+                    <Avatar
+                      sx={{
+                        width: 24,
+                        height: 24,
+                        fontSize: "0.65rem",
+                        bgcolor: noSeniorTutor
+                          ? colors.grey[600]
+                          : "success.dark",
+                        color: "white",
+                      }}
+                    >
+                      <SupportAgentIcon sx={{ fontSize: 14 }} />
+                    </Avatar>
+                  </Box>
+                </ListItemIcon>
+                <ListItemText
+                  primary="Senior Tutor"
+                  secondary={
+                    noSeniorTutor
+                      ? "Not assigned"
+                      : seniorTutorAssignment.tutorName
+                  }
+                  slotProps={{
+                    primary: {
+                      fontSize: "0.85rem",
+                      fontWeight: activeSeniorTutorDM === "self" ? 600 : 400,
+                      color:
+                        activeSeniorTutorDM === "self"
+                          ? "success.main"
+                          : "inherit",
+                    },
+                    secondary: { fontSize: "0.7rem", noWrap: true },
+                  }}
+                />
+              </ListItemButton>
+            </span>
+          </Tooltip>
+        )}
       </List>
     </Box>
   );
@@ -639,7 +827,13 @@ const NewDMDialog = ({
 };
 
 // Confirm delete dialog
-const DeleteConfirmDialog = ({ open, onClose, onConfirm, colors, deleting }) => (
+const DeleteConfirmDialog = ({
+  open,
+  onClose,
+  onConfirm,
+  colors,
+  deleting,
+}) => (
   <Dialog
     open={open}
     onClose={onClose}
@@ -782,7 +976,7 @@ const PendingAttachmentBar = ({ file, onRemove, colors }) => {
       justifyContent="space-between"
       gap={1}
       sx={{
-        border: isOversized ? `1px solid` : "none",
+        border: isOversized ? "1px solid" : "none",
         borderColor: "error.main",
       }}
     >
@@ -849,9 +1043,7 @@ const Noticeboard = () => {
   const [oldestDocSnapshot, setOldestDocSnapshot] = useState(null);
   const [hasMoreMessages, setHasMoreMessages] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [deleting, setDeleting] = useState(false);
   const PAGE_SIZE = 50;
-
   const isLoadingMoreRef = useRef(false);
   const scrollHeightBeforeRef = useRef(0);
 
@@ -862,11 +1054,18 @@ const Noticeboard = () => {
   const [editingText, setEditingText] = useState("");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [msgToDelete, setMsgToDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   // Attachment state
   const [pendingFile, setPendingFile] = useState(null);
   const [uploadProgress, setUploadProgress] = useState(null);
   const [attachmentError, setAttachmentError] = useState("");
+
+  // Senior Tutor DM state
+  const [activeSeniorTutorDM, setActiveSeniorTutorDM] = useState(null);
+  const [seniorTutorAssignment, setSeniorTutorAssignment] = useState(null);
+  const [isSeniorTutor, setIsSeniorTutor] = useState(false);
+  const [seniorTutorInboxSenders, setSeniorTutorInboxSenders] = useState([]);
 
   // Track container width for responsive drawer
   useEffect(() => {
@@ -879,21 +1078,18 @@ const Noticeboard = () => {
     return () => ro.disconnect();
   }, []);
 
-  // Fetch user role, name & all tutors
+  // Fetch tutor data, all tutors, and senior tutor assignment
   useEffect(() => {
     if (!currentUser?.uid) return;
 
     const fetchTutorData = async () => {
       setCurrentUserUid(currentUser.uid);
 
-      const tutorRef = doc(db, "tutors", currentUser.uid);
-      const tutorSnap = await getDoc(tutorRef);
-
+      const tutorSnap = await getDoc(doc(db, "tutors", currentUser.uid));
       if (tutorSnap.exists()) {
         const t = tutorSnap.data();
         setSenderName(`${t.firstName} ${t.lastName}`);
-        const role = t.role || "Tutor";
-        setAccessibleChannels(getAccessibleChannels(role));
+        setAccessibleChannels(getAccessibleChannels(t.role || "Tutor"));
       } else {
         setSenderName(currentUser.email);
         setAccessibleChannels(getAccessibleChannels("Tutor"));
@@ -901,19 +1097,54 @@ const Noticeboard = () => {
 
       // Fetch all tutors for DM search
       const tutorsSnap = await getDocs(collection(db, "tutors"));
-      const tutorList = tutorsSnap.docs.map((d) => ({
-        uid: d.id,
-        firstName: d.data().firstName,
-        lastName: d.data().lastName,
-        role: d.data().role,
-        avatar: d.data().avatar || null,
-        tutorColor: d.data().tutorColor || null,
-      }));
-      setAllTutors(tutorList);
-    };
+      setAllTutors(
+        tutorsSnap.docs.map((d) => ({
+          uid: d.id,
+          firstName: d.data().firstName,
+          lastName: d.data().lastName,
+          role: d.data().role,
+          avatar: d.data().avatar || null,
+          tutorColor: d.data().tutorColor || null,
+        }))
+      );
 
+      // Fetch this week's senior tutor assignment
+      const assignmentSnap = await getDoc(
+        doc(db, "seniorTutorAssignments", getCurrentWeekKey())
+      );
+      if (assignmentSnap.exists() && assignmentSnap.data().tutorId) {
+        const data = assignmentSnap.data();
+        setSeniorTutorAssignment({
+          tutorId: data.tutorId,
+          tutorName: data.tutorName,
+        });
+        setIsSeniorTutor(data.tutorId === currentUser.uid);
+      } else {
+        setSeniorTutorAssignment(null);
+        setIsSeniorTutor(false);
+      }
+    };
     fetchTutorData();
   }, [currentUser?.uid]);
+
+  // If this user is the ST, listen for new senders in real-time
+  useEffect(() => {
+    if (!isSeniorTutor || !currentUserUid || allTutors.length === 0) return;
+    const unsubscribe = onSnapshot(
+      collection(db, SENIOR_TUTOR_DM_COLLECTION),
+      (snap) => {
+        const senderIds = snap.docs
+          .map((d) => d.id)
+          .filter((id) => id !== currentUserUid);
+        const senders = senderIds
+          .map((uid) => allTutors.find((t) => t.uid === uid))
+          .filter(Boolean)
+          .sort((a, b) => a.firstName.localeCompare(b.firstName));
+        setSeniorTutorInboxSenders(senders);
+      }
+    );
+    return () => unsubscribe();
+  }, [isSeniorTutor, currentUserUid, allTutors]);
 
   // Load existing DM conversations, sorted by most recent message
   useEffect(() => {
@@ -924,16 +1155,15 @@ const Noticeboard = () => {
         .filter((t) => t.uid !== currentUser.uid)
         .map(async (tutor) => {
           const dmId = getDmId(currentUser.uid, tutor.uid);
-          const dmRef = doc(db, "directMessages", dmId);
-          const dmSnap = await getDoc(dmRef);
+          const dmSnap = await getDoc(doc(db, "directMessages", dmId));
           if (!dmSnap.exists()) return null;
-
-          const latestMsgQuery = query(
-            collection(db, "directMessages", dmId, "messages"),
-            orderBy("timestamp", "desc"),
-            limit(1)
+          const latestMsgSnap = await getDocs(
+            query(
+              collection(db, "directMessages", dmId, "messages"),
+              orderBy("timestamp", "desc"),
+              limit(1)
+            )
           );
-          const latestMsgSnap = await getDocs(latestMsgQuery);
           const latestTimestamp = latestMsgSnap.empty
             ? 0
             : latestMsgSnap.docs[0].data().timestamp?.toMillis?.() || 0;
@@ -942,16 +1172,32 @@ const Noticeboard = () => {
         });
 
       const results = await Promise.all(dmChecks);
-      const activeDMs = results
-        .filter(Boolean)
-        .sort((a, b) => b.latestTimestamp - a.latestTimestamp)
-        .map((r) => r.tutor);
-
-      setExistingDMs(activeDMs);
+      setExistingDMs(
+        results
+          .filter(Boolean)
+          .sort((a, b) => b.latestTimestamp - a.latestTimestamp)
+          .map((r) => r.tutor)
+      );
     };
 
     fetchExistingDMs();
   }, [currentUser?.uid, allTutors]);
+
+  const getActiveMessagesCollection = () => {
+    if (activeSeniorTutorDM) {
+      const senderId =
+        activeSeniorTutorDM === "self" ? currentUserUid : activeSeniorTutorDM;
+      return collection(db, SENIOR_TUTOR_DM_COLLECTION, senderId, "messages");
+    }
+    if (activeDM)
+      return collection(
+        db,
+        "directMessages",
+        getDmId(currentUserUid, activeDM.uid),
+        "messages"
+      );
+    return collection(db, "chatMessages", activeChannel, "messages");
+  };
 
   // Listen to messages for the active channel or DM
   useEffect(() => {
@@ -960,17 +1206,9 @@ const Noticeboard = () => {
     setHasMoreMessages(false);
     isLoadingMoreRef.current = false;
 
-    const messagesPath = activeDM
-      ? collection(
-          db,
-          "directMessages",
-          getDmId(currentUserUid, activeDM.uid),
-          "messages"
-        )
-      : collection(db, "chatMessages", activeChannel, "messages");
+    if ((activeDM || activeSeniorTutorDM) && !currentUserUid) return;
 
-    if (activeDM && !currentUserUid) return;
-
+    const messagesPath = getActiveMessagesCollection();
     const q = query(
       messagesPath,
       orderBy("timestamp", "desc"),
@@ -985,7 +1223,7 @@ const Noticeboard = () => {
     });
 
     return () => unsubscribe();
-  }, [activeChannel, activeDM, currentUserUid]);
+  }, [activeChannel, activeDM, activeSeniorTutorDM, currentUserUid]);
 
   useEffect(() => {
     const container = messagesContainerRef.current;
@@ -1005,33 +1243,23 @@ const Noticeboard = () => {
   const loadMoreMessages = async () => {
     if (!oldestDocSnapshot || loadingMore) return;
     setLoadingMore(true);
-
-    const messagesPath = activeDM
-      ? collection(
-          db,
-          "directMessages",
-          getDmId(currentUserUid, activeDM.uid),
-          "messages"
-        )
-      : collection(db, "chatMessages", activeChannel, "messages");
-
-    const q = query(
-      messagesPath,
-      orderBy("timestamp", "desc"),
-      startAfter(oldestDocSnapshot),
-      limit(PAGE_SIZE)
+    const messagesPath = getActiveMessagesCollection();
+    const snapshot = await getDocs(
+      query(
+        messagesPath,
+        orderBy("timestamp", "desc"),
+        startAfter(oldestDocSnapshot),
+        limit(PAGE_SIZE)
+      )
     );
-
-    const snapshot = await getDocs(q);
-
     if (!snapshot.empty) {
       const olderMsgs = snapshot.docs
         .map((d) => ({ id: d.id, ...d.data() }))
         .reverse();
       setOldestDocSnapshot(snapshot.docs[snapshot.docs.length - 1]);
       setHasMoreMessages(snapshot.docs.length === PAGE_SIZE);
-      const container = messagesContainerRef.current;
-      scrollHeightBeforeRef.current = container?.scrollHeight ?? 0;
+      scrollHeightBeforeRef.current =
+        messagesContainerRef.current?.scrollHeight ?? 0;
       isLoadingMoreRef.current = true;
       setMessages((prev) => [...olderMsgs, ...prev]);
     } else {
@@ -1042,7 +1270,12 @@ const Noticeboard = () => {
   };
 
   const getMessageDocRef = (msgId) => {
-    if (activeDM) {
+    if (activeSeniorTutorDM) {
+      const senderId =
+        activeSeniorTutorDM === "self" ? currentUserUid : activeSeniorTutorDM;
+      return doc(db, SENIOR_TUTOR_DM_COLLECTION, senderId, "messages", msgId);
+    }
+    if (activeDM)
       return doc(
         db,
         "directMessages",
@@ -1050,7 +1283,6 @@ const Noticeboard = () => {
         "messages",
         msgId
       );
-    }
     return doc(db, "chatMessages", activeChannel, "messages", msgId);
   };
 
@@ -1064,11 +1296,6 @@ const Noticeboard = () => {
       setAttachmentError(
         "File type not supported. Allowed: images, PDF, Word, Excel."
       );
-      e.target.value = "";
-      return;
-    }
-    if (file.size > MAX_FILE_SIZE_BYTES) {
-      setPendingFile(file);
       e.target.value = "";
       return;
     }
@@ -1115,13 +1342,16 @@ const Noticeboard = () => {
 
     if (hasFile) {
       const tempId = `${Date.now()}_${currentUserUid}`;
-      const path = getStoragePath(
-        activeDM,
-        activeChannel,
-        currentUserUid,
-        tempId,
-        pendingFile.name
-      );
+      const safeName = pendingFile.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+      const path = activeSeniorTutorDM
+        ? `chat-attachments/senior-tutor-dms/${currentUserUid}/${tempId}_${safeName}`
+        : getStoragePath(
+            activeDM,
+            activeChannel,
+            currentUserUid,
+            tempId,
+            pendingFile.name
+          );
       try {
         const url = await uploadAttachment(pendingFile, path);
         attachment = {
@@ -1155,7 +1385,35 @@ const Noticeboard = () => {
       attachment: attachment || null,
     };
 
-    if (activeDM) {
+    if (activeSeniorTutorDM) {
+      const senderId =
+        activeSeniorTutorDM === "self" ? currentUserUid : activeSeniorTutorDM;
+      const parentRef = doc(db, SENIOR_TUTOR_DM_COLLECTION, senderId);
+      const parentSnap = await getDoc(parentRef);
+      if (!parentSnap.exists()) {
+        const senderTutor = allTutors.find((t) => t.uid === senderId);
+        await setDoc(parentRef, {
+          senderId,
+          senderName: senderTutor
+            ? `${senderTutor.firstName} ${senderTutor.lastName}`
+            : senderName,
+          createdAt: serverTimestamp(),
+        });
+        if (activeSeniorTutorDM === "self") {
+          setSeniorTutorInboxSenders((prev) => {
+            const me = allTutors.find((t) => t.uid === currentUserUid);
+            if (!me || prev.find((s) => s.uid === currentUserUid)) return prev;
+            return [...prev, me].sort((a, b) =>
+              a.firstName.localeCompare(b.firstName)
+            );
+          });
+        }
+      }
+      await addDoc(
+        collection(db, SENIOR_TUTOR_DM_COLLECTION, senderId, "messages"),
+        messageData
+      );
+    } else if (activeDM) {
       const dmId = getDmId(currentUser.uid, activeDM.uid);
       const dmRef = doc(db, "directMessages", dmId);
       const dmSnap = await getDoc(dmRef);
@@ -1233,12 +1491,14 @@ const Noticeboard = () => {
   const handleSelectChannel = (channelId) => {
     setActiveChannel(channelId);
     setActiveDM(null);
+    setActiveSeniorTutorDM(null);
     setReplyTo(null);
     if (isNarrow) setDrawerOpen(false);
   };
 
   const handleSelectDM = (tutor) => {
     setActiveDM(tutor);
+    setActiveSeniorTutorDM(null);
     setReplyTo(null);
     if (isNarrow) setDrawerOpen(false);
   };
@@ -1250,16 +1510,89 @@ const Noticeboard = () => {
     ]);
     handleSelectDM(tutor);
   };
+  const handleSelectSeniorTutorDM = (senderIdOrSelf) => {
+    setActiveSeniorTutorDM(senderIdOrSelf);
+    setActiveDM(null);
+    setReplyTo(null);
+    if (isNarrow) setDrawerOpen(false);
+  };
 
-  const chatTitle = activeDM
-    ? `${activeDM.firstName} ${activeDM.lastName}`
-    : CHANNEL_LABELS[activeChannel] || activeChannel;
+  let chatTitle, chatSubtitle, chatIcon;
+  if (activeSeniorTutorDM) {
+    if (isSeniorTutor) {
+      const sender = seniorTutorInboxSenders.find(
+        (s) => s.uid === activeSeniorTutorDM
+      );
+      chatTitle = sender
+        ? `${sender.firstName} ${sender.lastName}`
+        : "Unknown sender";
+      chatSubtitle = "Live Senior Tutor · Incoming message";
+    } else {
+      chatTitle = seniorTutorAssignment?.tutorName ?? "Senior Tutor";
+      chatSubtitle = "Live Senior Tutor · Direct Message";
+    }
+    chatIcon = (
+      <Box
+        sx={{
+          position: "relative",
+          display: "flex",
+          alignItems: "center",
+          mr: 0.5,
+        }}
+      >
+        <SupportAgentIcon sx={{ color: "success.main", fontSize: 26 }} />
+        <Box
+          sx={{
+            position: "absolute",
+            bottom: 0,
+            right: -2,
+            width: 9,
+            height: 9,
+            borderRadius: "50%",
+            bgcolor: "success.main",
+            border: `1.5px solid ${colors.primary[400]}`,
+            animation: "livePulse 1.8s infinite",
+            "@keyframes livePulse": {
+              "0%": { boxShadow: "0 0 0 0 rgba(34,197,94,0.7)" },
+              "70%": { boxShadow: "0 0 0 6px rgba(34,197,94,0)" },
+              "100%": { boxShadow: "0 0 0 0 rgba(34,197,94,0)" },
+            },
+          }}
+        />
+      </Box>
+    );
+  } else if (activeDM) {
+    chatTitle = `${activeDM.firstName} ${activeDM.lastName}`;
+    chatSubtitle = "Direct Message";
+    chatIcon = (
+      <Avatar
+        src={activeDM.avatar || undefined}
+        sx={{
+          width: 32,
+          height: 32,
+          fontSize: "0.7rem",
+          color: "white",
+          bgcolor: activeDM.tutorColor || colors.orangeAccent[700],
+        }}
+      >
+        {activeDM.firstName[0]}
+        {activeDM.lastName[0]}
+      </Avatar>
+    );
+  } else {
+    chatTitle = CHANNEL_LABELS[activeChannel] || activeChannel;
+    chatSubtitle = PRIVATE_CHANNELS.includes(activeChannel)
+      ? "Private Channel"
+      : "Public Channel";
+    chatIcon = PRIVATE_CHANNELS.includes(activeChannel) ? (
+      <LockIcon sx={{ color: colors.orangeAccent[400], fontSize: 20 }} />
+    ) : (
+      <TagIcon sx={{ color: colors.orangeAccent[400], fontSize: 20 }} />
+    );
+  }
 
-  const chatSubtitle = activeDM
-    ? "Direct Message"
-    : PRIVATE_CHANNELS.includes(activeChannel)
-    ? "Private Channel"
-    : "Public Channel";
+  // Only allow edit/delete on your own messages
+  const canEditDelete = (msg) => msg.senderId === currentUserUid;
 
   const sidebarContent = (
     <SidebarContent
@@ -1271,8 +1604,13 @@ const Noticeboard = () => {
       onSelectDM={handleSelectDM}
       activeDM={activeDM}
       onNewDM={() => setDmDialogOpen(true)}
-      currentUserUid={currentUserUid}
       allTutors={allTutors}
+      currentUserUid={currentUserUid}
+      seniorTutorAssignment={seniorTutorAssignment}
+      activeSeniorTutorDM={activeSeniorTutorDM}
+      onSelectSeniorTutorDM={handleSelectSeniorTutorDM}
+      seniorTutorInboxSenders={seniorTutorInboxSenders}
+      isSeniorTutor={isSeniorTutor}
     />
   );
 
@@ -1358,33 +1696,15 @@ const Noticeboard = () => {
               <MenuIcon />
             </IconButton>
           )}
-
-          {activeDM ? (
-            <Avatar
-              src={activeDM.avatar || undefined}
-              sx={{
-                width: 32,
-                height: 32,
-                fontSize: "0.7rem",
-                color: "white",
-                bgcolor: activeDM.tutorColor || colors.orangeAccent[700],
-              }}
-            >
-              {activeDM.firstName[0]}
-              {activeDM.lastName[0]}
-            </Avatar>
-          ) : PRIVATE_CHANNELS.includes(activeChannel) ? (
-            <LockIcon sx={{ color: colors.orangeAccent[400], fontSize: 20 }} />
-          ) : (
-            <TagIcon sx={{ color: colors.orangeAccent[400], fontSize: 20 }} />
-          )}
-
+          {chatIcon}
           <Box>
             <Typography
               variant="h6"
               fontWeight={700}
               lineHeight={1.2}
-              color={colors.orangeAccent[400]}
+              color={
+                activeSeniorTutorDM ? "success.main" : colors.orangeAccent[400]
+              }
             >
               {chatTitle}
             </Typography>
@@ -1437,7 +1757,9 @@ const Noticeboard = () => {
               justifyContent="center"
               sx={{ opacity: 0.4, userSelect: "none" }}
             >
-              {activeDM ? (
+              {activeSeniorTutorDM ? (
+                <SupportAgentIcon sx={{ fontSize: 48, mb: 1 }} />
+              ) : activeDM ? (
                 <PersonIcon sx={{ fontSize: 48, mb: 1 }} />
               ) : (
                 <TagIcon sx={{ fontSize: 48, mb: 1 }} />
@@ -1449,6 +1771,9 @@ const Noticeboard = () => {
           {messages.map((msg) => {
             const isOwn = msg.senderId === currentUserUid;
             const isEditing = editingMsgId === msg.id;
+            const showSenderName = activeSeniorTutorDM
+              ? true
+              : !isOwn || !activeDM;
 
             return (
               <Box
@@ -1474,11 +1799,16 @@ const Noticeboard = () => {
                     "&:hover .msg-actions": { opacity: 1 },
                   }}
                 >
-                  {/* Sender name - always show in channels, hide own name in DMs */}
-                  {(!isOwn || !activeDM) && (
+                  {showSenderName && (
                     <Typography
                       variant="body2"
-                      color={colors.orangeAccent[400]}
+                      color={
+                        isOwn
+                          ? colors.orangeAccent[400]
+                          : activeSeniorTutorDM
+                            ? "success.main"
+                            : colors.orangeAccent[400]
+                      }
                       sx={{ fontWeight: "bold", mb: 0.25 }}
                     >
                       {msg.senderName}
@@ -1599,9 +1929,7 @@ const Noticeboard = () => {
                         >
                           Reply
                         </Button>
-
-                        {/* Three-dot menu - only visible on own messages */}
-                        {isOwn && (
+                        {canEditDelete(msg) && (
                           <IconButton
                             size="small"
                             className="msg-actions"
@@ -1687,7 +2015,6 @@ const Noticeboard = () => {
         )}
 
         <Box display="flex" gap="8px" alignItems="center">
-          {/* Hidden file input */}
           <input
             ref={fileInputRef}
             type="file"
@@ -1718,11 +2045,13 @@ const Noticeboard = () => {
             size="small"
             fullWidth
             placeholder={
-              activeDM
-                ? `Message ${activeDM.firstName}...`
-                : `Message #${
-                    CHANNEL_LABELS[activeChannel] || activeChannel
-                  }...`
+              activeSeniorTutorDM
+                ? isSeniorTutor
+                  ? `Reply to ${seniorTutorInboxSenders.find((s) => s.uid === activeSeniorTutorDM)?.firstName ?? "sender"}...`
+                  : "Message Senior Tutor..."
+                : activeDM
+                  ? `Message ${activeDM.firstName}...`
+                  : `Message #${CHANNEL_LABELS[activeChannel] || activeChannel}...`
             }
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
