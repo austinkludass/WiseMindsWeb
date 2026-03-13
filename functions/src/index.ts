@@ -1307,7 +1307,7 @@ export const onDirectMessageCreated = onDocumentCreated(
           await admin.messaging().send({
             token,
             notification: {
-              title: `New message from ${senderName}`,
+              title: senderName,
               body: text.length > 100 ? text.substring(0, 97) + "..." : text,
             },
             webpush: {
@@ -1382,7 +1382,7 @@ export const onSeniorTutorDMCreated = onDocumentCreated(
           await admin.messaging().send({
             token,
             notification: {
-              title: `New message from ${senderName}`,
+              title: senderName,
               body: text.length > 100 ? text.substring(0, 97) + "..." : text,
             },
             webpush: {
