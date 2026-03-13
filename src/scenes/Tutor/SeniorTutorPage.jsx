@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Box,
   Paper,
@@ -23,15 +23,125 @@ import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import { collection, getDocs, doc, setDoc, getDoc } from "firebase/firestore";
 import { db } from "../../data/firebase";
 import { tokens } from "../../theme";
+import { Calendar, dayjsLocalizer } from "react-big-calendar";
 import { toast, ToastContainer } from "react-toastify";
+import updateLocale from "dayjs/plugin/updateLocale";
+import Toolbar from "../../components/Calendar/CustomComponents/Toolbar";
 import Header from "../../components/Global/Header";
 import dayjs from "dayjs";
+import "react-big-calendar/lib/css/react-big-calendar.css";
 import "react-toastify/dist/ReactToastify.css";
+
+dayjs.extend(updateLocale);
+dayjs.updateLocale("en", { weekStart: 6 });
+const localizer = dayjsLocalizer(dayjs);
 
 const getWeekStart = (date) => dayjs(date).startOf("week");
 const getWeekKey = (weekStart) => dayjs(weekStart).format("YYYY-MM-DD");
 const getWeekEnd = (weekStart) => dayjs(weekStart).add(6, "day");
 const getCurrentWeekStart = () => getWeekStart(dayjs());
+
+const SeniorTutorCalendar = ({
+  assignments,
+  tutors,
+  colors,
+  onRangeChange,
+}) => {
+  const [calendarDate, setCalendarDate] = useState(new Date());
+
+  const events = useMemo(() => {
+    return Object.entries(assignments).flatMap(([weekKey, assignment]) => {
+      if (!assignment?.tutorId) return [];
+      const tutor = tutors.find((t) => t.id === assignment.tutorId);
+      if (!tutor) return [];
+
+      const weekStart = dayjs(weekKey);
+      const events = [];
+      for (let i = 0; i < 7; i++) {
+        const day = weekStart.add(i, "day");
+        events.push({
+          title: `${tutor.firstName} ${tutor.lastName}`,
+          start: day.toDate(),
+          end: day.toDate(),
+          allDay: true,
+          tutorColor: tutor.tutorColor || "#888",
+          tutorId: tutor.id,
+        });
+      }
+      return events;
+    });
+  }, [assignments, tutors]);
+
+  const eventStyleGetter = (event) => ({
+    style: {
+      backgroundColor: event.tutorColor,
+      border: "none",
+      borderRadius: "4px",
+      color: "#fff",
+      fontSize: "0.72rem",
+      padding: "1px 4px",
+    },
+  });
+
+  const components = useMemo(
+    () => ({
+      toolbar: Toolbar,
+    }),
+    []
+  );
+
+  return (
+    <Paper elevation={1} sx={{ p: 3, borderRadius: "12px", mt: 3 }}>
+      <Typography variant="h5" fontWeight={600} mb={2}>
+        Senior Tutor Schedule
+      </Typography>
+      <Box
+        sx={{
+          "& .rbc-header": {
+            py: 0.75,
+            fontSize: "0.8rem",
+            borderBottom: `1px solid ${colors.primary[300]}`,
+          },
+          "& .rbc-off-range-bg": { bgcolor: "transparent", opacity: 0.4 },
+          "& .rbc-today": { bgcolor: `${colors.orangeAccent[400]}22` },
+          "& .rbc-header": {
+            py: 0.75,
+            fontSize: "0.8rem",
+            borderBottom: `1px solid #ddd !important`,
+          },
+        }}
+      >
+        <Calendar
+          localizer={localizer}
+          events={events}
+          date={calendarDate}
+          onNavigate={setCalendarDate}
+          views={["month"]}
+          defaultView="month"
+          style={{ height: 550 }}
+          eventPropGetter={eventStyleGetter}
+          components={components}
+          onRangeChange={(range) => {
+            if (range.start && range.end) {
+              const start = dayjs(range.start);
+              const end = dayjs(range.end);
+              const weekKeys = [];
+              let cursor = start.startOf("week");
+              while (cursor.isBefore(end)) {
+                weekKeys.push(cursor.format("YYYY-MM-DD"));
+                cursor = cursor.add(7, "day");
+              }
+              onRangeChange(weekKeys);
+            }
+          }}
+          popup
+          selectable={false}
+          toolbar
+        />
+      </Box>
+    </Paper>
+  );
+};
 
 const SeniorTutorPage = () => {
   const theme = useTheme();
@@ -49,6 +159,19 @@ const SeniorTutorPage = () => {
   const isCurrentWeek = weekKey === getWeekKey(getCurrentWeekStart());
   const isPastWeek = weekStart.isBefore(getCurrentWeekStart());
 
+  const fetchAssignmentsForRange = async (weekKeys) => {
+    const missing = weekKeys.filter((k) => assignments[k] === undefined);
+    if (missing.length === 0) return;
+    const fetched = {};
+    await Promise.all(
+      missing.map(async (key) => {
+        const snap = await getDoc(doc(db, "seniorTutorAssignments", key));
+        fetched[key] = snap.exists() ? snap.data() : null;
+      })
+    );
+    setAssignments((prev) => ({ ...prev, ...fetched }));
+  };
+
   useEffect(() => {
     const fetchTutors = async () => {
       try {
@@ -63,12 +186,12 @@ const SeniorTutorPage = () => {
             role: d.data().role,
           }))
           .filter((t) =>
-            ["Tutor", "Senior Tutor", "Head Tutor", "Admin"].includes(t.role),
+            ["Tutor", "Senior Tutor", "Head Tutor", "Admin"].includes(t.role)
           )
           .sort((a, b) =>
             `${a.firstName} ${a.lastName}`.localeCompare(
-              `${b.firstName} ${b.lastName}`,
-            ),
+              `${b.firstName} ${b.lastName}`
+            )
           );
         setTutors(list);
       } catch (err) {
@@ -130,7 +253,7 @@ const SeniorTutorPage = () => {
       toast.success(
         newTutorId
           ? `${tutor.firstName} ${tutor.lastName} assigned as Senior Tutor for this week.`
-          : "Senior Tutor assignment cleared.",
+          : "Senior Tutor assignment cleared."
       );
     } catch (err) {
       toast.error("Failed to save assignment: " + err.message);
@@ -309,6 +432,13 @@ const SeniorTutorPage = () => {
           </>
         )}
       </Paper>
+
+      <SeniorTutorCalendar
+        assignments={assignments}
+        tutors={tutors}
+        colors={colors}
+        onRangeChange={fetchAssignmentsForRange}
+      />
     </Box>
   );
 };
