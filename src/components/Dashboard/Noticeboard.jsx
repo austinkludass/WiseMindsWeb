@@ -1,4 +1,4 @@
-import { useContext, useEffect, useRef, useState } from "react";
+import { useContext, useEffect, useRef, useState, useCallback } from "react";
 import {
   Box,
   Typography,
@@ -25,6 +25,7 @@ import {
   MenuItem,
   LinearProgress,
   Chip,
+  Badge,
 } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
 import TagIcon from "@mui/icons-material/Tag";
@@ -71,7 +72,10 @@ import {
 } from "firebase/storage";
 import { db, sb } from "../../data/firebase";
 import { format } from "date-fns";
+import { toast, ToastContainer } from "react-toastify";
 import dayjs from "dayjs";
+import useUnreadCounts from "../../hooks/useUnreadCounts";
+import "react-toastify/dist/ReactToastify.css";
 
 const CHANNEL_ACCESS = {
   admins: ["Admin"],
@@ -303,6 +307,9 @@ const SidebarContent = ({
   onSelectSeniorTutorDM,
   seniorTutorInboxSenders,
   isSeniorTutor,
+  channelUnread = {},
+  dmUnread = {},
+  seniorDmUnread = {},
 }) => {
   const [membersAnchorEl, setMembersAnchorEl] = useState(null);
   const [membersChannelId, setMembersChannelId] = useState(null);
@@ -319,6 +326,15 @@ const SidebarContent = ({
   };
 
   const noSeniorTutor = !seniorTutorAssignment?.tutorId;
+
+  const badgeSx = {
+    "& .MuiBadge-badge": {
+      fontSize: "0.6rem",
+      height: 16,
+      minWidth: 16,
+      padding: "0 3px",
+    },
+  };
 
   return (
     <Box
@@ -368,26 +384,33 @@ const SidebarContent = ({
                   },
                 }}
               >
-                <ListItemIcon sx={{ minWidth: 32 }}>
-                  {isPrivate ? (
-                    <LockIcon
-                      sx={{
-                        fontSize: 16,
-                        color: isActive
-                          ? colors.orangeAccent[400]
-                          : colors.grey[400],
-                      }}
-                    />
-                  ) : (
-                    <TagIcon
-                      sx={{
-                        fontSize: 16,
-                        color: isActive
-                          ? colors.orangeAccent[400]
-                          : colors.grey[400],
-                      }}
-                    />
-                  )}
+                <ListItemIcon sx={{ minWidth: 36, overflow: "visible", ml: 0.5 }}>
+                  <Badge
+                    badgeContent={channelUnread[channelId] || 0}
+                    color="error"
+                    max={99}
+                    sx={badgeSx}
+                  >
+                    {isPrivate ? (
+                      <LockIcon
+                        sx={{
+                          fontSize: 16,
+                          color: isActive
+                            ? colors.orangeAccent[400]
+                            : colors.grey[400],
+                        }}
+                      />
+                    ) : (
+                      <TagIcon
+                        sx={{
+                          fontSize: 16,
+                          color: isActive
+                            ? colors.orangeAccent[400]
+                            : colors.grey[400],
+                        }}
+                      />
+                    )}
+                  </Badge>
                 </ListItemIcon>
                 <ListItemText
                   primary={CHANNEL_LABELS[channelId]}
@@ -501,19 +524,27 @@ const SidebarContent = ({
                   "&:hover": { bgcolor: colors.primary[400] },
                 }}
               >
-                <ListItemIcon sx={{ minWidth: 36 }}>
-                  <Avatar
-                    src={tutor.avatar || undefined}
-                    sx={{
-                      width: 24,
-                      height: 24,
-                      fontSize: "0.65rem",
-                      bgcolor: tutor.tutorColor || colors.grey[600],
-                      color: "white",
-                    }}
+                <ListItemIcon sx={{ minWidth: 36, overflow: "visible", ml: 0.5 }}>
+                  <Badge
+                    badgeContent={dmUnread[tutor.uid] || 0}
+                    color="error"
+                    overlap="circular"
+                    max={99}
+                    sx={badgeSx}
                   >
-                    {initials}
-                  </Avatar>
+                    <Avatar
+                      src={tutor.avatar || undefined}
+                      sx={{
+                        width: 24,
+                        height: 24,
+                        fontSize: "0.65rem",
+                        bgcolor: tutor.tutorColor || colors.grey[600],
+                        color: "white",
+                      }}
+                    >
+                      {initials}
+                    </Avatar>
+                  </Badge>
                 </ListItemIcon>
                 <ListItemText
                   primary={`${tutor.firstName} ${tutor.lastName}`}
@@ -595,19 +626,27 @@ const SidebarContent = ({
                       "&:hover": { bgcolor: colors.primary[400] },
                     }}
                   >
-                    <ListItemIcon sx={{ minWidth: 36 }}>
-                      <Avatar
-                        src={sender.avatar || undefined}
-                        sx={{
-                          width: 24,
-                          height: 24,
-                          fontSize: "0.65rem",
-                          bgcolor: sender.tutorColor || colors.grey[600],
-                          color: "white",
-                        }}
+                    <ListItemIcon sx={{ minWidth: 36, overflow: "visible", ml: 0.5 }}>
+                      <Badge
+                        badgeContent={seniorDmUnread[sender.uid] || 0}
+                        color="error"
+                        overlap="circular"
+                        max={99}
+                        sx={badgeSx}
                       >
-                        {initials}
-                      </Avatar>
+                        <Avatar
+                          src={sender.avatar || undefined}
+                          sx={{
+                            width: 24,
+                            height: 24,
+                            fontSize: "0.65rem",
+                            bgcolor: sender.tutorColor || colors.grey[600],
+                            color: "white",
+                          }}
+                        >
+                          {initials}
+                        </Avatar>
+                      </Badge>
                     </ListItemIcon>
                     <ListItemText
                       primary={`${sender.firstName} ${sender.lastName}`}
@@ -651,8 +690,14 @@ const SidebarContent = ({
                   "&.Mui-disabled": { opacity: 0.45 },
                 }}
               >
-                <ListItemIcon sx={{ minWidth: 36 }}>
-                  <Box sx={{ position: "relative", width: 24, height: 24 }}>
+                <ListItemIcon sx={{ minWidth: 36, overflow: "visible", ml: 0.5 }}>
+                  <Badge
+                    badgeContent={seniorDmUnread["self"] || 0}
+                    color="error"
+                    overlap="circular"
+                    max={99}
+                    sx={badgeSx}
+                  >
                     <Avatar
                       sx={{
                         width: 24,
@@ -666,7 +711,7 @@ const SidebarContent = ({
                     >
                       <SupportAgentIcon sx={{ fontSize: 14 }} />
                     </Avatar>
-                  </Box>
+                  </Badge>
                 </ListItemIcon>
                 <ListItemText
                   primary="Senior Tutor"
@@ -1066,6 +1111,33 @@ const Noticeboard = () => {
   const [seniorTutorAssignment, setSeniorTutorAssignment] = useState(null);
   const [isSeniorTutor, setIsSeniorTutor] = useState(false);
   const [seniorTutorInboxSenders, setSeniorTutorInboxSenders] = useState([]);
+
+  const handleIncomingToast = useCallback(
+    ({ type, senderName, message, channelId }) => {
+      const preview =
+        message?.length > 60 ? message.slice(0, 57) + "…" : message;
+      const label =
+        type === "channel"
+          ? `#${CHANNEL_LABELS[channelId] || channelId}`
+          : type === "seniorDm"
+            ? "Senior Tutor"
+            : "Direct Message";
+      toast.info(`${senderName} · ${label}`);
+    },
+    []
+  );
+
+  const { channelUnread, dmUnread, seniorDmUnread } = useUnreadCounts({
+    currentUserUid,
+    accessibleChannels,
+    existingDMs,
+    activeChannel,
+    activeDM,
+    activeSeniorTutorDM,
+    isSeniorTutor,
+    seniorTutorInboxSenders,
+    onToast: handleIncomingToast,
+  });
 
   // Track container width for responsive drawer
   useEffect(() => {
@@ -1611,6 +1683,9 @@ const Noticeboard = () => {
       onSelectSeniorTutorDM={handleSelectSeniorTutorDM}
       seniorTutorInboxSenders={seniorTutorInboxSenders}
       isSeniorTutor={isSeniorTutor}
+      channelUnread={channelUnread}
+      dmUnread={dmUnread}
+      seniorDmUnread={seniorDmUnread}
     />
   );
 
@@ -2123,6 +2198,8 @@ const Noticeboard = () => {
         colors={colors}
         deleting={deleting}
       />
+
+      <ToastContainer position="bottom-right" autoClose={3000} newestOnTop />
     </Box>
   );
 };
