@@ -44,26 +44,25 @@ const useUnreadCounts = ({
   const [channelUnread, setChannelUnread] = useState({});
   const [dmUnread, setDmUnread] = useState({});
   const [seniorDmUnread, setSeniorDmUnread] = useState({});
+  const [lastSeenReady, setLastSeenReady] = useState(false);
 
   const lastSeenRef = useRef({});
   const isFirstSnapshotRef = useRef({});
-  const initializedRef = useRef(false);
 
   useEffect(() => {
-    if (!currentUserUid || initializedRef.current) return;
+    if (!currentUserUid) return;
     lastSeenRef.current = loadLastSeen(currentUserUid);
-    initializedRef.current = true;
+    setLastSeenReady(true);
   }, [currentUserUid]);
 
   const markSeen = (key) => {
-    const now = Date.now();
-    lastSeenRef.current[key] = now;
+    lastSeenRef.current[key] = Date.now();
     saveLastSeen(currentUserUid, lastSeenRef.current);
   };
 
   // When active conversation changes, mark it as seen and clear its badge
   useEffect(() => {
-    if (!currentUserUid) return;
+    if (!currentUserUid || !lastSeenReady) return;
     if (activeDM) {
       const key = `dm_${getDmId(currentUserUid, activeDM.uid)}`;
       markSeen(key);
@@ -77,11 +76,18 @@ const useUnreadCounts = ({
       markSeen(key);
       setChannelUnread((prev) => ({ ...prev, [activeChannel]: 0 }));
     }
-  }, [activeChannel, activeDM, activeSeniorTutorDM, currentUserUid]);
+  }, [
+    activeChannel,
+    activeDM,
+    activeSeniorTutorDM,
+    currentUserUid,
+    lastSeenReady,
+  ]);
 
   // Channel listeners
   useEffect(() => {
-    if (!currentUserUid || accessibleChannels.length === 0) return;
+    if (!currentUserUid || !lastSeenReady || accessibleChannels.length === 0)
+      return;
 
     const unsubs = accessibleChannels.map((channelId) => {
       const key = `channel_${channelId}`;
@@ -139,11 +145,11 @@ const useUnreadCounts = ({
     });
 
     return () => unsubs.forEach((u) => u());
-  }, [currentUserUid, accessibleChannels.join(",")]);
+  }, [currentUserUid, lastSeenReady, accessibleChannels.join(",")]);
 
   // DM listeners
   useEffect(() => {
-    if (!currentUserUid || existingDMs.length === 0) return;
+    if (!currentUserUid || !lastSeenReady || existingDMs.length === 0) return;
 
     const unsubs = existingDMs.map((tutor) => {
       const dmId = getDmId(currentUserUid, tutor.uid);
@@ -201,11 +207,11 @@ const useUnreadCounts = ({
     });
 
     return () => unsubs.forEach((u) => u());
-  }, [currentUserUid, existingDMs.map((d) => d.uid).join(",")]);
+  }, [currentUserUid, lastSeenReady, existingDMs.map((d) => d.uid).join(",")]);
 
   // Senior Tutor DM listeners
   useEffect(() => {
-    if (!currentUserUid) return;
+    if (!currentUserUid || !lastSeenReady) return;
 
     const senderIds = isSeniorTutor
       ? seniorTutorInboxSenders.map((s) => s.uid)
@@ -276,6 +282,7 @@ const useUnreadCounts = ({
     return () => unsubs.forEach((u) => u());
   }, [
     currentUserUid,
+    lastSeenReady,
     isSeniorTutor,
     seniorTutorInboxSenders.map((s) => s.uid).join(","),
   ]);
