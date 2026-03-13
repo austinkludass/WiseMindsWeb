@@ -343,7 +343,7 @@ const UpcomingLessons = () => {
         {viewMode === "list" ? (
           lessons.length === 0 ? (
             <Typography variant="body1" color={colors.grey[200]}>
-              No lessons in the next 3 days.
+              No lessons in the next 7 days.
             </Typography>
           ) : (
             <Stack spacing={2}>
