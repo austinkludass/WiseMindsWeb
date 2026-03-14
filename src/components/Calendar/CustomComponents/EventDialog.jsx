@@ -86,26 +86,34 @@ const EventDialog = ({
     try {
       const missingFields = [];
       if (
-        reportStudent.satisfaction === null ||
-        reportStudent.satisfaction === undefined
-      )
-        missingFields.push("Satisfaction");
+        reportStudent.status === "present" ||
+        reportStudent.status === "partial"
+      ) {
+        if (
+          reportStudent.satisfaction === null ||
+          reportStudent.satisfaction === undefined
+        )
+          missingFields.push("Satisfaction");
 
-      if (reportStudent.quality === null || reportStudent.quality === undefined)
-        missingFields.push("Quality");
+        if (
+          reportStudent.quality === null ||
+          reportStudent.quality === undefined
+        )
+          missingFields.push("Quality");
 
-      if (reportStudent.effort === null || reportStudent.effort === undefined)
-        missingFields.push("Effort");
+        if (reportStudent.effort === null || reportStudent.effort === undefined)
+          missingFields.push("Effort");
 
-      if (missingFields.length > 0) {
-        toast.error(
-          `Please provide a rating for the following field(s): ${missingFields.join(", ")}`
-        );
-        return;
+        if (missingFields.length > 0) {
+          toast.error(
+            `Please provide a rating for the following field(s): ${missingFields.join(", ")}`,
+          );
+          return;
+        }
       }
 
       const updatedReports = reports.map((r) =>
-        r.studentId === studentId ? reportStudent : r
+        r.studentId === studentId ? reportStudent : r,
       );
       setReports(updatedReports);
       onReportEdit?.(event.id, updatedReports, event);

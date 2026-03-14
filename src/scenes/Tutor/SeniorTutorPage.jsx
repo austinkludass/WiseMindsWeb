@@ -49,6 +49,19 @@ const SeniorTutorCalendar = ({
 }) => {
   const [calendarDate, setCalendarDate] = useState(new Date());
 
+  useEffect(() => {
+    const start = dayjs().startOf("month").startOf("week");
+    const end = dayjs().endOf("month").endOf("week");
+    const weekKeys = [];
+    let cursor = start;
+    while (cursor.isBefore(end)) {
+      weekKeys.push(cursor.format("YYYY-MM-DD"));
+      cursor = cursor.add(7, "day");
+    }
+
+    onRangeChange(weekKeys);
+  }, []);
+
   const events = useMemo(() => {
     return Object.entries(assignments).flatMap(([weekKey, assignment]) => {
       if (!assignment?.tutorId) return [];
@@ -87,7 +100,7 @@ const SeniorTutorCalendar = ({
     () => ({
       toolbar: Toolbar,
     }),
-    []
+    [],
   );
 
   return (
@@ -167,7 +180,7 @@ const SeniorTutorPage = () => {
       missing.map(async (key) => {
         const snap = await getDoc(doc(db, "seniorTutorAssignments", key));
         fetched[key] = snap.exists() ? snap.data() : null;
-      })
+      }),
     );
     setAssignments((prev) => ({ ...prev, ...fetched }));
   };
@@ -186,12 +199,12 @@ const SeniorTutorPage = () => {
             role: d.data().role,
           }))
           .filter((t) =>
-            ["Tutor", "Senior Tutor", "Head Tutor", "Admin"].includes(t.role)
+            ["Tutor", "Senior Tutor", "Head Tutor", "Admin"].includes(t.role),
           )
           .sort((a, b) =>
             `${a.firstName} ${a.lastName}`.localeCompare(
-              `${b.firstName} ${b.lastName}`
-            )
+              `${b.firstName} ${b.lastName}`,
+            ),
           );
         setTutors(list);
       } catch (err) {
@@ -253,7 +266,7 @@ const SeniorTutorPage = () => {
       toast.success(
         newTutorId
           ? `${tutor.firstName} ${tutor.lastName} assigned as Senior Tutor for this week.`
-          : "Senior Tutor assignment cleared."
+          : "Senior Tutor assignment cleared.",
       );
     } catch (err) {
       toast.error("Failed to save assignment: " + err.message);
