@@ -1483,7 +1483,10 @@ const Noticeboard = () => {
       }
       await addDoc(
         collection(db, SENIOR_TUTOR_DM_COLLECTION, senderId, "messages"),
-        messageData
+        {
+          ...messageData,
+          senderRole: isSeniorTutor ? "seniorTutor" : "tutor",
+        },
       );
     } else if (activeDM) {
       const dmId = getDmId(currentUser.uid, activeDM.uid);
@@ -1844,7 +1847,12 @@ const Noticeboard = () => {
           )}
 
           {messages.map((msg) => {
-            const isOwn = msg.senderId === currentUserUid;
+            const isOwn = activeSeniorTutorDM
+              ? isSeniorTutor
+                ? msg.senderRole === "seniorTutor"
+                : msg.senderRole === "tutor"
+              : msg.senderId === currentUserUid;
+
             const isEditing = editingMsgId === msg.id;
             const showSenderName = activeSeniorTutorDM
               ? true
