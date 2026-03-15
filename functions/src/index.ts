@@ -566,6 +566,9 @@ export const api = onRequest(
       case "/students":
         return sendCollection("students", res);
 
+      case "/archivedStudents":
+        return sendCollection("archivedStudents", res);
+
       case "/subjectgroups":
         return sendCollection("subjectGroups", res);
 
