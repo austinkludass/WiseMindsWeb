@@ -1956,7 +1956,7 @@ const Noticeboard = () => {
                   ) : (
                     <>
                       {msg.message && (
-                        <Typography variant="body1">{msg.message}</Typography>
+                        <Typography variant="body1" sx={{ whiteSpace: "pre-wrap"}}>{msg.message}</Typography>
                       )}
                       <AttachmentPreview
                         attachment={msg.attachment}
@@ -2089,7 +2089,7 @@ const Noticeboard = () => {
               <Typography variant="caption">
                 Replying to <b>{replyTo.senderName}</b>{" "}
               </Typography>
-              <Typography variant="caption">"{replyTo.message}"</Typography>
+              <Typography variant="caption" sx={{ whiteSpace: "pre-wrap"}}>"{replyTo.message}"</Typography>
             </Box>
             <Button size="small" color="error" onClick={() => setReplyTo(null)}>
               Cancel
@@ -2127,6 +2127,8 @@ const Noticeboard = () => {
             variant="outlined"
             size="small"
             fullWidth
+            multiline
+            maxRows={6}
             placeholder={
               activeSeniorTutorDM
                 ? isSeniorTutor
@@ -2139,7 +2141,7 @@ const Noticeboard = () => {
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter") {
+              if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
                 handleSend();
               }
