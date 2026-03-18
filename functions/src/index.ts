@@ -243,38 +243,383 @@ async function sendCollection(
   return res.json(results);
 }
 
-function validateLessonPayload(data: any) {
-  const required = [
-    "tutorId",
-    "tutorColor",
-    "tutorName",
-    "subjectGroupId",
-    "subjectGroupName",
-    "startDateTime",
-    "endDateTime",
-    "type",
-    "locationId",
-    "locationName",
-    "reports",
-    "studentIds",
-    "studentNames",
-  ];
+const lessonTypeValues = [
+  "Normal",
+  "Postpone",
+  "Cancelled",
+  "Student Trial",
+  "Tutor Trial",
+  "Unconfirmed",
+];
 
-  for (const key of required) {
-    if (!data[key]) {
-      return `Missing field: ${key}`;
+const lessonTypeMap = new Map(
+  lessonTypeValues.map((value) => [value.toLowerCase(), value])
+);
+
+const lessonPatchAllowedFields = new Set([
+  "startDateTime",
+  "endDateTime",
+  "type",
+  "notes",
+  "tutorId",
+  "tutorName",
+  "tutorColor",
+  "subjectGroupId",
+  "subjectGroupName",
+  "locationId",
+  "locationName",
+  "studentIds",
+  "studentNames",
+  "reports",
+]);
+
+function isPlainObject(value: any): value is Record<string, any> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isNonEmptyString(value: any): value is string {
+  return typeof value === "string" && value.trim() !== "";
+}
+
+function normalizeLessonType(value: any): string | null {
+  if (!isNonEmptyString(value)) return null;
+  return lessonTypeMap.get(value.trim().toLowerCase()) ?? null;
+}
+
+function validateStudentRoster(
+  studentIds: any,
+  studentNames: any
+): {errors: string[]; studentIds: string[]; studentNames: string[]} {
+  const errors: string[] = [];
+
+  if (!Array.isArray(studentIds) || studentIds.length === 0) {
+    errors.push("studentIds must be a non-empty array");
+  }
+
+  if (!Array.isArray(studentNames) || studentNames.length === 0) {
+    errors.push("studentNames must be a non-empty array");
+  }
+
+  if (
+    Array.isArray(studentIds) &&
+    Array.isArray(studentNames) &&
+    studentIds.length !== studentNames.length
+  ) {
+    errors.push("studentIds and studentNames must have the same length");
+  }
+
+  const normalizedStudentIds = Array.isArray(studentIds) ? studentIds : [];
+  const normalizedStudentNames = Array.isArray(studentNames) ?
+    studentNames :
+    [];
+
+  if (
+    normalizedStudentIds.some((id) => !isNonEmptyString(id))
+  ) {
+    errors.push("studentIds must contain only non-empty strings");
+  }
+
+  if (
+    normalizedStudentNames.some((name) => !isNonEmptyString(name))
+  ) {
+    errors.push("studentNames must contain only non-empty strings");
+  }
+
+  const uniqueIds = new Set(
+    normalizedStudentIds.filter((id) => isNonEmptyString(id))
+  );
+
+  if (uniqueIds.size !== normalizedStudentIds.length) {
+    errors.push("studentIds must not contain duplicates");
+  }
+
+  return {
+    errors,
+    studentIds: normalizedStudentIds,
+    studentNames: normalizedStudentNames,
+  };
+}
+
+function validateLessonTimes(
+  startDateTime: any,
+  endDateTime: any
+): string[] {
+  const errors: string[] = [];
+
+  if (!dayjs(startDateTime).isValid()) {
+    errors.push("Invalid startDateTime");
+  }
+
+  if (!dayjs(endDateTime).isValid()) {
+    errors.push("Invalid endDateTime");
+  }
+
+  if (errors.length > 0) {
+    return errors;
+  }
+
+  const start = dayjs(startDateTime);
+  const end = dayjs(endDateTime);
+
+  if (!end.isAfter(start)) {
+    errors.push("endDateTime must be after startDateTime");
+  } else if (end.diff(start, "minute") < 60) {
+    errors.push("Lesson duration must be at least 1 hour");
+  }
+
+  return errors;
+}
+
+function validateReportsPresence(reports: any): string[] {
+  const errors: string[] = [];
+
+  if (reports === undefined || reports === null) {
+    errors.push("reports is required");
+  }
+
+  return errors;
+}
+
+function validateLessonCreatePayload(data: any): {
+  details: string[];
+  normalizedData?: Record<string, any>;
+} {
+  if (!isPlainObject(data)) {
+    return {details: ["Request body must be a JSON object"]};
+  }
+
+  const details: string[] = [];
+
+  if (!isNonEmptyString(data.tutorId)) {
+    details.push("tutorId is required");
+  }
+
+  if (!isNonEmptyString(data.tutorColor)) {
+    details.push("tutorColor is required");
+  }
+
+  if (!isNonEmptyString(data.tutorName)) {
+    details.push("tutorName is required");
+  }
+
+  if (!isNonEmptyString(data.subjectGroupId)) {
+    details.push("subjectGroupId is required");
+  }
+
+  if (!isNonEmptyString(data.subjectGroupName)) {
+    details.push("subjectGroupName is required");
+  }
+
+  if (!isNonEmptyString(data.locationId)) {
+    details.push("locationId is required");
+  }
+
+  if (!isNonEmptyString(data.locationName)) {
+    details.push("locationName is required");
+  }
+
+  if (data.startDateTime === undefined) {
+    details.push("startDateTime is required");
+  }
+
+  if (data.endDateTime === undefined) {
+    details.push("endDateTime is required");
+  }
+
+  if (data.startDateTime !== undefined && data.endDateTime !== undefined) {
+    details.push(...validateLessonTimes(data.startDateTime, data.endDateTime));
+  }
+
+  const normalizedType = normalizeLessonType(data.type);
+  if (!normalizedType) {
+    details.push(
+      `type must be one of: ${lessonTypeValues.join(", ")}`
+    );
+  }
+
+  if (data.notes !== undefined && typeof data.notes !== "string") {
+    details.push("notes must be a string");
+  }
+
+  const rosterValidation = validateStudentRoster(
+    data.studentIds,
+    data.studentNames
+  );
+  details.push(...rosterValidation.errors);
+  details.push(...validateReportsPresence(data.reports));
+
+  if (details.length > 0) {
+    return {details};
+  }
+
+  return {
+    details,
+    normalizedData: {
+      ...data,
+      type: normalizedType,
+    },
+  };
+}
+
+function validateLessonPatchPayload(
+  data: any
+): {details: string[]; normalizedData?: Record<string, any>} {
+  if (!isPlainObject(data)) {
+    return {details: ["Request body must be a JSON object"]};
+  }
+
+  const details: string[] = [];
+  const keys = Object.keys(data);
+
+  if (keys.length === 0) {
+    return {details: ["Request body must include at least one field"]};
+  }
+
+  const unknownFields = keys.filter(
+    (key) => !lessonPatchAllowedFields.has(key)
+  );
+
+  if (unknownFields.length > 0) {
+    details.push(
+      `Unknown or protected fields: ${unknownFields.join(", ")}`
+    );
+  }
+
+  const normalizedData = {...data};
+
+  if ("type" in data) {
+    const normalizedType = normalizeLessonType(data.type);
+    if (!normalizedType) {
+      details.push(
+        `type must be one of: ${lessonTypeValues.join(", ")}`
+      );
+    } else {
+      normalizedData.type = normalizedType;
     }
   }
 
-  if (!dayjs(data.startDateTime).isValid()) {
-    return "Invalid startDateTime";
+  if ("notes" in data && typeof data.notes !== "string") {
+    details.push("notes must be a string");
   }
 
-  if (!dayjs(data.endDateTime).isValid()) {
-    return "Invalid endDateTime";
+  const hasStart = "startDateTime" in data;
+  const hasEnd = "endDateTime" in data;
+  if (hasStart || hasEnd) {
+    if (!hasStart || !hasEnd) {
+      details.push(
+        "startDateTime and endDateTime must be provided together"
+      );
+    } else {
+      details.push(
+        ...validateLessonTimes(data.startDateTime, data.endDateTime)
+      );
+    }
   }
 
-  return null;
+  const tutorKeys = ["tutorId", "tutorName", "tutorColor"];
+  const tutorKeysPresent = tutorKeys.filter((key) => key in data);
+  if (
+    tutorKeysPresent.length > 0 &&
+    tutorKeysPresent.length !== tutorKeys.length
+  ) {
+    details.push(
+      "tutorId, tutorName, and tutorColor must be provided together"
+    );
+  } else if (tutorKeysPresent.length === tutorKeys.length) {
+    if (!isNonEmptyString(data.tutorId)) {
+      details.push("tutorId must be a non-empty string");
+    }
+    if (!isNonEmptyString(data.tutorName)) {
+      details.push("tutorName must be a non-empty string");
+    }
+    if (!isNonEmptyString(data.tutorColor)) {
+      details.push("tutorColor must be a non-empty string");
+    }
+  }
+
+  const subjectKeys = ["subjectGroupId", "subjectGroupName"];
+  const subjectKeysPresent = subjectKeys.filter((key) => key in data);
+  if (
+    subjectKeysPresent.length > 0 &&
+    subjectKeysPresent.length !== subjectKeys.length
+  ) {
+    details.push(
+      "subjectGroupId and subjectGroupName must be provided together"
+    );
+  } else if (subjectKeysPresent.length === subjectKeys.length) {
+    if (!isNonEmptyString(data.subjectGroupId)) {
+      details.push("subjectGroupId must be a non-empty string");
+    }
+    if (!isNonEmptyString(data.subjectGroupName)) {
+      details.push("subjectGroupName must be a non-empty string");
+    }
+  }
+
+  const locationKeys = ["locationId", "locationName"];
+  const locationKeysPresent = locationKeys.filter((key) => key in data);
+  if (
+    locationKeysPresent.length > 0 &&
+    locationKeysPresent.length !== locationKeys.length
+  ) {
+    details.push("locationId and locationName must be provided together");
+  } else if (locationKeysPresent.length === locationKeys.length) {
+    if (!isNonEmptyString(data.locationId)) {
+      details.push("locationId must be a non-empty string");
+    }
+    if (!isNonEmptyString(data.locationName)) {
+      details.push("locationName must be a non-empty string");
+    }
+  }
+
+  const hasStudentIds = "studentIds" in data;
+  const hasStudentNames = "studentNames" in data;
+  const hasReports = "reports" in data;
+  const isRosterUpdate = hasStudentIds || hasStudentNames;
+
+  if (isRosterUpdate && !(hasStudentIds && hasStudentNames && hasReports)) {
+    details.push(
+      "studentIds, studentNames, and reports must be provided together"
+    );
+  }
+
+  if (hasStudentIds || hasStudentNames) {
+    const rosterValidation = validateStudentRoster(
+      data.studentIds,
+      data.studentNames
+    );
+    details.push(...rosterValidation.errors);
+  }
+
+  if (hasReports) {
+    details.push(...validateReportsPresence(data.reports));
+  }
+
+  if (details.length > 0) {
+    return {details};
+  }
+
+  return {
+    details,
+    normalizedData,
+  };
+}
+
+function getApiPathParts(pathname: string) {
+  const strippedPath = pathname.replace(/^\/api(?=\/|$)/i, "");
+  const parts = strippedPath.split("/").filter(Boolean);
+
+  return {
+    resource: parts[0]?.toLowerCase() ?? "",
+    documentId: parts[1] ?? null,
+    hasExtraSegments: parts.length > 2,
+  };
+}
+
+function sendValidationError(res: any, details: string[]) {
+  return res.status(400).json({
+    error: "Validation failed",
+    details,
+  });
 }
 
 export const generateTutorNotifications = onSchedule(
@@ -558,58 +903,95 @@ export const api = onRequest(
   async (req, res) => {
     if (!requireApiKey(req, res)) return;
 
-    const path = req.path.replace(/^\/api/, "").toLowerCase();
+    const {resource, documentId, hasExtraSegments} = getApiPathParts(req.path);
+
+    if (hasExtraSegments) {
+      return res.status(404).json({error: "Unknown endpoint"});
+    }
 
     try {
-      switch (path) {
+      switch (resource) {
       /* ---------- READ ---------- */
-      case "/students":
+      case "students":
+        if (documentId) {
+          return res.status(404).json({error: "Unknown endpoint"});
+        }
         return sendCollection("students", res);
 
-      case "/archivedStudents":
+      case "archivedstudents":
+        if (documentId) {
+          return res.status(404).json({error: "Unknown endpoint"});
+        }
         return sendCollection("archivedStudents", res);
 
-      case "/subjectgroups":
+      case "subjectgroups":
+        if (documentId) {
+          return res.status(404).json({error: "Unknown endpoint"});
+        }
         return sendCollection("subjectGroups", res);
 
-      case "/subjects":
+      case "subjects":
+        if (documentId) {
+          return res.status(404).json({error: "Unknown endpoint"});
+        }
         return sendCollection("subjects", res);
 
-      case "/tutors":
+      case "tutors":
+        if (documentId) {
+          return res.status(404).json({error: "Unknown endpoint"});
+        }
         return sendCollection("tutors", res);
 
-      case "/locations":
+      case "locations":
+        if (documentId) {
+          return res.status(404).json({error: "Unknown endpoint"});
+        }
         return sendCollection("locations", res);
 
-      case "/families":
+      case "families":
+        if (documentId) {
+          return res.status(404).json({error: "Unknown endpoint"});
+        }
         return sendCollection("families", res);
 
-      case "/invoices":
+      case "invoices":
+        if (documentId) {
+          return res.status(404).json({error: "Unknown endpoint"});
+        }
         return sendCollection("invoices", res, ["items"]);
 
-      case "/curriculums":
+      case "curriculums":
+        if (documentId) {
+          return res.status(404).json({error: "Unknown endpoint"});
+        }
         return sendCollection("curriculums", res);
 
-      case "/intakesubmissions":
+      case "intakesubmissions":
+        if (documentId) {
+          return res.status(404).json({error: "Unknown endpoint"});
+        }
         return sendCollection("intakeSubmissions", res);
 
-      case "/payroll":
+      case "payroll":
+        if (documentId) {
+          return res.status(404).json({error: "Unknown endpoint"});
+        }
         return sendCollection("payroll", res, ["items"]);
 
       /* ---------- READ AND WRITE LESSONS ---------- */
-      case "/lessons":
-        if (req.method === "GET") {
+      case "lessons": {
+        if (!documentId && req.method === "GET") {
           return sendCollection("lessons", res);
         }
 
-        if (req.method === "POST") {
-          const error = validateLessonPayload(req.body);
-          if (error) {
-            return res.status(400).json({error});
+        if (!documentId && req.method === "POST") {
+          const validation = validateLessonCreatePayload(req.body);
+          if (validation.details.length > 0 || !validation.normalizedData) {
+            return sendValidationError(res, validation.details);
           }
 
           const lesson = {
-            ...req.body,
+            ...validation.normalizedData,
             createdAt: admin.firestore.FieldValue.serverTimestamp(),
             updatedAt: admin.firestore.FieldValue.serverTimestamp(),
           };
@@ -622,7 +1004,65 @@ export const api = onRequest(
           });
         }
 
+        if (!documentId) {
+          return res.status(405).json({error: "Method not allowed"});
+        }
+
+        const lessonRef = db.collection("lessons").doc(documentId);
+        const lessonSnap = await lessonRef.get();
+
+        if (!lessonSnap.exists) {
+          return res.status(404).json({error: "Lesson not found"});
+        }
+
+        if (req.method === "PATCH") {
+          const validation = validateLessonPatchPayload(req.body);
+
+          if (validation.details.length > 0 || !validation.normalizedData) {
+            return sendValidationError(res, validation.details);
+          }
+
+          await lessonRef.update({
+            ...validation.normalizedData,
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          });
+
+          const updatedLessonSnap = await lessonRef.get();
+
+          return res.status(200).json({
+            success: true,
+            lessonId: updatedLessonSnap.id,
+            lesson: {
+              id: updatedLessonSnap.id,
+              ...updatedLessonSnap.data(),
+            },
+          });
+        }
+
+        if (req.method === "DELETE") {
+          const batch = db.batch();
+          const archivedLessonRef = db
+            .collection("archivedLessons")
+            .doc(documentId);
+
+          batch.set(archivedLessonRef, {
+            ...lessonSnap.data(),
+            archivedAt: admin.firestore.FieldValue.serverTimestamp(),
+            archivedVia: "api",
+            archiveReason: "deleted",
+          });
+          batch.delete(lessonRef);
+          await batch.commit();
+
+          return res.status(200).json({
+            success: true,
+            lessonId: documentId,
+            archived: true,
+          });
+        }
+
         return res.status(405).json({error: "Method not allowed"});
+      }
 
       default:
         return res.status(404).json({error: "Unknown endpoint"});
