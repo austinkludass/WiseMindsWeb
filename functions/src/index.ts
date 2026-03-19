@@ -256,6 +256,7 @@ const lessonTypeMap = new Map(
   lessonTypeValues.map((value) => [value.toLowerCase(), value])
 );
 
+// PATCH stays partial but intentionally narrow.
 const lessonPatchAllowedFields = new Set([
   "startDateTime",
   "endDateTime",
@@ -605,6 +606,7 @@ function validateLessonPatchPayload(
 }
 
 function getApiPathParts(pathname: string) {
+  // Lowercase only the static resource segment; preserve Firestore doc IDs.
   const strippedPath = pathname.replace(/^\/api(?=\/|$)/i, "");
   const parts = strippedPath.split("/").filter(Boolean);
 
@@ -620,6 +622,59 @@ function sendValidationError(res: any, details: string[]) {
     error: "Validation failed",
     details,
   });
+}
+
+// Resolve the live lesson document for single-lesson API operations.
+function getLessonRef(documentId: string) {
+  return db.collection("lessons").doc(documentId);
+}
+
+// Create a lesson with server-managed timestamps.
+async function createLessonDocument(data: Record<string, any>) {
+  return db.collection("lessons").add({
+    ...data,
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+}
+
+// Load both the ref and snapshot so callers do not repeat the lookup.
+async function getLessonSnapshot(documentId: string) {
+  const lessonRef = getLessonRef(documentId);
+  const lessonSnap = await lessonRef.get();
+  return {lessonRef, lessonSnap};
+}
+
+// Apply a partial lesson update and return the refreshed snapshot.
+async function patchLessonDocument(
+  lessonRef: FirebaseFirestore.DocumentReference,
+  data: Record<string, any>
+) {
+  await lessonRef.update({
+    ...data,
+    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+
+  return lessonRef.get();
+}
+
+// Move a lesson into archivedLessons before removing it from lessons.
+async function archiveLessonDocument(
+  documentId: string,
+  lessonRef: FirebaseFirestore.DocumentReference,
+  lessonData: FirebaseFirestore.DocumentData
+) {
+  const batch = db.batch();
+  const archivedLessonRef = db.collection("archivedLessons").doc(documentId);
+
+  batch.set(archivedLessonRef, {
+    ...lessonData,
+    archivedAt: admin.firestore.FieldValue.serverTimestamp(),
+    archivedVia: "api",
+    archiveReason: "deleted",
+  });
+  batch.delete(lessonRef);
+  await batch.commit();
 }
 
 export const generateTutorNotifications = onSchedule(
@@ -990,13 +1045,7 @@ export const api = onRequest(
             return sendValidationError(res, validation.details);
           }
 
-          const lesson = {
-            ...validation.normalizedData,
-            createdAt: admin.firestore.FieldValue.serverTimestamp(),
-            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-          };
-
-          const docRef = await db.collection("lessons").add(lesson);
+          const docRef = await createLessonDocument(validation.normalizedData);
 
           return res.status(201).json({
             success: true,
@@ -1008,8 +1057,7 @@ export const api = onRequest(
           return res.status(405).json({error: "Method not allowed"});
         }
 
-        const lessonRef = db.collection("lessons").doc(documentId);
-        const lessonSnap = await lessonRef.get();
+        const {lessonRef, lessonSnap} = await getLessonSnapshot(documentId);
 
         if (!lessonSnap.exists) {
           return res.status(404).json({error: "Lesson not found"});
@@ -1022,12 +1070,10 @@ export const api = onRequest(
             return sendValidationError(res, validation.details);
           }
 
-          await lessonRef.update({
-            ...validation.normalizedData,
-            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-          });
-
-          const updatedLessonSnap = await lessonRef.get();
+          const updatedLessonSnap = await patchLessonDocument(
+            lessonRef,
+            validation.normalizedData
+          );
 
           return res.status(200).json({
             success: true,
@@ -1040,19 +1086,13 @@ export const api = onRequest(
         }
 
         if (req.method === "DELETE") {
-          const batch = db.batch();
-          const archivedLessonRef = db
-            .collection("archivedLessons")
-            .doc(documentId);
+          // Soft-delete by moving the lesson out of the live collection.
+          const lessonData = lessonSnap.data();
+          if (!lessonData) {
+            return res.status(404).json({error: "Lesson not found"});
+          }
 
-          batch.set(archivedLessonRef, {
-            ...lessonSnap.data(),
-            archivedAt: admin.firestore.FieldValue.serverTimestamp(),
-            archivedVia: "api",
-            archiveReason: "deleted",
-          });
-          batch.delete(lessonRef);
-          await batch.commit();
+          await archiveLessonDocument(documentId, lessonRef, lessonData);
 
           return res.status(200).json({
             success: true,
