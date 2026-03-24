@@ -371,11 +371,60 @@ function validateLessonTimes(
   return errors;
 }
 
-function validateReportsPresence(reports: any): string[] {
+function validateReports(
+  reports: any,
+  studentIds?: string[]
+): string[] {
   const errors: string[] = [];
 
   if (reports === undefined || reports === null) {
     errors.push("reports is required");
+    return errors;
+  }
+
+  if (!Array.isArray(reports)) {
+    errors.push("reports must be an array");
+    return errors;
+  }
+
+  if (studentIds && reports.length !== studentIds.length) {
+    errors.push(
+      "reports length must match studentIds length"
+    );
+  }
+
+  for (let i = 0; i < reports.length; i++) {
+    const r = reports[i];
+    if (!isPlainObject(r)) {
+      errors.push(`reports[${i}] must be an object`);
+      continue;
+    }
+    if (!isNonEmptyString(r.studentId)) {
+      errors.push(`reports[${i}].studentId must be a non-empty string`);
+    }
+    if (!isNonEmptyString(r.studentName)) {
+      errors.push(`reports[${i}].studentName must be a non-empty string`);
+    }
+  }
+
+  if (studentIds && errors.length === 0) {
+    const reportIds = reports.map((r: any) => r.studentId);
+    const missingFromReports = studentIds.filter(
+      (id) => !reportIds.includes(id)
+    );
+    const extraInReports = reportIds.filter(
+      (id: string) => !studentIds.includes(id)
+    );
+    if (missingFromReports.length > 0) {
+      errors.push(
+        `reports missing entries for studentIds: ${missingFromReports.join(", ")}`
+      );
+    }
+    if (extraInReports.length > 0) {
+      errors.push(
+        `reports contain studentIds not in studentIds array: ${extraInReports.join(", ")}`
+      );
+    }
   }
 
   return errors;
@@ -447,7 +496,9 @@ function validateLessonCreatePayload(data: any): {
     data.studentNames
   );
   details.push(...rosterValidation.errors);
-  details.push(...validateReportsPresence(data.reports));
+  details.push(
+    ...validateReports(data.reports, rosterValidation.studentIds)
+  );
 
   if (details.length > 0) {
     return {details};
@@ -583,16 +634,18 @@ function validateLessonPatchPayload(
     );
   }
 
+  let validatedStudentIds: string[] | undefined;
   if (hasStudentIds || hasStudentNames) {
     const rosterValidation = validateStudentRoster(
       data.studentIds,
       data.studentNames
     );
     details.push(...rosterValidation.errors);
+    validatedStudentIds = rosterValidation.studentIds;
   }
 
   if (hasReports) {
-    details.push(...validateReportsPresence(data.reports));
+    details.push(...validateReports(data.reports, validatedStudentIds));
   }
 
   if (details.length > 0) {
