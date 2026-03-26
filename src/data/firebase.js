@@ -1,7 +1,7 @@
 import { initializeApp } from "firebase/app";
 import { getDatabase } from "firebase/database";
-import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+import { getAuth, connectAuthEmulator } from "firebase/auth";
+import { getFirestore, connectFirestoreEmulator } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 import { getMessaging } from "firebase/messaging";
 
@@ -22,3 +22,10 @@ export const db = getFirestore(app);
 export const auth = getAuth(app);
 export const sb = getStorage(app);
 export const messaging = getMessaging(app);
+
+// Firestore emulator runs in Docker (native JAR has broken Netty on macOS 12 Intel).
+// Start it with: docker run -d --name firestore-emulator -p 8080:8080 google/cloud-sdk:emulators gcloud emulators firestore start --host-port=0.0.0.0:8080 --project=bens-dev-wma
+if (window.location.hostname === "localhost") {
+  connectFirestoreEmulator(db, "127.0.0.1", 8080);
+  connectAuthEmulator(auth, "http://127.0.0.1:9099");
+}
