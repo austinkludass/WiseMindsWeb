@@ -23,3 +23,7 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .env
+# Amend to remove debug logs from local dev work.
+firestore-debug.log
+functions/firestore-debug.log
+firebase-debug.log
