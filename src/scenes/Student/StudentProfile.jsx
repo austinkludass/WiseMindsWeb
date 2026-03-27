@@ -130,7 +130,7 @@ const StudentProfile = () => {
           const value = data[f];
           if (f === "discount" || f === "credit") {
             initialForms[key][f] = value || null;
-          } else if (f.toLowerCase().includes("date") && value) {
+          } else if (dateFields.includes(f) && value) {
             initialForms[key][f] = dayjs(value);
           } else {
             initialForms[key][f] = value ?? "";
@@ -148,9 +148,9 @@ const StudentProfile = () => {
     const payload = { ...forms[key] };
 
     if (payload.dateOfBirth)
-      payload.dateOfBirth = payload.dateOfBirth.toISOString();
+      payload.dateOfBirth = dayjs(payload.dateOfBirth).toISOString();
     if (payload.preferredStart)
-      payload.preferredStart = payload.preferredStart.toISOString();
+      payload.preferredStart = dayjs(payload.preferredStart).toISOString();
 
     if (key === "academic") {
       payload.subjects = subjects;

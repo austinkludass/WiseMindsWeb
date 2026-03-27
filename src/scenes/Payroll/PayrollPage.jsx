@@ -35,8 +35,8 @@ import {
   fetchTutors,
 } from "../../utils/PayrollUtils";
 import { fetchLessonsForWeek } from "../../utils/InvoiceUtils";
-import { getFunctions, httpsCallable } from "firebase/functions";
-import { app } from "../../data/firebase";
+import { httpsCallable } from "firebase/functions";
+import { functions } from "../../data/firebase";
 import { tokens } from "../../theme";
 import { AuthContext } from "../../context/AuthContext";
 import XeroExportResultsDialog from "../../components/Invoice/XeroExportResultsDialog";
@@ -55,8 +55,6 @@ import RefreshIcon from "@mui/icons-material/Refresh";
 import Header from "../../components/Global/Header";
 import dayjs from "dayjs";
 import { toast } from "react-toastify";
-
-const functions = getFunctions(app, "australia-southeast1");
 
 const PayrollPage = () => {
   const theme = useTheme();

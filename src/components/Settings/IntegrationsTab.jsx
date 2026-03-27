@@ -20,8 +20,8 @@ import {
   Collapse,
   useTheme,
 } from "@mui/material";
-import { getFunctions, httpsCallable } from "firebase/functions";
-import { app } from "../../data/firebase";
+import { httpsCallable } from "firebase/functions";
+import { functions } from "../../data/firebase";
 import { tokens } from "../../theme";
 import LinkIcon from "@mui/icons-material/Link";
 import LinkOffIcon from "@mui/icons-material/LinkOff";
@@ -33,8 +33,6 @@ import ReceiptIcon from "@mui/icons-material/Receipt";
 import PaymentsIcon from "@mui/icons-material/Payments";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import dayjs from "dayjs";
-
-const functions = getFunctions(app, "australia-southeast1");
 
 const IntegrationsTab = () => {
   const theme = useTheme();

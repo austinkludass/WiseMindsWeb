@@ -25,10 +25,10 @@ import {
   updateInvoice,
   fetchWeekMeta,
 } from "../../utils/InvoiceUtils";
-import { getFunctions, httpsCallable } from "firebase/functions";
+import { httpsCallable } from "firebase/functions";
 import { PieChart } from "@mui/x-charts/PieChart";
 import { Edit, Refresh } from "@mui/icons-material";
-import { app } from "../../data/firebase";
+import { functions } from "../../data/firebase";
 import EditInvoiceDialog from "../../components/Invoice/EditInvoiceDialog";
 import XeroExportResultsDialog from "../../components/Invoice/XeroExportResultsDialog";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
@@ -41,7 +41,6 @@ import Header from "../../components/Global/Header";
 import dayjs from "dayjs";
 import { toast } from "react-toastify";
 
-const functions = getFunctions(app, "australia-southeast1");
 const valueFormatter = (item) =>
   `${Math.round(item.value)}% (${item.count} ${
     item.count === 1 ? "report" : "reports"

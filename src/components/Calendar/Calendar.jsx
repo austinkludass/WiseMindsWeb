@@ -9,12 +9,12 @@ import {
   where,
 } from "firebase/firestore";
 import { Box, IconButton, Collapse, Badge } from "@mui/material";
-import { getFunctions, httpsCallable } from "firebase/functions";
+import { httpsCallable } from "firebase/functions";
 import { deriveLessonTypeFromReports } from "../../utils/checkLessonTypes";
 import { Calendar, dayjsLocalizer } from "react-big-calendar";
 import { ToastContainer, toast } from "react-toastify";
 import { FilterList } from "@mui/icons-material";
-import { app, db } from "../../data/firebase";
+import { functions, db } from "../../data/firebase";
 import NewEventDialog from "./CustomComponents/NewEventDialog";
 import updateLocale from "dayjs/plugin/updateLocale";
 import EventDialog from "./CustomComponents/EventDialog";
@@ -33,8 +33,6 @@ dayjs.updateLocale("en", {
 });
 
 const localizer = dayjsLocalizer(dayjs);
-const functions = getFunctions(app, "australia-southeast1");
-
 const BigCalendar = () => {
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [newLessonSlot, setNewLessonSlot] = useState(null);
@@ -240,6 +238,12 @@ const BigCalendar = () => {
   const handleDeleteEvent = async (event, applyToFuture = false) => {
     try {
       if (applyToFuture) {
+        if (!event.repeatingId || !event.startDateTime) {
+          const lessonRef = doc(db, "lessons", event.id);
+          await deleteDoc(lessonRef);
+          toast.success("Lesson not part of a series — deleted single instance.");
+          return;
+        }
         const deleteRepeatingLessons = httpsCallable(
           functions,
           "deleteRepeatingLessons"

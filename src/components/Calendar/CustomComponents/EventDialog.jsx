@@ -71,7 +71,7 @@ const EventDialog = ({
   const handleEdit = () => setMode("edit");
 
   const handleSubmit = () => {
-    if (event.frequency) {
+    if (event.frequency && event.repeatingId) {
       setDeleteConfirmOpen(true);
     } else {
       handleDelete(false);

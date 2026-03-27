@@ -1,11 +1,12 @@
 import * as admin from "firebase-admin";
+import {FieldPath, FieldValue, Timestamp} from "firebase-admin/firestore";
 import {logger} from "firebase-functions";
 import {onSchedule} from "firebase-functions/v2/scheduler";
 import {
   onDocumentWritten,
   onDocumentCreated,
 } from "firebase-functions/v2/firestore";
-import {onCall} from "firebase-functions/https";
+import {onCall, HttpsError} from "firebase-functions/https";
 import {onRequest} from "firebase-functions/https";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
@@ -14,6 +15,10 @@ import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
 
 admin.initializeApp();
 const db = admin.firestore();
+// The Firestore emulator's gRPC (HTTP/2) layer is broken; use REST instead.
+if (process.env.FIRESTORE_EMULATOR_HOST) {
+  db.settings({preferRest: true});
+}
 dayjs.extend(isSameOrBefore);
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -33,7 +38,7 @@ type Priority = "low" | "medium" | "high";
 
 interface Tutor {
   firstAidFilePath?: string | null;
-  faExpiry?: admin.firestore.Timestamp | null;
+  faExpiry?: Timestamp | null;
   emergencyName?: string | null;
   emergencyPhone?: string | null;
   emergencyEmail?: string | null;
@@ -47,20 +52,16 @@ interface NotificationDoc {
   message: string;
   priority: Priority;
   read: boolean;
-  createdAt: admin.firestore.FieldValue | admin.firestore.Timestamp;
-  updatedAt: admin.firestore.FieldValue | admin.firestore.Timestamp;
+  createdAt: FieldValue | Timestamp;
+  updatedAt: FieldValue | Timestamp;
 }
 
-export interface LessonReport {
-  effort: number | null;
-  notes: string | null;
-  quality: number | null;
-  satisfaction: number | null;
-  status: string | null;
-  studentId: string;
-  studentName: string;
-  topic: string | null;
-}
+import {
+  type LessonReport,
+  validateLessonCreatePayload,
+  validateLessonPatchPayload,
+} from "./validation.js";
+export type {LessonReport} from "./validation.js";
 
 export interface Lesson {
   id: string;
@@ -112,7 +113,7 @@ async function upsertNotification(
     message,
     priority,
     read: false,
-    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    updatedAt: FieldValue.serverTimestamp(),
   };
 
   if (snap.exists) {
@@ -120,7 +121,7 @@ async function upsertNotification(
   } else {
     await ref.set({
       ...base,
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      createdAt: FieldValue.serverTimestamp(),
     } as NotificationDoc);
   }
 }
@@ -243,368 +244,6 @@ async function sendCollection(
   return res.json(results);
 }
 
-const lessonTypeValues = [
-  "Normal",
-  "Postpone",
-  "Cancelled",
-  "Student Trial",
-  "Tutor Trial",
-  "Unconfirmed",
-];
-
-const lessonTypeMap = new Map(
-  lessonTypeValues.map((value) => [value.toLowerCase(), value])
-);
-
-// PATCH stays partial but intentionally narrow.
-const lessonPatchAllowedFields = new Set([
-  "startDateTime",
-  "endDateTime",
-  "type",
-  "notes",
-  "tutorId",
-  "tutorName",
-  "tutorColor",
-  "subjectGroupId",
-  "subjectGroupName",
-  "locationId",
-  "locationName",
-  "studentIds",
-  "studentNames",
-  "reports",
-]);
-
-function isPlainObject(value: any): value is Record<string, any> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function isNonEmptyString(value: any): value is string {
-  return typeof value === "string" && value.trim() !== "";
-}
-
-function normalizeLessonType(value: any): string | null {
-  if (!isNonEmptyString(value)) return null;
-  return lessonTypeMap.get(value.trim().toLowerCase()) ?? null;
-}
-
-function validateStudentRoster(
-  studentIds: any,
-  studentNames: any
-): {errors: string[]; studentIds: string[]; studentNames: string[]} {
-  const errors: string[] = [];
-
-  if (!Array.isArray(studentIds) || studentIds.length === 0) {
-    errors.push("studentIds must be a non-empty array");
-  }
-
-  if (!Array.isArray(studentNames) || studentNames.length === 0) {
-    errors.push("studentNames must be a non-empty array");
-  }
-
-  if (
-    Array.isArray(studentIds) &&
-    Array.isArray(studentNames) &&
-    studentIds.length !== studentNames.length
-  ) {
-    errors.push("studentIds and studentNames must have the same length");
-  }
-
-  const normalizedStudentIds = Array.isArray(studentIds) ? studentIds : [];
-  const normalizedStudentNames = Array.isArray(studentNames) ?
-    studentNames :
-    [];
-
-  if (
-    normalizedStudentIds.some((id) => !isNonEmptyString(id))
-  ) {
-    errors.push("studentIds must contain only non-empty strings");
-  }
-
-  if (
-    normalizedStudentNames.some((name) => !isNonEmptyString(name))
-  ) {
-    errors.push("studentNames must contain only non-empty strings");
-  }
-
-  const uniqueIds = new Set(
-    normalizedStudentIds.filter((id) => isNonEmptyString(id))
-  );
-
-  if (uniqueIds.size !== normalizedStudentIds.length) {
-    errors.push("studentIds must not contain duplicates");
-  }
-
-  return {
-    errors,
-    studentIds: normalizedStudentIds,
-    studentNames: normalizedStudentNames,
-  };
-}
-
-function validateLessonTimes(
-  startDateTime: any,
-  endDateTime: any
-): string[] {
-  const errors: string[] = [];
-
-  if (!dayjs(startDateTime).isValid()) {
-    errors.push("Invalid startDateTime");
-  }
-
-  if (!dayjs(endDateTime).isValid()) {
-    errors.push("Invalid endDateTime");
-  }
-
-  if (errors.length > 0) {
-    return errors;
-  }
-
-  const start = dayjs(startDateTime);
-  const end = dayjs(endDateTime);
-
-  if (!end.isAfter(start)) {
-    errors.push("endDateTime must be after startDateTime");
-  } else if (end.diff(start, "minute") < 60) {
-    errors.push("Lesson duration must be at least 1 hour");
-  }
-
-  return errors;
-}
-
-function validateReportsPresence(reports: any): string[] {
-  const errors: string[] = [];
-
-  if (reports === undefined || reports === null) {
-    errors.push("reports is required");
-  }
-
-  return errors;
-}
-
-function validateLessonCreatePayload(data: any): {
-  details: string[];
-  normalizedData?: Record<string, any>;
-} {
-  if (!isPlainObject(data)) {
-    return {details: ["Request body must be a JSON object"]};
-  }
-
-  const details: string[] = [];
-
-  if (!isNonEmptyString(data.tutorId)) {
-    details.push("tutorId is required");
-  }
-
-  if (!isNonEmptyString(data.tutorColor)) {
-    details.push("tutorColor is required");
-  }
-
-  if (!isNonEmptyString(data.tutorName)) {
-    details.push("tutorName is required");
-  }
-
-  if (!isNonEmptyString(data.subjectGroupId)) {
-    details.push("subjectGroupId is required");
-  }
-
-  if (!isNonEmptyString(data.subjectGroupName)) {
-    details.push("subjectGroupName is required");
-  }
-
-  if (!isNonEmptyString(data.locationId)) {
-    details.push("locationId is required");
-  }
-
-  if (!isNonEmptyString(data.locationName)) {
-    details.push("locationName is required");
-  }
-
-  if (data.startDateTime === undefined) {
-    details.push("startDateTime is required");
-  }
-
-  if (data.endDateTime === undefined) {
-    details.push("endDateTime is required");
-  }
-
-  if (data.startDateTime !== undefined && data.endDateTime !== undefined) {
-    details.push(...validateLessonTimes(data.startDateTime, data.endDateTime));
-  }
-
-  const normalizedType = normalizeLessonType(data.type);
-  if (!normalizedType) {
-    details.push(
-      `type must be one of: ${lessonTypeValues.join(", ")}`
-    );
-  }
-
-  if (data.notes !== undefined && typeof data.notes !== "string") {
-    details.push("notes must be a string");
-  }
-
-  const rosterValidation = validateStudentRoster(
-    data.studentIds,
-    data.studentNames
-  );
-  details.push(...rosterValidation.errors);
-  details.push(...validateReportsPresence(data.reports));
-
-  if (details.length > 0) {
-    return {details};
-  }
-
-  return {
-    details,
-    normalizedData: {
-      ...data,
-      type: normalizedType,
-    },
-  };
-}
-
-function validateLessonPatchPayload(
-  data: any
-): {details: string[]; normalizedData?: Record<string, any>} {
-  if (!isPlainObject(data)) {
-    return {details: ["Request body must be a JSON object"]};
-  }
-
-  const details: string[] = [];
-  const keys = Object.keys(data);
-
-  if (keys.length === 0) {
-    return {details: ["Request body must include at least one field"]};
-  }
-
-  const unknownFields = keys.filter(
-    (key) => !lessonPatchAllowedFields.has(key)
-  );
-
-  if (unknownFields.length > 0) {
-    details.push(
-      `Unknown or protected fields: ${unknownFields.join(", ")}`
-    );
-  }
-
-  const normalizedData = {...data};
-
-  if ("type" in data) {
-    const normalizedType = normalizeLessonType(data.type);
-    if (!normalizedType) {
-      details.push(
-        `type must be one of: ${lessonTypeValues.join(", ")}`
-      );
-    } else {
-      normalizedData.type = normalizedType;
-    }
-  }
-
-  if ("notes" in data && typeof data.notes !== "string") {
-    details.push("notes must be a string");
-  }
-
-  const hasStart = "startDateTime" in data;
-  const hasEnd = "endDateTime" in data;
-  if (hasStart || hasEnd) {
-    if (!hasStart || !hasEnd) {
-      details.push(
-        "startDateTime and endDateTime must be provided together"
-      );
-    } else {
-      details.push(
-        ...validateLessonTimes(data.startDateTime, data.endDateTime)
-      );
-    }
-  }
-
-  const tutorKeys = ["tutorId", "tutorName", "tutorColor"];
-  const tutorKeysPresent = tutorKeys.filter((key) => key in data);
-  if (
-    tutorKeysPresent.length > 0 &&
-    tutorKeysPresent.length !== tutorKeys.length
-  ) {
-    details.push(
-      "tutorId, tutorName, and tutorColor must be provided together"
-    );
-  } else if (tutorKeysPresent.length === tutorKeys.length) {
-    if (!isNonEmptyString(data.tutorId)) {
-      details.push("tutorId must be a non-empty string");
-    }
-    if (!isNonEmptyString(data.tutorName)) {
-      details.push("tutorName must be a non-empty string");
-    }
-    if (!isNonEmptyString(data.tutorColor)) {
-      details.push("tutorColor must be a non-empty string");
-    }
-  }
-
-  const subjectKeys = ["subjectGroupId", "subjectGroupName"];
-  const subjectKeysPresent = subjectKeys.filter((key) => key in data);
-  if (
-    subjectKeysPresent.length > 0 &&
-    subjectKeysPresent.length !== subjectKeys.length
-  ) {
-    details.push(
-      "subjectGroupId and subjectGroupName must be provided together"
-    );
-  } else if (subjectKeysPresent.length === subjectKeys.length) {
-    if (!isNonEmptyString(data.subjectGroupId)) {
-      details.push("subjectGroupId must be a non-empty string");
-    }
-    if (!isNonEmptyString(data.subjectGroupName)) {
-      details.push("subjectGroupName must be a non-empty string");
-    }
-  }
-
-  const locationKeys = ["locationId", "locationName"];
-  const locationKeysPresent = locationKeys.filter((key) => key in data);
-  if (
-    locationKeysPresent.length > 0 &&
-    locationKeysPresent.length !== locationKeys.length
-  ) {
-    details.push("locationId and locationName must be provided together");
-  } else if (locationKeysPresent.length === locationKeys.length) {
-    if (!isNonEmptyString(data.locationId)) {
-      details.push("locationId must be a non-empty string");
-    }
-    if (!isNonEmptyString(data.locationName)) {
-      details.push("locationName must be a non-empty string");
-    }
-  }
-
-  const hasStudentIds = "studentIds" in data;
-  const hasStudentNames = "studentNames" in data;
-  const hasReports = "reports" in data;
-  const isRosterUpdate = hasStudentIds || hasStudentNames;
-
-  if (isRosterUpdate && !(hasStudentIds && hasStudentNames && hasReports)) {
-    details.push(
-      "studentIds, studentNames, and reports must be provided together"
-    );
-  }
-
-  if (hasStudentIds || hasStudentNames) {
-    const rosterValidation = validateStudentRoster(
-      data.studentIds,
-      data.studentNames
-    );
-    details.push(...rosterValidation.errors);
-  }
-
-  if (hasReports) {
-    details.push(...validateReportsPresence(data.reports));
-  }
-
-  if (details.length > 0) {
-    return {details};
-  }
-
-  return {
-    details,
-    normalizedData,
-  };
-}
-
 function getApiPathParts(pathname: string) {
   // Lowercase only the static resource segment; preserve Firestore doc IDs.
   const strippedPath = pathname.replace(/^\/api(?=\/|$)/i, "");
@@ -633,8 +272,8 @@ function getLessonRef(documentId: string) {
 async function createLessonDocument(data: Record<string, any>) {
   return db.collection("lessons").add({
     ...data,
-    createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    createdAt: FieldValue.serverTimestamp(),
+    updatedAt: FieldValue.serverTimestamp(),
   });
 }
 
@@ -652,7 +291,7 @@ async function patchLessonDocument(
 ) {
   await lessonRef.update({
     ...data,
-    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    updatedAt: FieldValue.serverTimestamp(),
   });
 
   return lessonRef.get();
@@ -669,7 +308,7 @@ async function archiveLessonDocument(
 
   batch.set(archivedLessonRef, {
     ...lessonData,
-    archivedAt: admin.firestore.FieldValue.serverTimestamp(),
+    archivedAt: FieldValue.serverTimestamp(),
     archivedVia: "api",
     archiveReason: "deleted",
   });
@@ -692,7 +331,7 @@ export const generateTutorNotifications = onSchedule(
     while (true) {
       let query = db
         .collection("tutors")
-        .orderBy(admin.firestore.FieldPath.documentId())
+        .orderBy(FieldPath.documentId())
         .limit(pageSize);
       if (last) query = query.startAfter(last);
 
@@ -707,47 +346,6 @@ export const generateTutorNotifications = onSchedule(
       last = snap.docs[snap.docs.length - 1];
       if (snap.size < pageSize) break;
     }
-  }
-);
-
-export const onTutorWrite = onDocumentWritten(
-  {
-    document: "tutors/{tutorId}",
-    region: "australia-southeast1",
-  },
-  async (event) => {
-    const tutorId = event.params.tutorId as string;
-    const before = event.data?.before?.data() as any | undefined;
-    const after = event.data?.after?.data() as any | undefined;
-
-    if (!after) {
-      await Promise.all([
-        deleteNotificationIfExists(tutorId, "missing_first_aid_file"),
-        deleteNotificationIfExists(tutorId, "first_aid_expiring"),
-        deleteNotificationIfExists(tutorId, "missing_emergency_contact_fields"),
-      ]);
-
-      try {
-        await admin.auth().setCustomUserClaims(tutorId, null);
-      } catch (error) {
-        logger.error("Error clearing custom claims: ", error);
-      }
-      return;
-    }
-
-    const newRole = after.role;
-    const oldRule = before?.role;
-
-    if (newRole && newRole !== oldRule) {
-      try {
-        await admin.auth().setCustomUserClaims(tutorId, {role: newRole});
-        logger.info(`Updated custom claims for ${tutorId} to role: ${newRole}`);
-      } catch (error) {
-        logger.error("Error setting custom claims: ", error);
-      }
-    }
-
-    await evaluateTutorNotifications(tutorId, after);
   }
 );
 
@@ -775,8 +373,8 @@ export const generateWeeklyStats = onSchedule(
       .doc(docId)
       .set({
         ...counts,
-        timestamp: admin.firestore.Timestamp.fromDate(now.toDate()),
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        timestamp: Timestamp.fromDate(now.toDate()),
+        createdAt: FieldValue.serverTimestamp(),
       });
 
     logger.info("Saved stats snapshot:", counts);
@@ -791,7 +389,8 @@ export const createRepeatingLessons = onCall(
   async (request) => {
     const data = request.data;
     if (!data || !data.repeatingId || !data.startDateTime || !data.frequency) {
-      throw new Error(
+      throw new HttpsError(
+        "invalid-argument",
         "Missing required fields (repeatingId, startDateTime, frequency)"
       );
     }
@@ -819,7 +418,7 @@ export const createRepeatingLessons = onCall(
         endDateTime: nextEnd.toISOString(),
         repeatingId,
         frequency,
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        createdAt: FieldValue.serverTimestamp(),
       });
 
       nextStart = nextStart.add(intervalDays, "day");
@@ -852,7 +451,10 @@ export const updateRepeatingLessons = onCall(
     const {repeatingId, updatedFields, currentLessonStart,
       startShiftMs, endShiftMs} = request.data || {};
     if (!repeatingId || !updatedFields) {
-      throw new Error("Missing required fields (repeatingId, updatedFields)");
+      throw new HttpsError(
+        "invalid-argument",
+        "Missing required fields (repeatingId, updatedFields)"
+      );
     }
 
     try {
@@ -896,7 +498,11 @@ export const updateRepeatingLessons = onCall(
       if (opCount > 0) await batch.commit();
       return {success: true, updated: snapshot.size};
     } catch (error: any) {
-      throw new Error("Error updating repeating lessons:" + error.message);
+      logger.error("updateRepeatingLessons failed:", error);
+      throw new HttpsError(
+        "internal",
+        "Error updating repeating lessons: " + error.message
+      );
     }
   }
 );
@@ -910,7 +516,8 @@ export const deleteRepeatingLessons = onCall(
     const {repeatingId, currentLessonStart} = request.data || {};
 
     if (!repeatingId || !currentLessonStart) {
-      throw new Error(
+      throw new HttpsError(
+        "invalid-argument",
         "Missing required fields (repeatingId, currentLessonStart)"
       );
     }
@@ -945,7 +552,11 @@ export const deleteRepeatingLessons = onCall(
       if (opCount > 0) await batch.commit();
       return {success: true, deleted: snapshot.size};
     } catch (error: any) {
-      throw new Error("Error deleting repeating lessons:" + error.message);
+      logger.error("deleteRepeatingLessons failed:", error);
+      throw new HttpsError(
+        "internal",
+        "Error deleting repeating lessons: " + error.message
+      );
     }
   }
 );
@@ -1171,7 +782,7 @@ export const generateWeeklyInvoices = onCall(
       await weekDocRef.set({
         generated: true,
         locked: false,
-        lastGenerated: admin.firestore.FieldValue.serverTimestamp(),
+        lastGenerated: FieldValue.serverTimestamp(),
       }, {merge: true});
       return {success: true, message: "No lessons found for this week"};
     }
@@ -1336,7 +947,7 @@ export const generateWeeklyInvoices = onCall(
     await weekDocRef.set({
       generated: true,
       locked: false,
-      lastGenerated: admin.firestore.FieldValue.serverTimestamp(),
+      lastGenerated: FieldValue.serverTimestamp(),
     }, {merge: true});
     const batch = db.batch();
 
@@ -1377,14 +988,14 @@ export const generateWeeklyInvoices = onCall(
 
       if (update.removeDiscount) {
         batch.update(studentRef,
-          {discount: admin.firestore.FieldValue.delete()});
+          {discount: FieldValue.delete()});
       } else if (update.discountHoursRemaining !== undefined) {
         batch.update(studentRef,
           {"discount.hoursRemaining": update.discountHoursRemaining});
       }
 
       if (update.removeCredit) {
-        batch.update(studentRef, {credit: admin.firestore.FieldValue.delete()});
+        batch.update(studentRef, {credit: FieldValue.delete()});
       } else if (update.creditBalance !== undefined) {
         batch.update(studentRef, {"credit.balance": update.creditBalance});
       } else if (update.creditHoursRemaining !== undefined) {
@@ -1535,7 +1146,7 @@ export const generateWeeklyPayroll = onCall(
       {
         generated: true,
         locked: false,
-        lastGenerated: admin.firestore.FieldValue.serverTimestamp(),
+        lastGenerated: FieldValue.serverTimestamp(),
         weekStart,
         weekEnd,
       },
@@ -1595,7 +1206,7 @@ export const approveAdditionalHours = onCall(
 
     await requestRef.update({
       status: newStatus,
-      reviewedAt: admin.firestore.FieldValue.serverTimestamp(),
+      reviewedAt: FieldValue.serverTimestamp(),
       reviewedBy: reviewedBy || null,
     });
 
@@ -1702,7 +1313,7 @@ export const lockPayroll = onCall(
 
     await weekDocRef.update({
       locked: true,
-      lockedAt: admin.firestore.FieldValue.serverTimestamp(),
+      lockedAt: FieldValue.serverTimestamp(),
     });
 
     logger.info(`Locked payroll for week ${weekStart}`);
@@ -1752,144 +1363,10 @@ export const finalizeTutor = onCall(
 
     await db.doc(`tutors/${data.uid}`).set({
       ...data.tutorData,
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      createdAt: FieldValue.serverTimestamp(),
     });
 
     return {success: true};
-  }
-);
-
-export const onDirectMessageCreated = onDocumentCreated(
-  {
-    document: "directMessages/{dmId}/messages/{messageId}",
-    region: "australia-southeast1",
-  },
-  async (event) => {
-    const message = event.data?.data();
-    if (!message) return;
-
-    const dmId = event.params.dmId as string;
-    const senderId = message.senderId as string;
-    const senderName = message.senderName as string;
-    const text = message.message as string;
-
-    const [uid1, uid2] = dmId.split("_");
-    const recipientId = uid1 === senderId ? uid2 : uid1;
-
-    const recipientSnap = await db.collection("tutors").doc(recipientId).get();
-    if (!recipientSnap.exists) return;
-
-    const fcmTokens: string[] = recipientSnap.data()?.fcmTokens || [];
-    if (fcmTokens.length === 0) return;
-
-    const invalidTokens: string[] = [];
-
-    await Promise.all(
-      fcmTokens.map(async (token) => {
-        try {
-          await admin.messaging().send({
-            token,
-            notification: {
-              title: senderName,
-              body: text.length > 100 ? text.substring(0, 97) + "..." : text,
-            },
-            webpush: {
-              fcmOptions: {
-                link: "/",
-              },
-            },
-          });
-        } catch (err) {
-          logger.error("FCM send failed for token: ", err);
-          if (
-            (err as any).code ==="messaging/registration-token-not-registered"
-          ) {
-            invalidTokens.push(token);
-          }
-        }
-      })
-    );
-
-    // Clean up any expired/invalid tokens
-    if (invalidTokens.length > 0) {
-      await db.collection("tutors").doc(recipientId).update({
-        fcmTokens: admin.firestore.FieldValue.arrayRemove(...invalidTokens),
-      });
-    }
-  }
-);
-
-export const onSeniorTutorDMCreated = onDocumentCreated(
-  {
-    document: "seniorTutorDMs/{senderId}/messages/{messageId}",
-    region: "australia-southeast1",
-  },
-  async (event) => {
-    const message = event.data?.data();
-    if (!message) return;
-
-    const senderId = event.params.senderId as string;
-    const messageSenderId = message.senderId as string;
-    const senderName = message.senderName as string;
-    const text = message.message as string;
-    const today = dayjs().tz(tz);
-    const dayOfWeek = today.day();
-    const daysSinceSaturday = dayOfWeek === 6 ? 0 : dayOfWeek + 1;
-    const weekKey = today.subtract(daysSinceSaturday, "day")
-      .format("YYYY-MM-DD");
-    const assignmentSnap = await db
-      .collection("seniorTutorAssignments")
-      .doc(weekKey)
-      .get();
-
-    if (!assignmentSnap.exists) return;
-    const seniorTutorId = assignmentSnap.data()?.tutorId as string | undefined;
-    if (!seniorTutorId) return;
-
-    const recipientId =
-      messageSenderId === seniorTutorId ? senderId : seniorTutorId;
-
-    if (recipientId === messageSenderId) return;
-
-    const recipientSnap = await db.collection("tutors").doc(recipientId).get();
-    if (!recipientSnap.exists) return;
-
-    const fcmTokens: string[] = recipientSnap.data()?.fcmTokens || [];
-    if (fcmTokens.length === 0) return;
-
-    const invalidTokens: string[] = [];
-
-    await Promise.all(
-      fcmTokens.map(async (token) => {
-        try {
-          await admin.messaging().send({
-            token,
-            notification: {
-              title: senderName,
-              body: text.length > 100 ? text.substring(0, 97) + "..." : text,
-            },
-            webpush: {
-              fcmOptions: {
-                link: "/",
-              },
-            },
-          });
-        } catch (err) {
-          logger.error("FCM send failed for token: ", err);
-          if (
-            (err as any).code === "messaging/registration-token-not-registered"
-          ) {
-            invalidTokens.push(token);
-          }
-        }
-      })
-    );
-
-    if (invalidTokens.length > 0) {
-      await db.collection("tutors").doc(recipientId).update({
-        fcmTokens: admin.firestore.FieldValue.arrayRemove(...invalidTokens),
-      });
-    }
   }
 );
 
@@ -2027,5 +1504,185 @@ export const getIntakeFormData = onCall(
     });
 
     return {subjects, curriculums, tutors};
+  }
+);
+
+// ── Firestore triggers ──────────────────────────────────────────────
+// Placed at the end so the emulator initialises all HTTP / callable
+// functions before attempting Firestore trigger registration (which
+// can block on some environments).
+
+export const onTutorWrite = onDocumentWritten(
+  {
+    document: "tutors/{tutorId}",
+    region: "australia-southeast1",
+  },
+  async (event) => {
+    const tutorId = event.params.tutorId as string;
+    const before = event.data?.before?.data() as any | undefined;
+    const after = event.data?.after?.data() as any | undefined;
+
+    if (!after) {
+      await Promise.all([
+        deleteNotificationIfExists(tutorId, "missing_first_aid_file"),
+        deleteNotificationIfExists(tutorId, "first_aid_expiring"),
+        deleteNotificationIfExists(tutorId, "missing_emergency_contact_fields"),
+      ]);
+
+      try {
+        await admin.auth().setCustomUserClaims(tutorId, null);
+      } catch (error) {
+        logger.error("Error clearing custom claims: ", error);
+      }
+      return;
+    }
+
+    const newRole = after.role;
+    const oldRule = before?.role;
+
+    if (newRole && newRole !== oldRule) {
+      try {
+        await admin.auth().setCustomUserClaims(tutorId, {role: newRole});
+        logger.info(`Updated custom claims for ${tutorId} to role: ${newRole}`);
+      } catch (error) {
+        logger.error("Error setting custom claims: ", error);
+      }
+    }
+
+    await evaluateTutorNotifications(tutorId, after);
+  }
+);
+
+export const onDirectMessageCreated = onDocumentCreated(
+  {
+    document: "directMessages/{dmId}/messages/{messageId}",
+    region: "australia-southeast1",
+  },
+  async (event) => {
+    const message = event.data?.data();
+    if (!message) return;
+
+    const dmId = event.params.dmId as string;
+    const senderId = message.senderId as string;
+    const senderName = message.senderName as string;
+    const text = message.message as string;
+
+    const [uid1, uid2] = dmId.split("_");
+    const recipientId = uid1 === senderId ? uid2 : uid1;
+
+    const recipientSnap = await db.collection("tutors").doc(recipientId).get();
+    if (!recipientSnap.exists) return;
+
+    const fcmTokens: string[] = recipientSnap.data()?.fcmTokens || [];
+    if (fcmTokens.length === 0) return;
+
+    const invalidTokens: string[] = [];
+
+    await Promise.all(
+      fcmTokens.map(async (token) => {
+        try {
+          await admin.messaging().send({
+            token,
+            notification: {
+              title: senderName,
+              body: text.length > 100 ? text.substring(0, 97) + "..." : text,
+            },
+            webpush: {
+              fcmOptions: {
+                link: "/",
+              },
+            },
+          });
+        } catch (err) {
+          logger.error("FCM send failed for token: ", err);
+          if (
+            (err as any).code ==="messaging/registration-token-not-registered"
+          ) {
+            invalidTokens.push(token);
+          }
+        }
+      })
+    );
+
+    // Clean up any expired/invalid tokens
+    if (invalidTokens.length > 0) {
+      await db.collection("tutors").doc(recipientId).update({
+        fcmTokens: FieldValue.arrayRemove(...invalidTokens),
+      });
+    }
+  }
+);
+
+export const onSeniorTutorDMCreated = onDocumentCreated(
+  {
+    document: "seniorTutorDMs/{senderId}/messages/{messageId}",
+    region: "australia-southeast1",
+  },
+  async (event) => {
+    const message = event.data?.data();
+    if (!message) return;
+
+    const senderId = event.params.senderId as string;
+    const messageSenderId = message.senderId as string;
+    const senderName = message.senderName as string;
+    const text = message.message as string;
+    const today = dayjs().tz(tz);
+    const dayOfWeek = today.day();
+    const daysSinceSaturday = dayOfWeek === 6 ? 0 : dayOfWeek + 1;
+    const weekKey = today.subtract(daysSinceSaturday, "day")
+      .format("YYYY-MM-DD");
+    const assignmentSnap = await db
+      .collection("seniorTutorAssignments")
+      .doc(weekKey)
+      .get();
+
+    if (!assignmentSnap.exists) return;
+    const seniorTutorId = assignmentSnap.data()?.tutorId as string | undefined;
+    if (!seniorTutorId) return;
+
+    const recipientId =
+      messageSenderId === seniorTutorId ? senderId : seniorTutorId;
+
+    if (recipientId === messageSenderId) return;
+
+    const recipientSnap = await db.collection("tutors").doc(recipientId).get();
+    if (!recipientSnap.exists) return;
+
+    const fcmTokens: string[] = recipientSnap.data()?.fcmTokens || [];
+    if (fcmTokens.length === 0) return;
+
+    const invalidTokens: string[] = [];
+
+    await Promise.all(
+      fcmTokens.map(async (token) => {
+        try {
+          await admin.messaging().send({
+            token,
+            notification: {
+              title: senderName,
+              body: text.length > 100 ? text.substring(0, 97) + "..." : text,
+            },
+            webpush: {
+              fcmOptions: {
+                link: "/",
+              },
+            },
+          });
+        } catch (err) {
+          logger.error("FCM send failed for token: ", err);
+          if (
+            (err as any).code === "messaging/registration-token-not-registered"
+          ) {
+            invalidTokens.push(token);
+          }
+        }
+      })
+    );
+
+    if (invalidTokens.length > 0) {
+      await db.collection("tutors").doc(recipientId).update({
+        fcmTokens: FieldValue.arrayRemove(...invalidTokens),
+      });
+    }
   }
 );

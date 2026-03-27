@@ -21,14 +21,13 @@ import {
   doc,
   updateDoc,
 } from "firebase/firestore";
-import { getFunctions, httpsCallable } from "firebase/functions";
+import { httpsCallable } from "firebase/functions";
 import { DatePicker, TimePicker } from "@mui/x-date-pickers";
 import { toast } from "react-toastify";
-import { db, app } from "../../data/firebase";
+import { db, functions } from "../../data/firebase";
 import ConfirmEventDialog from "../Calendar/CustomComponents/ConfirmEventDialog";
 import dayjs from "dayjs";
 
-const functions = getFunctions(app, "australia-southeast1");
 const lessonTypes = ["Normal", "Postpone", "Cancelled", "Student Trial", "Tutor Trial", "Unconfirmed"];
 
 const LessonForm = ({ initialValues, onCreated, onUpdated, edit }) => {
@@ -200,7 +199,7 @@ const LessonForm = ({ initialValues, onCreated, onUpdated, edit }) => {
     setLoading(true);
     try {
       const tutorObj = tutorsList.find((t) => t.id === tutor);
-      const studentObjs = studentOptions.filter((s) => selectedStudents.includes(s.id));
+      const studentObjs = selectedStudents.map((id) => studentOptions.find((s) => s.id === id)).filter(Boolean);
       const subjectGroupObj = subjectGroups.find((g) => g.id === subjectGroup);
       const locationObj = locationList.find((l) => l.id === location);
 
@@ -212,7 +211,7 @@ const LessonForm = ({ initialValues, onCreated, onUpdated, edit }) => {
       const endShiftMs = updatedEnd.diff(originalEnd, "millisecond");
 
       const updatedFields = {
-        studentIds: selectedStudents,
+        studentIds: studentObjs.map((s) => s.id),
         studentNames: studentObjs.map((s) => s.name),
         tutorId: tutor,
         tutorName: tutorObj?.name || "",
@@ -274,14 +273,14 @@ const LessonForm = ({ initialValues, onCreated, onUpdated, edit }) => {
     if (Object.keys(newErrors).length > 0) return;
 
     const tutorObj = tutorsList.find((t) => t.id === tutor);
-    const studentObjs = studentOptions.filter((s) => selectedStudents.includes(s.id));
+    const studentObjs = selectedStudents.map((id) => studentOptions.find((s) => s.id === id)).filter(Boolean);
     const subjectGroupObj = subjectGroups.find((g) => g.id === subjectGroup);
     const locationObj = locationList.find((l) => l.id === location);
 
     const lessonData = {
       startDateTime: dayjs(`${date.format("YYYY-MM-DD")}T${startTime.format("HH:mm")}`).toISOString(),
       endDateTime: dayjs(`${date.format("YYYY-MM-DD")}T${endTime.format("HH:mm")}`).toISOString(),
-      studentIds: selectedStudents,
+      studentIds: studentObjs.map((s) => s.id),
       studentNames: studentObjs.map((s) => s.name),
       tutorId: tutor,
       tutorName: tutorObj?.name || "",
