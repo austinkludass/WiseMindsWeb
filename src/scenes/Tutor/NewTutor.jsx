@@ -11,10 +11,10 @@ import { ToastContainer, toast } from "react-toastify";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { useColor } from "react-color-palette";
-import { app, sb } from "../../data/firebase";
+import { functions, sb } from "../../data/firebase";
 import { useNavigate } from "react-router-dom";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { getFunctions, httpsCallable } from "firebase/functions";
+import { httpsCallable } from "firebase/functions";
 import Grid from "@mui/material/Grid2";
 import Header from "../../components/Global/Header";
 import AvailabilitySelector from "../../components/Tutor/AvailabilitySelector";
@@ -33,8 +33,6 @@ import TutorCapabilities from "../../components/Tutor/TutorCapabilities";
 import AvailabilityFormatter from "../../utils/AvailabilityFormatter";
 import "react-toastify/dist/ReactToastify.css";
 import "dayjs/locale/en-gb";
-
-const functions = getFunctions(app, "australia-southeast1");
 
 const NewTutor = () => {
   const navigate = useNavigate();

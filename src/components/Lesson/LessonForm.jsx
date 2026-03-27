@@ -21,14 +21,13 @@ import {
   doc,
   updateDoc,
 } from "firebase/firestore";
-import { getFunctions, httpsCallable } from "firebase/functions";
+import { httpsCallable } from "firebase/functions";
 import { DatePicker, TimePicker } from "@mui/x-date-pickers";
 import { toast } from "react-toastify";
-import { db, app } from "../../data/firebase";
+import { db, functions } from "../../data/firebase";
 import ConfirmEventDialog from "../Calendar/CustomComponents/ConfirmEventDialog";
 import dayjs from "dayjs";
 
-const functions = getFunctions(app, "australia-southeast1");
 const lessonTypes = ["Normal", "Postpone", "Cancelled", "Student Trial", "Tutor Trial", "Unconfirmed"];
 
 const LessonForm = ({ initialValues, onCreated, onUpdated, edit }) => {

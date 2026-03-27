@@ -19,14 +19,12 @@ import {
   MenuItem,
   Chip,
 } from "@mui/material";
-import { getFunctions, httpsCallable } from "firebase/functions";
-import { app } from "../../data/firebase";
+import { httpsCallable } from "firebase/functions";
+import { functions } from "../../data/firebase";
 import { tokens } from "../../theme";
 import { FixedSizeList } from "react-window";
 import DeleteIcon from "@mui/icons-material/Delete";
 import AddIcon from "@mui/icons-material/Add";
-
-const functions = getFunctions(app, "australia-southeast1");
 
 const renderRow = (props) => {
   const { data, index, style } = props;

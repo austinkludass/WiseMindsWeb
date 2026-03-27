@@ -6,7 +6,7 @@ import {
   onDocumentWritten,
   onDocumentCreated,
 } from "firebase-functions/v2/firestore";
-import {onCall} from "firebase-functions/https";
+import {onCall, HttpsError} from "firebase-functions/https";
 import {onRequest} from "firebase-functions/https";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
@@ -389,7 +389,8 @@ export const createRepeatingLessons = onCall(
   async (request) => {
     const data = request.data;
     if (!data || !data.repeatingId || !data.startDateTime || !data.frequency) {
-      throw new Error(
+      throw new HttpsError(
+        "invalid-argument",
         "Missing required fields (repeatingId, startDateTime, frequency)"
       );
     }
@@ -450,7 +451,10 @@ export const updateRepeatingLessons = onCall(
     const {repeatingId, updatedFields, currentLessonStart,
       startShiftMs, endShiftMs} = request.data || {};
     if (!repeatingId || !updatedFields) {
-      throw new Error("Missing required fields (repeatingId, updatedFields)");
+      throw new HttpsError(
+        "invalid-argument",
+        "Missing required fields (repeatingId, updatedFields)"
+      );
     }
 
     try {
@@ -494,7 +498,11 @@ export const updateRepeatingLessons = onCall(
       if (opCount > 0) await batch.commit();
       return {success: true, updated: snapshot.size};
     } catch (error: any) {
-      throw new Error("Error updating repeating lessons:" + error.message);
+      logger.error("updateRepeatingLessons failed:", error);
+      throw new HttpsError(
+        "internal",
+        "Error updating repeating lessons: " + error.message
+      );
     }
   }
 );
@@ -508,7 +516,8 @@ export const deleteRepeatingLessons = onCall(
     const {repeatingId, currentLessonStart} = request.data || {};
 
     if (!repeatingId || !currentLessonStart) {
-      throw new Error(
+      throw new HttpsError(
+        "invalid-argument",
         "Missing required fields (repeatingId, currentLessonStart)"
       );
     }
@@ -543,7 +552,11 @@ export const deleteRepeatingLessons = onCall(
       if (opCount > 0) await batch.commit();
       return {success: true, deleted: snapshot.size};
     } catch (error: any) {
-      throw new Error("Error deleting repeating lessons:" + error.message);
+      logger.error("deleteRepeatingLessons failed:", error);
+      throw new HttpsError(
+        "internal",
+        "Error deleting repeating lessons: " + error.message
+      );
     }
   }
 );
