@@ -140,7 +140,7 @@ const StudentList = () => {
     setContextMenu(
       contextMenu === null
         ? { mouseX: event.clientX + 2, mouseY: event.clientY - 6 }
-        : null
+        : null,
     );
   };
 
@@ -191,7 +191,7 @@ const StudentList = () => {
         await deleteDoc(studentRef);
 
         toast.success(
-          `${student.firstName} ${student.lastName} has been archived`
+          `${student.firstName} ${student.lastName} has been archived`,
         );
 
         queryClient.invalidateQueries({ queryKey: ["students"] });
@@ -214,7 +214,7 @@ const StudentList = () => {
         await deleteDoc(archivedRef);
 
         toast.success(
-          `${student.firstName} ${student.lastName} has been unarchived`
+          `${student.firstName} ${student.lastName} has been unarchived`,
         );
 
         queryClient.invalidateQueries({ queryKey: ["students"] });
@@ -256,7 +256,7 @@ const StudentList = () => {
       return (
         fullName.includes(query) ||
         phone.includes(query) ||
-        normalizedPhone.includes(normalizedQuery) 
+        (normalizedQuery && normalizedPhone.includes(normalizedQuery))
       );
     })
     .sort((a, b) => {
