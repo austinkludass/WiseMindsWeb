@@ -57,6 +57,7 @@ const fetchStudents = async () => {
       firstName: doc.data().firstName,
       lastName: doc.data().lastName,
       homeLocation: doc.data().homeLocation,
+      familyPhone: doc.data().familyPhone || "",
     }));
   } catch (error) {
     toast.error("Failed to fetch students: " + error.message);
@@ -72,6 +73,7 @@ const fetchArchivedStudents = async () => {
       firstName: doc.data().firstName,
       lastName: doc.data().lastName,
       homeLocation: doc.data().homeLocation,
+      familyPhone: doc.data().familyPhone || "",
       archivedAt: doc.data().archivedAt,
     }));
   } catch (error) {
@@ -240,10 +242,22 @@ const StudentList = () => {
   const rows = baseRows
     .filter((student) => {
       if (!searchQuery.trim()) return true;
+      const query = searchQuery.toLowerCase().trim();
+
       const fullName = `${student.firstName || ""} ${
         student.lastName || ""
       }`.toLowerCase();
-      return fullName.includes(searchQuery.toLowerCase().trim());
+
+      const phone = (student.familyPhone || "").toLowerCase();
+
+      const normalizedPhone = phone.replace(/\D/g, "");
+      const normalizedQuery = query.replace(/\D/g, "");
+
+      return (
+        fullName.includes(query) ||
+        phone.includes(query) ||
+        normalizedPhone.includes(normalizedQuery) 
+      );
     })
     .sort((a, b) => {
       const nameA = `${a.firstName || ""} ${a.lastName || ""}`.toLowerCase();
