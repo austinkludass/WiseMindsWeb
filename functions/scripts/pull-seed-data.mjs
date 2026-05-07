@@ -18,8 +18,8 @@
  */
 
 import process from "process";
-import { initializeApp, applicationDefault } from "firebase-admin/app";
-import { getFirestore } from "firebase-admin/firestore";
+import crypto from "crypto";
+import { Firestore } from "@google-cloud/firestore";
 
 const COLLECTIONS = [
   "students",
@@ -53,10 +53,27 @@ if (!emulatorHost) {
 
 console.log(`Targeting emulator at ${emulatorHost}`);
 
-initializeApp({ projectId: "wisemindsadmin" });
-const db = getFirestore();
-// Docker Firestore emulator's gRPC layer is broken; use REST.
-db.settings({ preferRest: true });
+// The Docker emulator's gRPC layer is unreachable through port-forwarding,
+// so we use the REST transport. REST goes through google-auth-library, which
+// would otherwise hunt for Application Default Credentials and fail. Hand it
+// an explicit throwaway RSA key so the JWT signing path succeeds — the actual
+// request gets an "Authorization: Bearer owner" header injected by Firestore
+// when ssl=false (auto-set from FIRESTORE_EMULATOR_HOST), and the emulator
+// accepts that as admin.
+const { privateKey: emulatorPrivateKey } = crypto.generateKeyPairSync("rsa", {
+  modulusLength: 2048,
+  privateKeyEncoding: { type: "pkcs8", format: "pem" },
+  publicKeyEncoding: { type: "spki", format: "pem" },
+});
+
+const db = new Firestore({
+  projectId: "wisemindsadmin",
+  preferRest: true,
+  credentials: {
+    private_key: emulatorPrivateKey,
+    client_email: "emulator@wisemindsadmin.iam.gserviceaccount.com",
+  },
+});
 
 async function fetchCollection(name) {
   // The API uses lowercase resource names in the URL path

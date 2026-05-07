@@ -464,6 +464,129 @@ const validateAvailability = (availability, label) => {
   return messages;
 };
 
+const isNonEmpty = (value) =>
+  typeof value === "string" && value.trim().length > 0;
+
+const isValidEmail = (value) =>
+  /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((value || "").trim());
+
+const isValidPhone = (value) =>
+  /^[+\d][\d\s()-]{6,}$/.test((value || "").trim());
+
+const validateFamilyField = (field, value, ctx = {}) => {
+  switch (field) {
+    case "parentName":
+      return isNonEmpty(value) ? "" : "Primary guardian name is required.";
+    case "familyEmail":
+      if (!isNonEmpty(value)) return "Primary guardian email is required.";
+      return isValidEmail(value) ? "" : "Enter a valid email address.";
+    case "familyPhone":
+      if (!isNonEmpty(value)) return "Primary guardian phone is required.";
+      return isValidPhone(value) ? "" : "Enter a valid phone number.";
+    case "familyAddress":
+      return isNonEmpty(value) ? "" : "Home address is required.";
+    case "secondaryContactEmail":
+      if (!isNonEmpty(value)) return "";
+      return isValidEmail(value) ? "" : "Enter a valid email address.";
+    case "secondaryContactPhone":
+      if (!isNonEmpty(value)) return "";
+      return isValidPhone(value) ? "" : "Enter a valid phone number.";
+    case "emergencyFirst":
+      if (ctx.usePrimaryAsEmergency) return "";
+      return isNonEmpty(value) ? "" : "Emergency contact first name is required.";
+    case "emergencyLast":
+      if (ctx.usePrimaryAsEmergency) return "";
+      return isNonEmpty(value) ? "" : "Emergency contact last name is required.";
+    case "emergencyRelationship":
+      if (ctx.usePrimaryAsEmergency) return "";
+      return isNonEmpty(value) ? "" : "Relationship is required.";
+    case "emergencyRelationshipOther":
+      if (ctx.usePrimaryAsEmergency) return "";
+      if (ctx.emergencyRelationship !== "Other") return "";
+      return isNonEmpty(value) ? "" : "Please specify the relationship.";
+    case "emergencyPhone":
+      if (ctx.usePrimaryAsEmergency) return "";
+      if (!isNonEmpty(value)) return "Emergency contact phone is required.";
+      return isValidPhone(value) ? "" : "Enter a valid phone number.";
+    default:
+      return "";
+  }
+};
+
+const FAMILY_VALIDATED_FIELDS = [
+  "parentName",
+  "familyEmail",
+  "familyPhone",
+  "familyAddress",
+  "secondaryContactEmail",
+  "secondaryContactPhone",
+  "emergencyFirst",
+  "emergencyLast",
+  "emergencyRelationship",
+  "emergencyRelationshipOther",
+  "emergencyPhone",
+];
+
+const getFamilyFieldErrors = (familyData = {}) => {
+  const ctx = {
+    usePrimaryAsEmergency: Boolean(familyData.usePrimaryAsEmergency),
+    emergencyRelationship: familyData.emergencyRelationship,
+  };
+  const errors = {};
+  FAMILY_VALIDATED_FIELDS.forEach((field) => {
+    const message = validateFamilyField(field, familyData[field], ctx);
+    if (message) errors[field] = message;
+  });
+  return errors;
+};
+
+const validateExistingFamilyField = (field, value) => {
+  switch (field) {
+    case "parentName":
+      return isNonEmpty(value) ? "" : "Primary guardian name is required.";
+    case "parentEmail":
+      if (!isNonEmpty(value)) return "Primary guardian email is required.";
+      return isValidEmail(value) ? "" : "Enter a valid email address.";
+    default:
+      return "";
+  }
+};
+
+const EXISTING_FAMILY_VALIDATED_FIELDS = ["parentName", "parentEmail"];
+
+const getExistingFamilyFieldErrors = (formData = {}) => {
+  const errors = {};
+  EXISTING_FAMILY_VALIDATED_FIELDS.forEach((field) => {
+    const message = validateExistingFamilyField(field, formData[field]);
+    if (message) errors[field] = message;
+  });
+  return errors;
+};
+
+const validateAdditionalInfoField = (field, value) => {
+  switch (field) {
+    case "howUserHeard":
+      return isNonEmpty(value)
+        ? ""
+        : "Please tell us how you heard about Wise Minds.";
+    case "consentAccepted":
+      return value ? "" : "You must accept the terms and conditions.";
+    default:
+      return "";
+  }
+};
+
+const ADDITIONAL_INFO_VALIDATED_FIELDS = ["howUserHeard", "consentAccepted"];
+
+const getAdditionalInfoFieldErrors = (formData = {}) => {
+  const errors = {};
+  ADDITIONAL_INFO_VALIDATED_FIELDS.forEach((field) => {
+    const message = validateAdditionalInfoField(field, formData[field]);
+    if (message) errors[field] = message;
+  });
+  return errors;
+};
+
 const mapSchedulePreference = (preference) => {
   const value = preference || "";
   return {
@@ -513,4 +636,10 @@ export {
   getRequestedTutoringHours,
   validateAvailabilityWithinBounds,
   validateAvailability,
+  validateFamilyField,
+  getFamilyFieldErrors,
+  validateExistingFamilyField,
+  getExistingFamilyFieldErrors,
+  validateAdditionalInfoField,
+  getAdditionalInfoFieldErrors,
 };

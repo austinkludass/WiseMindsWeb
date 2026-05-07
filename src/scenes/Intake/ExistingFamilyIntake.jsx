@@ -16,6 +16,7 @@ import {
   formatDateValue,
   getAvailabilityHours,
   getClientMeta,
+  getExistingFamilyFieldErrors,
   getSchedulePreferenceFromFamily,
   getRequestedTutoringHours,
   hasAvailability,
@@ -183,6 +184,8 @@ const ExistingFamilyIntake = () => {
     parentEmail: "",
     schedulePreference: "",
   });
+  const [familyTouched, setFamilyTouched] = useState({});
+  const [showFamilyErrors, setShowFamilyErrors] = useState(false);
   const [children, setChildren] = useState([createChild()]);
   const [childrenTouched, setChildrenTouched] = useState([
     createChildTouched(),
@@ -444,16 +447,8 @@ const ExistingFamilyIntake = () => {
     };
   };
 
-  const validateFamily = () => {
-    const nextErrors = [];
-
-    if (!familyForm.parentName.trim())
-      nextErrors.push("Primary guardian name is required.");
-    if (!familyForm.parentEmail.trim())
-      nextErrors.push("Primary guardian email is required.");
-
-    return nextErrors;
-  };
+  const hasFamilyFormErrors = () =>
+    Object.keys(getExistingFamilyFieldErrors(familyForm)).length > 0;
 
   const validateForm = () => {
     const nextErrors = [];
@@ -507,15 +502,9 @@ const ExistingFamilyIntake = () => {
   };
 
   const handleNext = () => {
-    if (currentStep !== 0) {
-      setErrors([]);
-      setCurrentStep((prev) => Math.min(prev + 1, steps.length - 1));
-      return;
-    }
-
-    const validationErrors = validateFamily();
-    if (validationErrors.length > 0) {
-      setErrors(validationErrors);
+    if (currentStep === 0 && hasFamilyFormErrors()) {
+      setShowFamilyErrors(true);
+      setErrors(["Please review the highlighted fields above."]);
       return;
     }
 
@@ -524,10 +513,18 @@ const ExistingFamilyIntake = () => {
   };
 
   const handleBack = () => {
+    setErrors([]);
     setCurrentStep((prev) => Math.max(prev - 1, 0));
   };
 
   const handleSubmit = async () => {
+    if (hasFamilyFormErrors()) {
+      setShowFamilyErrors(true);
+      setErrors(["Please review the highlighted fields above."]);
+      setCurrentStep(0);
+      return;
+    }
+
     const validationErrors = validateForm();
 
     if (validationErrors.length > 0) {
@@ -596,6 +593,8 @@ const ExistingFamilyIntake = () => {
     setLatestSubmissionMeta(null);
     setErrors([]);
     setFamilyForm(baseSnapshot.familyForm);
+    setFamilyTouched({});
+    setShowFamilyErrors(false);
     setChildren(baseSnapshot.children);
     setChildrenTouched(baseSnapshot.children.map(() => createChildTouched()));
   };
@@ -693,6 +692,9 @@ const ExistingFamilyIntake = () => {
           <ExistingFamilyStep
             formData={familyForm}
             setFormData={handleFamilyFormChange}
+            touched={familyTouched}
+            setTouched={setFamilyTouched}
+            showAllErrors={showFamilyErrors}
           />
         )}
         {currentStep === 1 && (

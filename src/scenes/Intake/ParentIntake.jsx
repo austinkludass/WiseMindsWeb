@@ -15,8 +15,10 @@ import {
   defaultFamilyData,
   DEFAULT_AVAILABILITY_THRESHOLD,
   formatDateValue,
+  getAdditionalInfoFieldErrors,
   getAvailabilityHours,
   getClientMeta,
+  getFamilyFieldErrors,
   getRequestedTutoringHours,
   hasAvailability,
   isWholeHourValue,
@@ -107,6 +109,10 @@ const ParentIntake = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [familyData, setFamilyData] = useState(defaultFamilyData);
+  const [familyTouched, setFamilyTouched] = useState({});
+  const [showFamilyErrors, setShowFamilyErrors] = useState(false);
+  const [additionalTouched, setAdditionalTouched] = useState({});
+  const [showAdditionalErrors, setShowAdditionalErrors] = useState(false);
   const [children, setChildren] = useState([createChild()]);
   const [childrenTouched, setChildrenTouched] = useState([
     createChildTouched(),
@@ -135,6 +141,10 @@ const ParentIntake = () => {
     const base = baseSnapshotRef.current;
     if (!base) return;
     setFamilyData(base.familyData);
+    setFamilyTouched({});
+    setShowFamilyErrors(false);
+    setAdditionalTouched({});
+    setShowAdditionalErrors(false);
     setChildren(base.children);
     setChildrenTouched(base.children.map(() => createChildTouched()));
     setHydratedFromSubmission(false);
@@ -380,30 +390,6 @@ const ParentIntake = () => {
 
     if (children.length < 1) nextErrors.push("Please add at least one child.");
 
-    if (!familyData.parentName.trim())
-      nextErrors.push("Primary guardian name is required.");
-    if (!familyData.familyEmail.trim())
-      nextErrors.push("Primary guardian email is required.");
-    if (!familyData.familyPhone.trim())
-      nextErrors.push("Primary guardian phone is required.");
-    if (!familyData.familyAddress.trim())
-      nextErrors.push("Home address is required.");
-
-    if (!familyData.emergencyFirst.trim())
-      nextErrors.push("Emergency contact first name is required.");
-    if (!familyData.emergencyLast.trim())
-      nextErrors.push("Emergency contact last name is required.");
-    if (!familyData.emergencyRelationship)
-      nextErrors.push("Emergency contact relationship is required.");
-    if (
-      familyData.emergencyRelationship === "Other" &&
-      !familyData.emergencyRelationshipOther.trim()
-    ) {
-      nextErrors.push("Please specify the emergency contact relationship.");
-    }
-    if (!familyData.emergencyPhone.trim())
-      nextErrors.push("Emergency contact phone is required.");
-
     children.forEach((child, index) => {
       const label = `Child ${index + 1}`;
       if (!child.firstName.trim())
@@ -464,24 +450,43 @@ const ParentIntake = () => {
       });
     });
 
-    if (!familyData.howUserHeard.trim())
-      nextErrors.push("Please tell us how you heard about Wise Minds.");
-
-    if (!familyData.consentAccepted)
-      nextErrors.push("You must accept the terms and conditions.");
-
     return nextErrors;
   };
 
   const handleNext = () => {
+    if (currentStep === 0) {
+      const familyErrors = getFamilyFieldErrors(familyData);
+      if (Object.keys(familyErrors).length > 0) {
+        setShowFamilyErrors(true);
+        setErrors(["Please review the highlighted fields above."]);
+        return;
+      }
+    }
+    setErrors([]);
     setCurrentStep((prev) => Math.min(prev + 1, steps.length - 1));
   };
 
   const handleBack = () => {
+    setErrors([]);
     setCurrentStep((prev) => Math.max(prev - 1, 0));
   };
 
   const handleSubmit = async () => {
+    const familyErrors = getFamilyFieldErrors(familyData);
+    const additionalErrors = getAdditionalInfoFieldErrors(familyData);
+    const hasFamilyErrors = Object.keys(familyErrors).length > 0;
+    const hasAdditionalErrors = Object.keys(additionalErrors).length > 0;
+
+    if (hasFamilyErrors) setShowFamilyErrors(true);
+    if (hasAdditionalErrors) setShowAdditionalErrors(true);
+
+    if (hasFamilyErrors || hasAdditionalErrors) {
+      setErrors(["Please review the highlighted fields above."]);
+      if (hasFamilyErrors) setCurrentStep(0);
+      else if (hasAdditionalErrors) setCurrentStep(2);
+      return;
+    }
+
     const validationErrors = validateForm();
 
     if (validationErrors.length > 0) {
@@ -537,6 +542,10 @@ const ParentIntake = () => {
       localStorage.setItem(SUBMISSION_STORAGE_KEY, docRef.id);
       setSubmitted(true);
       setFamilyData(defaultFamilyData);
+      setFamilyTouched({});
+      setShowFamilyErrors(false);
+      setAdditionalTouched({});
+      setShowAdditionalErrors(false);
       setChildren([createChild()]);
       setChildrenTouched([createChildTouched()]);
     } catch (error) {
@@ -586,7 +595,13 @@ const ParentIntake = () => {
         </Alert>
       )}
       {currentStep === 0 && (
-        <FamilyStep formData={familyData} setFormData={setFamilyData} />
+        <FamilyStep
+          formData={familyData}
+          setFormData={setFamilyData}
+          touched={familyTouched}
+          setTouched={setFamilyTouched}
+          showAllErrors={showFamilyErrors}
+        />
       )}
       {currentStep === 1 && (
         <ChildrenStep
@@ -600,7 +615,13 @@ const ParentIntake = () => {
         />
       )}
       {currentStep === 2 && (
-        <AdditionalInfoStep formData={familyData} setFormData={setFamilyData} />
+        <AdditionalInfoStep
+          formData={familyData}
+          setFormData={setFamilyData}
+          touched={additionalTouched}
+          setTouched={setAdditionalTouched}
+          showAllErrors={showAdditionalErrors}
+        />
       )}
     </IntakeLayout>
   );

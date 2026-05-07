@@ -1,18 +1,48 @@
+import { useMemo } from "react";
 import {
   Stack,
   Typography,
   TextField,
+  FormControl,
   FormControlLabel,
+  FormHelperText,
   Checkbox,
 } from "@mui/material";
-const AdditionalInfoStep = ({ formData, setFormData }) => {
+import { getAdditionalInfoFieldErrors } from "../../../scenes/Intake/intakeUtils";
+
+const AdditionalInfoStep = ({
+  formData,
+  setFormData,
+  touched = {},
+  setTouched = () => {},
+  showAllErrors = false,
+}) => {
+  const fieldErrors = useMemo(
+    () => getAdditionalInfoFieldErrors(formData),
+    [formData]
+  );
+
+  const errorFor = (field) => {
+    if (!fieldErrors[field]) return "";
+    if (showAllErrors || touched[field]) return fieldErrors[field];
+    return "";
+  };
+
   const handleChange = (event) => {
     setFormData({ ...formData, [event.target.name]: event.target.value });
   };
 
+  const handleBlur = (event) => {
+    const { name } = event.target;
+    setTouched((prev) => ({ ...prev, [name]: true }));
+  };
+
   const handleConsentChange = (event) => {
     setFormData({ ...formData, consentAccepted: event.target.checked });
+    setTouched((prev) => ({ ...prev, consentAccepted: true }));
   };
+
+  const consentError = errorFor("consentAccepted");
 
   return (
     <Stack spacing={3}>
@@ -25,6 +55,10 @@ const AdditionalInfoStep = ({ formData, setFormData }) => {
         label="How did you hear about Wise Minds Canberra?"
         value={formData.howUserHeard}
         onChange={handleChange}
+        onBlur={handleBlur}
+        required
+        error={Boolean(errorFor("howUserHeard"))}
+        helperText={errorFor("howUserHeard") || " "}
       />
 
       <TextField
@@ -36,27 +70,30 @@ const AdditionalInfoStep = ({ formData, setFormData }) => {
         minRows={3}
       />
 
-      <FormControlLabel
-        control={
-          <Checkbox
-            checked={formData.consentAccepted}
-            onChange={handleConsentChange}
-          />
-        }
-        label={
-          <Typography variant="body2">
-            I agree to the Wise Minds terms and conditions. You can read them at{" "}
-            <a
-              href="https://www.wisemindscanberra.com/terms-and-conditions"
-              target="_blank"
-              rel="noreferrer"
-            >
-              this link
-            </a>
-            .
-          </Typography>
-        }
-      />
+      <FormControl required error={Boolean(consentError)}>
+        <FormControlLabel
+          control={
+            <Checkbox
+              checked={formData.consentAccepted}
+              onChange={handleConsentChange}
+            />
+          }
+          label={
+            <Typography variant="body2">
+              I agree to the Wise Minds terms and conditions. You can read them at{" "}
+              <a
+                href="https://www.wisemindscanberra.com/terms-and-conditions"
+                target="_blank"
+                rel="noreferrer"
+              >
+                this link
+              </a>
+              .
+            </Typography>
+          }
+        />
+        {consentError && <FormHelperText>{consentError}</FormHelperText>}
+      </FormControl>
     </Stack>
   );
 };
