@@ -389,6 +389,13 @@ const mapNewSubmissionToIntakeState = (submission = {}) => {
 const createChildTouched = () => ({
   firstName: false,
   lastName: false,
+  dateOfBirth: false,
+  school: false,
+  yearLevel: false,
+  allergiesNonAna: false,
+  preferredStart: false,
+  trialAvailability: false,
+  availability: false,
 });
 
 const toTimeValue = (value) => {
@@ -578,6 +585,34 @@ const validateAdditionalInfoField = (field, value) => {
 
 const ADDITIONAL_INFO_VALIDATED_FIELDS = ["howUserHeard", "consentAccepted"];
 
+const getChildFieldErrors = (child = {}, opts = {}) => {
+  const { requireTrial = false, requireAllergiesNonAna = false } = opts;
+  const errors = {};
+
+  if (!isNonEmpty(child.firstName)) errors.firstName = "First name is required.";
+  if (!isNonEmpty(child.lastName)) errors.lastName = "Last name is required.";
+  if (!child.dateOfBirth)
+    errors.dateOfBirth = "Date of birth is required.";
+  if (!isNonEmpty(child.school)) errors.school = "School is required.";
+  if (!isNonEmpty(child.yearLevel)) errors.yearLevel = "Year level is required.";
+
+  if (requireAllergiesNonAna && !isNonEmpty(child.allergiesNonAna)) {
+    errors.allergiesNonAna = "Allergies (Non-Anaphylactic) is required.";
+  }
+
+  if (requireTrial) {
+    if (!child.preferredStart)
+      errors.preferredStart = "Preferred start date is required.";
+    if (!hasAvailability(child.trialAvailability))
+      errors.trialAvailability = "Add at least one trial availability slot.";
+  }
+
+  if (!hasAvailability(child.availability))
+    errors.availability = "Add regular availability.";
+
+  return errors;
+};
+
 const getAdditionalInfoFieldErrors = (formData = {}) => {
   const errors = {};
   ADDITIONAL_INFO_VALIDATED_FIELDS.forEach((field) => {
@@ -642,4 +677,5 @@ export {
   getExistingFamilyFieldErrors,
   validateAdditionalInfoField,
   getAdditionalInfoFieldErrors,
+  getChildFieldErrors,
 };

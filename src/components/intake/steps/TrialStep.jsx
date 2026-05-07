@@ -6,6 +6,10 @@ const TrialStep = ({
   setFormData,
   trialAvailability,
   setTrialAvailability,
+  touched,
+  setTouched,
+  errors = {},
+  showAllErrors = false,
 }) => {
   const handleNotesChange = (event) => {
     setFormData({ ...formData, trialNotes: event.target.value });
@@ -30,6 +34,10 @@ const TrialStep = ({
         isEdit={true}
         trialAvailability={trialAvailability}
         setTrialAvailability={setTrialAvailability}
+        touched={touched}
+        setTouched={setTouched}
+        errors={errors}
+        showAllErrors={showAllErrors}
       />
       <TextField
         label="Trial session notes (optional)"

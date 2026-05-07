@@ -15,6 +15,7 @@ import {
   DEFAULT_AVAILABILITY_THRESHOLD,
   formatDateValue,
   getAvailabilityHours,
+  getChildFieldErrors,
   getClientMeta,
   getExistingFamilyFieldErrors,
   getSchedulePreferenceFromFamily,
@@ -186,6 +187,7 @@ const ExistingFamilyIntake = () => {
   });
   const [familyTouched, setFamilyTouched] = useState({});
   const [showFamilyErrors, setShowFamilyErrors] = useState(false);
+  const [showChildrenErrors, setShowChildrenErrors] = useState(false);
   const [children, setChildren] = useState([createChild()]);
   const [childrenTouched, setChildrenTouched] = useState([
     createChildTouched(),
@@ -457,20 +459,6 @@ const ExistingFamilyIntake = () => {
 
     children.forEach((child, index) => {
       const label = `Child ${index + 1}`;
-      if (!child.firstName.trim())
-        nextErrors.push(`${label}: first name is required.`);
-      if (!child.lastName.trim())
-        nextErrors.push(`${label}: last name is required.`);
-      if (!child.dateOfBirth)
-        nextErrors.push(`${label}: date of birth is required.`);
-      if (!child.allergiesNonAna.trim())
-        nextErrors.push(`${label}: Allergies (Non-Anaphylactic) is required.`);
-      if (!child.school.trim())
-        nextErrors.push(`${label}: school is required.`);
-      if (!child.yearLevel.trim())
-        nextErrors.push(`${label}: year level is required.`);
-      if (!hasAvailability(child.availability))
-        nextErrors.push(`${label}: add regular availability.`);
 
       if (hasAvailability(child.availability)) {
         nextErrors.push(
@@ -522,6 +510,23 @@ const ExistingFamilyIntake = () => {
       setShowFamilyErrors(true);
       setErrors(["Please review the highlighted fields above."]);
       setCurrentStep(0);
+      return;
+    }
+
+    const hasChildrenErrors = children.some(
+      (child) =>
+        Object.keys(
+          getChildFieldErrors(child, {
+            requireTrial: false,
+            requireAllergiesNonAna: true,
+          })
+        ).length > 0
+    );
+
+    if (hasChildrenErrors) {
+      setShowChildrenErrors(true);
+      setErrors(["Please review the highlighted fields above."]);
+      setCurrentStep(1);
       return;
     }
 
@@ -595,6 +600,7 @@ const ExistingFamilyIntake = () => {
     setFamilyForm(baseSnapshot.familyForm);
     setFamilyTouched({});
     setShowFamilyErrors(false);
+    setShowChildrenErrors(false);
     setChildren(baseSnapshot.children);
     setChildrenTouched(baseSnapshot.children.map(() => createChildTouched()));
   };
@@ -709,6 +715,8 @@ const ExistingFamilyIntake = () => {
             allowRemoveLastChild={true}
             readOnlyIdentity={true}
             allowAddChild={false}
+            showAllErrors={showChildrenErrors}
+            requireAllergiesNonAna={true}
           />
         )}
       </Stack>

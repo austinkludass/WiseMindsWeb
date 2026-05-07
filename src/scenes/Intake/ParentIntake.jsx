@@ -17,6 +17,7 @@ import {
   formatDateValue,
   getAdditionalInfoFieldErrors,
   getAvailabilityHours,
+  getChildFieldErrors,
   getClientMeta,
   getFamilyFieldErrors,
   getRequestedTutoringHours,
@@ -117,6 +118,7 @@ const ParentIntake = () => {
   const [childrenTouched, setChildrenTouched] = useState([
     createChildTouched(),
   ]);
+  const [showChildrenErrors, setShowChildrenErrors] = useState(false);
   const [hydratedFromSubmission, setHydratedFromSubmission] = useState(false);
   const [latestSubmissionMeta, setLatestSubmissionMeta] = useState(null);
   const hasUserChangesRef = useRef(false);
@@ -147,6 +149,7 @@ const ParentIntake = () => {
     setShowAdditionalErrors(false);
     setChildren(base.children);
     setChildrenTouched(base.children.map(() => createChildTouched()));
+    setShowChildrenErrors(false);
     setHydratedFromSubmission(false);
     setLatestSubmissionMeta(null);
     localStorage.removeItem(SUBMISSION_STORAGE_KEY);
@@ -392,22 +395,6 @@ const ParentIntake = () => {
 
     children.forEach((child, index) => {
       const label = `Child ${index + 1}`;
-      if (!child.firstName.trim())
-        nextErrors.push(`${label}: first name is required.`);
-      if (!child.lastName.trim())
-        nextErrors.push(`${label}: last name is required.`);
-      if (!child.dateOfBirth)
-        nextErrors.push(`${label}: date of birth is required.`);
-      if (!child.school.trim())
-        nextErrors.push(`${label}: school is required.`);
-      if (!child.yearLevel.trim())
-        nextErrors.push(`${label}: year level is required.`);
-      if (!hasAvailability(child.trialAvailability))
-        nextErrors.push(`${label}: add at least one trial availability slot.`);
-      if (!child.preferredStart)
-        nextErrors.push(`${label}: preferred start date is required.`);
-      if (!hasAvailability(child.availability))
-        nextErrors.push(`${label}: add regular availability.`);
 
       if (hasAvailability(child.trialAvailability)) {
         nextErrors.push(
@@ -462,6 +449,19 @@ const ParentIntake = () => {
         return;
       }
     }
+    if (currentStep === 1) {
+      const anyChildErrors = children.some(
+        (child) =>
+          Object.keys(
+            getChildFieldErrors(child, { requireTrial: true })
+          ).length > 0
+      );
+      if (anyChildErrors) {
+        setShowChildrenErrors(true);
+        setErrors(["Please review the highlighted fields above."]);
+        return;
+      }
+    }
     setErrors([]);
     setCurrentStep((prev) => Math.min(prev + 1, steps.length - 1));
   };
@@ -476,13 +476,20 @@ const ParentIntake = () => {
     const additionalErrors = getAdditionalInfoFieldErrors(familyData);
     const hasFamilyErrors = Object.keys(familyErrors).length > 0;
     const hasAdditionalErrors = Object.keys(additionalErrors).length > 0;
+    const hasChildrenErrors = children.some(
+      (child) =>
+        Object.keys(getChildFieldErrors(child, { requireTrial: true }))
+          .length > 0
+    );
 
     if (hasFamilyErrors) setShowFamilyErrors(true);
     if (hasAdditionalErrors) setShowAdditionalErrors(true);
+    if (hasChildrenErrors) setShowChildrenErrors(true);
 
-    if (hasFamilyErrors || hasAdditionalErrors) {
+    if (hasFamilyErrors || hasChildrenErrors || hasAdditionalErrors) {
       setErrors(["Please review the highlighted fields above."]);
       if (hasFamilyErrors) setCurrentStep(0);
+      else if (hasChildrenErrors) setCurrentStep(1);
       else if (hasAdditionalErrors) setCurrentStep(2);
       return;
     }
@@ -548,6 +555,7 @@ const ParentIntake = () => {
       setShowAdditionalErrors(false);
       setChildren([createChild()]);
       setChildrenTouched([createChildTouched()]);
+      setShowChildrenErrors(false);
     } catch (error) {
       setErrors(["Submission failed. Please try again in a moment."]);
     } finally {
@@ -612,6 +620,7 @@ const ParentIntake = () => {
           createChild={createChild}
           createChildTouched={createChildTouched}
           showTutorPreferences={false}
+          showAllErrors={showChildrenErrors}
         />
       )}
       {currentStep === 2 && (

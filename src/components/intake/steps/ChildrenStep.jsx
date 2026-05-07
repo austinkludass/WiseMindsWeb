@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Stack,
   Typography,
@@ -16,15 +16,15 @@ import AcademicNeedsStep from "./AcademicNeedsStep";
 import TrialStep from "./TrialStep";
 import RegularAvailabilityStep from "./RegularAvailabilityStep";
 import StudentAdditionalInfo from "../../student/StudentAdditionalInfo";
-import { getRequestedTutoringHours } from "../../../scenes/Intake/intakeUtils";
+import {
+  getChildFieldErrors,
+  getRequestedTutoringHours,
+} from "../../../scenes/Intake/intakeUtils";
 
 const getChildLabel = (child, index) => {
   const name = [child.firstName, child.lastName].filter(Boolean).join(" ");
   return name ? `Child ${index + 1}: ${name}` : `Child ${index + 1}`;
 };
-
-const hasMissingBasics = (child) =>
-  !child.firstName.trim() || !child.lastName.trim() || !child.dateOfBirth;
 
 const ChildrenStep = ({
   childrenData,
@@ -38,8 +38,33 @@ const ChildrenStep = ({
   readOnlyIdentity = false,
   allowAddChild = true,
   showTutorPreferences = true,
+  showAllErrors = false,
+  requireAllergiesNonAna = false,
 }) => {
   const [expandedIndex, setExpandedIndex] = useState(null);
+  const previousShowAllErrorsRef = useRef(showAllErrors);
+
+  const requireTrial = showTrialStep;
+
+  const errorsByChild = useMemo(
+    () =>
+      childrenData.map((child) =>
+        getChildFieldErrors(child, { requireTrial, requireAllergiesNonAna })
+      ),
+    [childrenData, requireTrial, requireAllergiesNonAna]
+  );
+
+  useEffect(() => {
+    if (showAllErrors && !previousShowAllErrorsRef.current) {
+      const firstInvalid = errorsByChild.findIndex(
+        (errors) => Object.keys(errors).length > 0
+      );
+      if (firstInvalid !== -1) {
+        setExpandedIndex(firstInvalid);
+      }
+    }
+    previousShowAllErrorsRef.current = showAllErrors;
+  }, [showAllErrors, errorsByChild]);
 
   const addChild = () => {
     const nextIndex = childrenData.length;
@@ -94,119 +119,139 @@ const ChildrenStep = ({
         )}
       </Box>
 
-      {childrenData.map((child, index) => (
-        <Accordion
-          key={index}
-          expanded={expandedIndex === index}
-          onChange={(_, isExpanded) =>
-            setExpandedIndex(isExpanded ? index : null)
-          }
-          sx={{ borderRadius: 2 }}
-        >
-          <AccordionSummary
-            expandIcon={<ExpandMoreIcon />}
-            sx={{
-              "& .MuiAccordionSummary-content": {
-                alignItems: "center",
-              },
-            }}
+      {childrenData.map((child, index) => {
+        const childErrors = errorsByChild[index] || {};
+        const childTouched = childrenTouched[index] || createChildTouched();
+        const hasErrors = Object.keys(childErrors).length > 0;
+
+        return (
+          <Accordion
+            key={index}
+            expanded={expandedIndex === index}
+            onChange={(_, isExpanded) =>
+              setExpandedIndex(isExpanded ? index : null)
+            }
+            sx={{ borderRadius: 2 }}
           >
-            <Box
-              display="flex"
-              justifyContent="space-between"
-              alignItems="center"
-              gap={2}
-              width="100%"
+            <AccordionSummary
+              expandIcon={<ExpandMoreIcon />}
+              sx={{
+                "& .MuiAccordionSummary-content": {
+                  alignItems: "center",
+                },
+              }}
             >
-              <Box>
-                <Typography variant="h6" fontWeight="bold">
-                  {getChildLabel(child, index)}
-                </Typography>
-                {hasMissingBasics(child) && (
-                  <Typography variant="body2" color="text.secondary">
-                    Missing basic details
+              <Box
+                display="flex"
+                justifyContent="space-between"
+                alignItems="center"
+                gap={2}
+                width="100%"
+              >
+                <Box>
+                  <Typography variant="h6" fontWeight="bold">
+                    {getChildLabel(child, index)}
                   </Typography>
-                )}
+                  {hasErrors && (
+                    <Typography variant="body2" color="text.secondary">
+                      Missing required details
+                    </Typography>
+                  )}
+                </Box>
+                <Box display="flex" alignItems="center" gap={1}>
+                  {hasErrors && (
+                    <Chip label="Incomplete" color="warning" size="small" />
+                  )}
+                  <Button
+                    variant="text"
+                    color="error"
+                    component="span"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      removeChild(index);
+                    }}
+                    onFocus={(event) => event.stopPropagation()}
+                    disabled={!allowRemoveLastChild && childrenData.length === 1}
+                  >
+                    Remove
+                  </Button>
+                </Box>
               </Box>
-              <Box display="flex" alignItems="center" gap={1}>
-                {hasMissingBasics(child) && (
-                  <Chip label="Incomplete" color="warning" size="small" />
-                )}
-                <Button
-                  variant="text"
-                  color="error"
-                  component="span"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    removeChild(index);
-                  }}
-                  onFocus={(event) => event.stopPropagation()}
-                  disabled={!allowRemoveLastChild && childrenData.length === 1}
-                >
-                  Remove
-                </Button>
-              </Box>
-            </Box>
-          </AccordionSummary>
-          <AccordionDetails>
-            <Stack spacing={3}>
-              <StudentBasicsStep
-                formData={child}
-                setFormData={setChildFormData(index)}
-                touched={childrenTouched[index] || createChildTouched()}
-                setTouched={setChildTouched(index)}
-                readOnlyIdentity={readOnlyIdentity}
-              />
-
-              <Divider />
-
-              <AcademicNeedsStep
-                formData={child}
-                setFormData={setChildFormData(index)}
-                subjects={child.subjects}
-                setSubjects={setChildSubjects(index)}
-                showTutorPreferences={showTutorPreferences}
-              />
-
-              {showTrialStep && (
-                <>
-                  <Divider />
-                  <TrialStep
-                    formData={child}
-                    setFormData={setChildFormData(index)}
-                    trialAvailability={child.trialAvailability}
-                    setTrialAvailability={setChildTrialAvailability(index)}
-                  />
-                </>
-              )}
-
-              <Divider />
-
-              <RegularAvailabilityStep
-                availability={child.availability}
-                setAvailability={setChildAvailability(index)}
-                requestedTutoringHours={getRequestedTutoringHours(
-                  child.subjects
-                )}
-              />
-
-              <Divider />
-
-              <Stack spacing={2}>
-                <Typography variant="h5" fontWeight="bold">
-                  Child Preferences
-                </Typography>
-                <StudentAdditionalInfo
+            </AccordionSummary>
+            <AccordionDetails>
+              <Stack spacing={3}>
+                <StudentBasicsStep
                   formData={child}
                   setFormData={setChildFormData(index)}
-                  isEdit={true}
-                  includeHowUserHeard={false}
+                  touched={childTouched}
+                  setTouched={setChildTouched(index)}
+                  errors={childErrors}
+                  showAllErrors={showAllErrors}
+                  readOnlyIdentity={readOnlyIdentity}
                 />
+
+                <Divider />
+
+                <AcademicNeedsStep
+                  formData={child}
+                  setFormData={setChildFormData(index)}
+                  subjects={child.subjects}
+                  setSubjects={setChildSubjects(index)}
+                  showTutorPreferences={showTutorPreferences}
+                  touched={childTouched}
+                  setTouched={setChildTouched(index)}
+                  errors={childErrors}
+                  showAllErrors={showAllErrors}
+                />
+
+                {showTrialStep && (
+                  <>
+                    <Divider />
+                    <TrialStep
+                      formData={child}
+                      setFormData={setChildFormData(index)}
+                      trialAvailability={child.trialAvailability}
+                      setTrialAvailability={setChildTrialAvailability(index)}
+                      touched={childTouched}
+                      setTouched={setChildTouched(index)}
+                      errors={childErrors}
+                      showAllErrors={showAllErrors}
+                    />
+                  </>
+                )}
+
+                <Divider />
+
+                <RegularAvailabilityStep
+                  availability={child.availability}
+                  setAvailability={setChildAvailability(index)}
+                  requestedTutoringHours={getRequestedTutoringHours(
+                    child.subjects
+                  )}
+                  touched={childTouched}
+                  setTouched={setChildTouched(index)}
+                  errors={childErrors}
+                  showAllErrors={showAllErrors}
+                />
+
+                <Divider />
+
+                <Stack spacing={2}>
+                  <Typography variant="h5" fontWeight="bold">
+                    Child Preferences
+                  </Typography>
+                  <StudentAdditionalInfo
+                    formData={child}
+                    setFormData={setChildFormData(index)}
+                    isEdit={true}
+                    includeHowUserHeard={false}
+                  />
+                </Stack>
               </Stack>
-            </Stack>
-          </AccordionDetails>
-        </Accordion>
-      ))}
+            </AccordionDetails>
+          </Accordion>
+        );
+      })}
 
       {allowAddChild && (
         <Box display="flex" justifyContent="flex-end">

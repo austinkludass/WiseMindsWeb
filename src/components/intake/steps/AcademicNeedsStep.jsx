@@ -7,6 +7,10 @@ const AcademicNeedsStep = ({
   subjects,
   setSubjects,
   showTutorPreferences = true,
+  touched,
+  setTouched,
+  errors = {},
+  showAllErrors = false,
 }) => {
   return (
     <Stack spacing={3}>
@@ -22,6 +26,10 @@ const AcademicNeedsStep = ({
         allowTutoringToggle={true}
         showTutorPreferences={showTutorPreferences}
         showHoursWarning={true}
+        touched={touched}
+        setTouched={setTouched}
+        errors={errors}
+        showAllErrors={showAllErrors}
       />
     </Stack>
   );
