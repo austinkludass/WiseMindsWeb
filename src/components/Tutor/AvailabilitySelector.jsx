@@ -127,12 +127,8 @@ const AvailabilitySelector = ({
   const onChangeRef = useRef(onAvailabilityChange);
   const theme = useTheme();
   const isCompact = useMediaQuery(theme.breakpoints.down("sm"));
-  const resolvedMinHour = Number.isFinite(minHour)
-    ? minHour
-    : DEFAULT_MIN_HOUR;
-  const resolvedMaxHour = Number.isFinite(maxHour)
-    ? maxHour
-    : DEFAULT_MAX_HOUR;
+  const resolvedMinHour = Number.isFinite(minHour) ? minHour : DEFAULT_MIN_HOUR;
+  const resolvedMaxHour = Number.isFinite(maxHour) ? maxHour : DEFAULT_MAX_HOUR;
   const minTime = timeForHour(Math.min(resolvedMinHour, resolvedMaxHour));
   const maxTime = timeForHour(Math.max(resolvedMinHour, resolvedMaxHour));
 
@@ -186,27 +182,20 @@ const AvailabilitySelector = ({
 
   const updateAvailability = (updater) => {
     setAvailability((prev) =>
-      typeof updater === "function" ? updater(prev) : updater
+      typeof updater === "function" ? updater(prev) : updater,
     );
   };
 
-  // Add a new time slot for a day
+  // Add a new time slot for a day, defaulting to the whole day.
   const addTimeSlot = (day) => {
     const { minTime: dayMinTime, maxTime: dayMaxTime } = getDayBounds(day);
-    const startTime = new Date(dayMinTime.getTime());
-    const endCandidate = new Date(dayMinTime.getTime());
-    endCandidate.setHours(endCandidate.getHours() + 1);
-    const endTime =
-      endCandidate > dayMaxTime
-        ? new Date(dayMaxTime.getTime())
-        : endCandidate;
     updateAvailability((prev) => ({
       ...prev,
       [day]: [
         ...(prev[day] || []),
         {
-          start: startTime,
-          end: endTime,
+          start: new Date(dayMinTime.getTime()),
+          end: new Date(dayMaxTime.getTime()),
         },
       ],
     }));
@@ -272,7 +261,9 @@ const AvailabilitySelector = ({
       const startOutside = isOutsideBounds(slot.start, dayMinTime, dayMaxTime);
       const endOutside = isOutsideBounds(slot.end, dayMinTime, dayMaxTime);
       const startMisaligned =
-        showHalfHourWarning && !startOutside && !isHalfHourAligned(slot.start, day);
+        showHalfHourWarning &&
+        !startOutside &&
+        !isHalfHourAligned(slot.start, day);
       const endMisaligned =
         showHalfHourWarning && !endOutside && !isHalfHourAligned(slot.end, day);
       const startHelperText = startOutside
