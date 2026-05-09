@@ -1,9 +1,33 @@
+import { useMemo } from "react";
 import { Stack, Typography, TextField } from "@mui/material";
 import FamilySchedulingPreference from "./FamilySchedulingPreference";
+import { getExistingFamilyFieldErrors } from "../../../scenes/Intake/intakeUtils";
 
-const ExistingFamilyStep = ({ formData, setFormData }) => {
+const ExistingFamilyStep = ({
+  formData,
+  setFormData,
+  touched = {},
+  setTouched = () => {},
+  showAllErrors = false,
+}) => {
+  const fieldErrors = useMemo(
+    () => getExistingFamilyFieldErrors(formData),
+    [formData]
+  );
+
+  const errorFor = (field) => {
+    if (!fieldErrors[field]) return "";
+    if (showAllErrors || touched[field]) return fieldErrors[field];
+    return "";
+  };
+
   const handleChange = (event) => {
     setFormData({ ...formData, [event.target.name]: event.target.value });
+  };
+
+  const handleBlur = (event) => {
+    const { name } = event.target;
+    setTouched((prev) => ({ ...prev, [name]: true }));
   };
 
   return (
@@ -19,8 +43,11 @@ const ExistingFamilyStep = ({ formData, setFormData }) => {
         label="Primary Guardian Full Name"
         value={formData.parentName}
         onChange={handleChange}
+        onBlur={handleBlur}
         required
         fullWidth
+        error={Boolean(errorFor("parentName"))}
+        helperText={errorFor("parentName") || " "}
       />
       <TextField
         name="parentEmail"
@@ -28,8 +55,11 @@ const ExistingFamilyStep = ({ formData, setFormData }) => {
         type="email"
         value={formData.parentEmail}
         onChange={handleChange}
+        onBlur={handleBlur}
         required
         fullWidth
+        error={Boolean(errorFor("parentEmail"))}
+        helperText={errorFor("parentEmail") || " "}
       />
       <FamilySchedulingPreference
         formData={formData}

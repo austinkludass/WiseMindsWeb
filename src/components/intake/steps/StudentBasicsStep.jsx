@@ -7,6 +7,8 @@ const StudentBasicsStep = ({
   setFormData,
   touched,
   setTouched,
+  errors = {},
+  showAllErrors = false,
   readOnlyIdentity = false,
 }) => {
   const fullName = [formData.firstName, formData.middleName, formData.lastName]
@@ -36,6 +38,8 @@ const StudentBasicsStep = ({
         setFormData={setFormData}
         touched={touched}
         setTouched={setTouched}
+        errors={errors}
+        showAllErrors={showAllErrors}
         isEdit={true}
         hideFields={
           readOnlyIdentity

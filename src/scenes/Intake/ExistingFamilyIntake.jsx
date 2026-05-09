@@ -15,7 +15,9 @@ import {
   DEFAULT_AVAILABILITY_THRESHOLD,
   formatDateValue,
   getAvailabilityHours,
+  getChildFieldErrors,
   getClientMeta,
+  getExistingFamilyFieldErrors,
   getSchedulePreferenceFromFamily,
   getRequestedTutoringHours,
   hasAvailability,
@@ -183,6 +185,9 @@ const ExistingFamilyIntake = () => {
     parentEmail: "",
     schedulePreference: "",
   });
+  const [familyTouched, setFamilyTouched] = useState({});
+  const [showFamilyErrors, setShowFamilyErrors] = useState(false);
+  const [showChildrenErrors, setShowChildrenErrors] = useState(false);
   const [children, setChildren] = useState([createChild()]);
   const [childrenTouched, setChildrenTouched] = useState([
     createChildTouched(),
@@ -444,16 +449,8 @@ const ExistingFamilyIntake = () => {
     };
   };
 
-  const validateFamily = () => {
-    const nextErrors = [];
-
-    if (!familyForm.parentName.trim())
-      nextErrors.push("Primary guardian name is required.");
-    if (!familyForm.parentEmail.trim())
-      nextErrors.push("Primary guardian email is required.");
-
-    return nextErrors;
-  };
+  const hasFamilyFormErrors = () =>
+    Object.keys(getExistingFamilyFieldErrors(familyForm)).length > 0;
 
   const validateForm = () => {
     const nextErrors = [];
@@ -462,20 +459,6 @@ const ExistingFamilyIntake = () => {
 
     children.forEach((child, index) => {
       const label = `Child ${index + 1}`;
-      if (!child.firstName.trim())
-        nextErrors.push(`${label}: first name is required.`);
-      if (!child.lastName.trim())
-        nextErrors.push(`${label}: last name is required.`);
-      if (!child.dateOfBirth)
-        nextErrors.push(`${label}: date of birth is required.`);
-      if (!child.allergiesNonAna.trim())
-        nextErrors.push(`${label}: Allergies (Non-Anaphylactic) is required.`);
-      if (!child.school.trim())
-        nextErrors.push(`${label}: school is required.`);
-      if (!child.yearLevel.trim())
-        nextErrors.push(`${label}: year level is required.`);
-      if (!hasAvailability(child.availability))
-        nextErrors.push(`${label}: add regular availability.`);
 
       if (hasAvailability(child.availability)) {
         nextErrors.push(
@@ -507,15 +490,9 @@ const ExistingFamilyIntake = () => {
   };
 
   const handleNext = () => {
-    if (currentStep !== 0) {
-      setErrors([]);
-      setCurrentStep((prev) => Math.min(prev + 1, steps.length - 1));
-      return;
-    }
-
-    const validationErrors = validateFamily();
-    if (validationErrors.length > 0) {
-      setErrors(validationErrors);
+    if (currentStep === 0 && hasFamilyFormErrors()) {
+      setShowFamilyErrors(true);
+      setErrors(["Please review the highlighted fields above."]);
       return;
     }
 
@@ -524,10 +501,35 @@ const ExistingFamilyIntake = () => {
   };
 
   const handleBack = () => {
+    setErrors([]);
     setCurrentStep((prev) => Math.max(prev - 1, 0));
   };
 
   const handleSubmit = async () => {
+    if (hasFamilyFormErrors()) {
+      setShowFamilyErrors(true);
+      setErrors(["Please review the highlighted fields above."]);
+      setCurrentStep(0);
+      return;
+    }
+
+    const hasChildrenErrors = children.some(
+      (child) =>
+        Object.keys(
+          getChildFieldErrors(child, {
+            requireTrial: false,
+            requireAllergiesNonAna: true,
+          })
+        ).length > 0
+    );
+
+    if (hasChildrenErrors) {
+      setShowChildrenErrors(true);
+      setErrors(["Please review the highlighted fields above."]);
+      setCurrentStep(1);
+      return;
+    }
+
     const validationErrors = validateForm();
 
     if (validationErrors.length > 0) {
@@ -596,6 +598,9 @@ const ExistingFamilyIntake = () => {
     setLatestSubmissionMeta(null);
     setErrors([]);
     setFamilyForm(baseSnapshot.familyForm);
+    setFamilyTouched({});
+    setShowFamilyErrors(false);
+    setShowChildrenErrors(false);
     setChildren(baseSnapshot.children);
     setChildrenTouched(baseSnapshot.children.map(() => createChildTouched()));
   };
@@ -693,6 +698,9 @@ const ExistingFamilyIntake = () => {
           <ExistingFamilyStep
             formData={familyForm}
             setFormData={handleFamilyFormChange}
+            touched={familyTouched}
+            setTouched={setFamilyTouched}
+            showAllErrors={showFamilyErrors}
           />
         )}
         {currentStep === 1 && (
@@ -707,6 +715,8 @@ const ExistingFamilyIntake = () => {
             allowRemoveLastChild={true}
             readOnlyIdentity={true}
             allowAddChild={false}
+            showAllErrors={showChildrenErrors}
+            requireAllergiesNonAna={true}
           />
         )}
       </Stack>

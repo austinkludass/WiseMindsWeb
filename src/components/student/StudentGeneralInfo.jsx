@@ -15,14 +15,19 @@ const StudentGeneralInfo = ({
   formData,
   isEdit,
   setFormData,
-  touched,
-  setTouched,
+  touched = {},
+  setTouched = () => {},
   hideFields = [],
+  errors = {},
+  showAllErrors = false,
 }) => {
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
 
-  const isInvalid = (field) => touched[field] && !formData[field].trim();
+  const errorFor = (field) => {
+    if (!errors?.[field]) return "";
+    return showAllErrors || touched?.[field] ? errors[field] : "";
+  };
   const isHidden = (field) => hideFields.includes(field);
 
   const handleChange = (e) => {
@@ -36,6 +41,7 @@ const StudentGeneralInfo = ({
 
   const handleDateChange = (name) => (date) => {
     setFormData({ ...formData, [name]: date });
+    setTouched({ ...touched, [name]: true });
   };
 
   const handleSwitchChange = (e) => {
@@ -54,7 +60,8 @@ const StudentGeneralInfo = ({
               onBlur={handleBlur}
               required
               label="First Name"
-              error={isInvalid("firstName")}
+              error={Boolean(errorFor("firstName"))}
+              helperText={errorFor("firstName") || " "}
             />
           )}
           {!isHidden("middleName") && (
@@ -70,7 +77,11 @@ const StudentGeneralInfo = ({
               name="lastName"
               value={formData.lastName ?? ""}
               onChange={handleChange}
+              onBlur={handleBlur}
+              required
               label="Last Name"
+              error={Boolean(errorFor("lastName"))}
+              helperText={errorFor("lastName") || " "}
             />
           )}
           {!isHidden("dateOfBirth") && (
@@ -78,13 +89,26 @@ const StudentGeneralInfo = ({
               value={formData.dateOfBirth ? dayjs(formData.dateOfBirth) : null}
               onChange={handleDateChange("dateOfBirth")}
               label="Date of Birth"
+              slotProps={{
+                textField: {
+                  name: "dateOfBirth",
+                  onBlur: handleBlur,
+                  required: true,
+                  error: Boolean(errorFor("dateOfBirth")),
+                  helperText: errorFor("dateOfBirth") || " ",
+                },
+              }}
             />
           )}
           <TextField
             name="allergiesNonAna"
             value={formData.allergiesNonAna ?? ""}
             onChange={handleChange}
+            onBlur={handleBlur}
             label="Allergies (Non-Anaphylactic)"
+            required={Boolean(errors?.allergiesNonAna)}
+            error={Boolean(errorFor("allergiesNonAna"))}
+            helperText={errorFor("allergiesNonAna") || " "}
           />
           <TextField
             name="allergiesAna"

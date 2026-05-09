@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import {
   Stack,
   Typography,
@@ -8,10 +8,12 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  FormHelperText,
   FormControlLabel,
   Checkbox,
 } from "@mui/material";
 import FamilySchedulingPreference from "./FamilySchedulingPreference";
+import { getFamilyFieldErrors } from "../../../scenes/Intake/intakeUtils";
 
 const relationshipOptions = [
   "Mother",
@@ -30,9 +32,28 @@ const splitName = (fullName = "") => {
   return { first: parts[0], last: parts.slice(1).join(" ") };
 };
 
-const FamilyEmergencyStep = ({ formData, setFormData }) => {
+const FamilyEmergencyStep = ({
+  formData,
+  setFormData,
+  touched = {},
+  setTouched = () => {},
+  showAllErrors = false,
+}) => {
+  const fieldErrors = useMemo(() => getFamilyFieldErrors(formData), [formData]);
+
+  const errorFor = (field) => {
+    if (!fieldErrors[field]) return "";
+    if (showAllErrors || touched[field]) return fieldErrors[field];
+    return "";
+  };
+
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleBlur = (e) => {
+    const { name } = e.target;
+    setTouched((prev) => ({ ...prev, [name]: true }));
   };
 
   const handleUsePrimaryChange = (event) => {
@@ -99,6 +120,8 @@ const FamilyEmergencyStep = ({ formData, setFormData }) => {
     });
   }, [formData.familyAddress, formData.secondaryContactSameAddress, setFormData]);
 
+  const relationshipError = errorFor("emergencyRelationship");
+
   return (
     <Stack spacing={4}>
       <Stack spacing={2}>
@@ -121,8 +144,11 @@ const FamilyEmergencyStep = ({ formData, setFormData }) => {
               label="Primary Guardian Full Name"
               value={formData.parentName}
               onChange={handleChange}
+              onBlur={handleBlur}
               required
               fullWidth
+              error={Boolean(errorFor("parentName"))}
+              helperText={errorFor("parentName") || " "}
             />
           </Grid>
           <Grid size={{ xs: 12, md: 6 }}>
@@ -131,8 +157,11 @@ const FamilyEmergencyStep = ({ formData, setFormData }) => {
               label="Primary Guardian Email"
               value={formData.familyEmail}
               onChange={handleChange}
+              onBlur={handleBlur}
               required
               fullWidth
+              error={Boolean(errorFor("familyEmail"))}
+              helperText={errorFor("familyEmail") || " "}
             />
           </Grid>
           <Grid size={{ xs: 12, md: 6 }}>
@@ -141,8 +170,11 @@ const FamilyEmergencyStep = ({ formData, setFormData }) => {
               label="Primary Guardian Phone"
               value={formData.familyPhone}
               onChange={handleChange}
+              onBlur={handleBlur}
               required
               fullWidth
+              error={Boolean(errorFor("familyPhone"))}
+              helperText={errorFor("familyPhone") || " "}
             />
           </Grid>
           <Grid size={{ xs: 12, md: 6 }}>
@@ -151,8 +183,11 @@ const FamilyEmergencyStep = ({ formData, setFormData }) => {
               label="Home Address"
               value={formData.familyAddress}
               onChange={handleChange}
+              onBlur={handleBlur}
               required
               fullWidth
+              error={Boolean(errorFor("familyAddress"))}
+              helperText={errorFor("familyAddress") || " "}
             />
           </Grid>
         </Grid>
@@ -176,6 +211,7 @@ const FamilyEmergencyStep = ({ formData, setFormData }) => {
               value={formData.secondaryContactName}
               onChange={handleChange}
               fullWidth
+              helperText=" "
             />
           </Grid>
           <Grid size={{ xs: 12, md: 6 }}>
@@ -184,7 +220,10 @@ const FamilyEmergencyStep = ({ formData, setFormData }) => {
               label="Secondary Guardian Email"
               value={formData.secondaryContactEmail}
               onChange={handleChange}
+              onBlur={handleBlur}
               fullWidth
+              error={Boolean(errorFor("secondaryContactEmail"))}
+              helperText={errorFor("secondaryContactEmail") || " "}
             />
           </Grid>
           <Grid size={{ xs: 12, md: 6 }}>
@@ -193,7 +232,10 @@ const FamilyEmergencyStep = ({ formData, setFormData }) => {
               label="Secondary Guardian Phone"
               value={formData.secondaryContactPhone}
               onChange={handleChange}
+              onBlur={handleBlur}
               fullWidth
+              error={Boolean(errorFor("secondaryContactPhone"))}
+              helperText={errorFor("secondaryContactPhone") || " "}
             />
           </Grid>
           <Grid size={{ xs: 12, md: 6 }}>
@@ -204,6 +246,7 @@ const FamilyEmergencyStep = ({ formData, setFormData }) => {
               onChange={handleChange}
               fullWidth
               disabled={formData.secondaryContactSameAddress}
+              helperText=" "
             />
           </Grid>
         </Grid>
@@ -243,9 +286,12 @@ const FamilyEmergencyStep = ({ formData, setFormData }) => {
               label="First Name"
               value={formData.emergencyFirst}
               onChange={handleChange}
+              onBlur={handleBlur}
               required
               fullWidth
               disabled={formData.usePrimaryAsEmergency}
+              error={Boolean(errorFor("emergencyFirst"))}
+              helperText={errorFor("emergencyFirst") || " "}
             />
           </Grid>
           <Grid size={{ xs: 12, md: 6 }}>
@@ -254,13 +300,21 @@ const FamilyEmergencyStep = ({ formData, setFormData }) => {
               label="Last Name"
               value={formData.emergencyLast}
               onChange={handleChange}
+              onBlur={handleBlur}
               required
               fullWidth
               disabled={formData.usePrimaryAsEmergency}
+              error={Boolean(errorFor("emergencyLast"))}
+              helperText={errorFor("emergencyLast") || " "}
             />
           </Grid>
           <Grid size={{ xs: 12, md: 6 }}>
-            <FormControl fullWidth required>
+            <FormControl
+              fullWidth
+              required
+              error={Boolean(relationshipError)}
+              disabled={formData.usePrimaryAsEmergency}
+            >
               <InputLabel id="emergency-relationship-label">
                 Relationship
               </InputLabel>
@@ -270,7 +324,7 @@ const FamilyEmergencyStep = ({ formData, setFormData }) => {
                 value={formData.emergencyRelationship}
                 label="Relationship"
                 onChange={handleChange}
-                disabled={formData.usePrimaryAsEmergency}
+                onBlur={handleBlur}
               >
                 {relationshipOptions.map((option) => (
                   <MenuItem key={option} value={option}>
@@ -278,6 +332,7 @@ const FamilyEmergencyStep = ({ formData, setFormData }) => {
                   </MenuItem>
                 ))}
               </Select>
+              <FormHelperText>{relationshipError || " "}</FormHelperText>
             </FormControl>
           </Grid>
           <Grid size={{ xs: 12, md: 6 }}>
@@ -286,9 +341,12 @@ const FamilyEmergencyStep = ({ formData, setFormData }) => {
               label="Phone"
               value={formData.emergencyPhone}
               onChange={handleChange}
+              onBlur={handleBlur}
               required
               fullWidth
               disabled={formData.usePrimaryAsEmergency}
+              error={Boolean(errorFor("emergencyPhone"))}
+              helperText={errorFor("emergencyPhone") || " "}
             />
           </Grid>
           {!formData.usePrimaryAsEmergency &&
@@ -299,7 +357,11 @@ const FamilyEmergencyStep = ({ formData, setFormData }) => {
                 label="Please specify relationship"
                 value={formData.emergencyRelationshipOther}
                 onChange={handleChange}
+                onBlur={handleBlur}
                 fullWidth
+                required
+                error={Boolean(errorFor("emergencyRelationshipOther"))}
+                helperText={errorFor("emergencyRelationshipOther") || " "}
               />
             </Grid>
           )}

@@ -1,4 +1,4 @@
-import { Stack, Typography } from "@mui/material";
+import { FormHelperText, Stack, Typography } from "@mui/material";
 import StudentAvailabilityInfo from "../../student/StudentAvailabilityInfo";
 import {
   DEFAULT_AVAILABILITY_THRESHOLD,
@@ -15,6 +15,10 @@ const RegularAvailabilityStep = ({
   setAvailability,
   requestedTutoringHours = 0,
   availabilityThreshold = DEFAULT_AVAILABILITY_THRESHOLD,
+  touched = {},
+  setTouched = () => {},
+  errors = {},
+  showAllErrors = false,
 }) => {
   const availabilityHours = getAvailabilityHours(availability);
   const totalLabel = `${formatHoursLabel(availabilityHours)} hours/week`;
@@ -22,6 +26,18 @@ const RegularAvailabilityStep = ({
     requestedTutoringHours > 0 &&
     availabilityHours < availabilityThreshold &&
     availabilityHours < requestedTutoringHours;
+
+  const availabilityError =
+    errors?.availability && (showAllErrors || touched?.availability)
+      ? errors.availability
+      : "";
+
+  const handleAvailabilityChange = (next) => {
+    setAvailability(next);
+    if (!touched?.availability) {
+      setTouched({ ...touched, availability: true });
+    }
+  };
 
   return (
     <Stack spacing={2}>
@@ -34,12 +50,17 @@ const RegularAvailabilityStep = ({
         more availability you have, the better chance we find the best possible
         tutor!
       </Typography>
-      <StudentAvailabilityInfo
-        isEdit={true}
-        availability={availability}
-        setAvailability={setAvailability}
-        showHalfHourWarning={true}
-      />
+      <Stack spacing={0.5}>
+        <StudentAvailabilityInfo
+          isEdit={true}
+          availability={availability}
+          setAvailability={handleAvailabilityChange}
+          showHalfHourWarning={true}
+        />
+        {availabilityError && (
+          <FormHelperText error>{availabilityError}</FormHelperText>
+        )}
+      </Stack>
       <Stack
         direction={{ xs: "column", sm: "row" }}
         spacing={1}

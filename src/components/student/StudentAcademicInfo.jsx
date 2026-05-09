@@ -124,7 +124,20 @@ const StudentAcademicInfo = ({
   allowTutoringToggle = false,
   showTutorPreferences = true,
   showHoursWarning = false,
+  touched = {},
+  setTouched = () => {},
+  errors = {},
+  showAllErrors = false,
 }) => {
+  const errorFor = (field) => {
+    if (!errors?.[field]) return "";
+    return showAllErrors || touched?.[field] ? errors[field] : "";
+  };
+  const handleBlur = (event) => {
+    const { name } = event.target;
+    if (!name) return;
+    setTouched({ ...touched, [name]: true });
+  };
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
 
@@ -403,7 +416,11 @@ const StudentAcademicInfo = ({
             name="school"
             value={formData.school ?? ""}
             onChange={handleInputChange}
+            onBlur={handleBlur}
             variant="outlined"
+            required={Boolean(errors?.school)}
+            error={Boolean(errorFor("school"))}
+            helperText={errorFor("school") || " "}
           />
           <TextField
             fullWidth
@@ -411,8 +428,12 @@ const StudentAcademicInfo = ({
             name="yearLevel"
             value={formData.yearLevel ?? ""}
             onChange={handleInputChange}
+            onBlur={handleBlur}
             variant="outlined"
             select
+            required={Boolean(errors?.yearLevel)}
+            error={Boolean(errorFor("yearLevel"))}
+            helperText={errorFor("yearLevel") || " "}
           >
             {yearLevelOptions.map((option) => (
               <MenuItem key={option} value={option}>
