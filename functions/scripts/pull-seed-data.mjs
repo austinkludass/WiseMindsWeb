@@ -18,8 +18,9 @@
  */
 
 import process from "process";
-import { initializeApp, applicationDefault } from "firebase-admin/app";
-import { getFirestore } from "firebase-admin/firestore";
+import { generateKeyPairSync } from "crypto";
+import { initializeApp, cert } from "firebase-admin/app";
+import { getFirestore, Timestamp } from "firebase-admin/firestore";
 
 const COLLECTIONS = [
   "students",
@@ -29,7 +30,35 @@ const COLLECTIONS = [
   "subjects",
   "locations",
   "curriculums",
+  "lessons",
 ];
+
+// The production API serializes Firestore Timestamps as {_seconds,_nanoseconds}
+// JSON objects. Writing those back verbatim would store inert maps, not real
+// Timestamps — breaking date ordering/queries and any consumer that expects a
+// Timestamp. Walk the document and convert any timestamp-shaped object back
+// into a Timestamp so the seeded data matches production semantics.
+function reviveTimestamps(value) {
+  if (Array.isArray(value)) {
+    return value.map(reviveTimestamps);
+  }
+  if (value && typeof value === "object") {
+    const keys = Object.keys(value);
+    if (
+      keys.length === 2 &&
+      typeof value._seconds === "number" &&
+      typeof value._nanoseconds === "number"
+    ) {
+      return new Timestamp(value._seconds, value._nanoseconds);
+    }
+    const out = {};
+    for (const [k, v] of Object.entries(value)) {
+      out[k] = reviveTimestamps(v);
+    }
+    return out;
+  }
+  return value;
+}
 
 const apiUrl = process.env.WISEMINDS_API_URL;
 const apiKey = process.env.WISEMINDS_API_KEY;
@@ -53,7 +82,23 @@ if (!emulatorHost) {
 
 console.log(`Targeting emulator at ${emulatorHost}`);
 
-initializeApp({ projectId: "wisemindsadmin" });
+// Fake service account — FIRESTORE_EMULATOR_HOST routes all traffic to the
+// local emulator, so this key is never used to authenticate against Google.
+// It only exists because firebase-admin requires a valid-looking credential
+// to construct the Firestore client.
+const { privateKey } = generateKeyPairSync("rsa", {
+  modulusLength: 2048,
+  privateKeyEncoding: { type: "pkcs8", format: "pem" },
+  publicKeyEncoding: { type: "spki", format: "pem" },
+});
+initializeApp({
+  projectId: "wisemindsadmin",
+  credential: cert({
+    projectId: "wisemindsadmin",
+    clientEmail: "emulator@wisemindsadmin.iam.gserviceaccount.com",
+    privateKey,
+  }),
+});
 const db = getFirestore();
 // Docker Firestore emulator's gRPC layer is broken; use REST.
 db.settings({ preferRest: true });
@@ -89,7 +134,8 @@ async function writeCollection(name, docs) {
     const chunk = docs.slice(i, i + 500);
 
     for (const doc of chunk) {
-      const { id, ...data } = doc;
+      const { id, ...rest } = doc;
+      const data = reviveTimestamps(rest);
       if (id) {
         batch.set(col.doc(id), data);
       } else {
