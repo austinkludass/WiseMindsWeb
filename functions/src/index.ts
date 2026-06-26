@@ -1,3 +1,4 @@
+import {generateKeyPairSync} from "crypto";
 import * as admin from "firebase-admin";
 import {FieldPath, FieldValue, Timestamp} from "firebase-admin/firestore";
 import {logger} from "firebase-functions";
@@ -13,7 +14,52 @@ import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
 import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
 
-admin.initializeApp();
+// Local emulator override: the emulator suite doesn't always propagate these
+// env vars to the functions runtime, causing the admin SDK to try real Google
+// APIs. FUNCTIONS_EMULATOR is only set inside the emulator (never in prod).
+console.error(
+  "[boot] FUNCTIONS_EMULATOR=",
+  JSON.stringify(process.env.FUNCTIONS_EMULATOR),
+  "FIRESTORE_EMULATOR_HOST=",
+  JSON.stringify(process.env.FIRESTORE_EMULATOR_HOST),
+  "FIREBASE_AUTH_EMULATOR_HOST=",
+  JSON.stringify(process.env.FIREBASE_AUTH_EMULATOR_HOST)
+);
+if (process.env.FUNCTIONS_EMULATOR) {
+  process.env.FIRESTORE_EMULATOR_HOST ??= "127.0.0.1:8080";
+  process.env.FIREBASE_AUTH_EMULATOR_HOST ??= "127.0.0.1:9099";
+  console.error(
+    "[boot] override applied: FIRESTORE_EMULATOR_HOST=",
+    process.env.FIRESTORE_EMULATOR_HOST,
+    "FIREBASE_AUTH_EMULATOR_HOST=",
+    process.env.FIREBASE_AUTH_EMULATOR_HOST
+  );
+}
+
+if (process.env.FIRESTORE_EMULATOR_HOST) {
+  // Under the emulator, a bare initializeApp() falls back to Application
+  // Default Credentials. Setting FIRESTORE_EMULATOR_HOST normally suppresses
+  // that, but once preferRest (below) forces the REST transport, the SDK still
+  // tries to attach an ADC token — a call out to the GCP metadata server that
+  // hangs/ECONNRESETs on a dev machine. A dummy credential short-circuits the
+  // lookup; the emulator host routes all traffic locally, so it is never used
+  // to authenticate against Google. (Same trick as scripts/pull-seed-data.mjs.)
+  const {privateKey} = generateKeyPairSync("rsa", {
+    modulusLength: 2048,
+    privateKeyEncoding: {type: "pkcs8", format: "pem"},
+    publicKeyEncoding: {type: "spki", format: "pem"},
+  });
+  admin.initializeApp({
+    projectId: "wisemindsadmin",
+    credential: admin.credential.cert({
+      projectId: "wisemindsadmin",
+      clientEmail: "emulator@wisemindsadmin.iam.gserviceaccount.com",
+      privateKey,
+    }),
+  });
+} else {
+  admin.initializeApp();
+}
 const db = admin.firestore();
 // The Firestore emulator's gRPC (HTTP/2) layer is broken; use REST instead.
 if (process.env.FIRESTORE_EMULATOR_HOST) {
@@ -1512,6 +1558,19 @@ export const getIntakeFormData = onCall(
 // functions before attempting Firestore trigger registration (which
 // can block on some environments).
 
+// A tutor document can exist without a matching Auth account — notably
+// seeded data in the emulator, where no Auth users are created, so every
+// seeded tutor would otherwise log a harmless auth/user-not-found error.
+// Swallow that case under the emulator only. In production the claim update
+// should succeed, so any failure (including user-not-found) is a real error
+// and is logged as such.
+function handleClaimError(tutorId: string, action: string, error: any) {
+  if (process.env.FUNCTIONS_EMULATOR && error?.code === "auth/user-not-found") {
+    return;
+  }
+  logger.error(`Error ${action} custom claims for ${tutorId}: `, error);
+}
+
 export const onTutorWrite = onDocumentWritten(
   {
     document: "tutors/{tutorId}",
@@ -1532,20 +1591,20 @@ export const onTutorWrite = onDocumentWritten(
       try {
         await admin.auth().setCustomUserClaims(tutorId, null);
       } catch (error) {
-        logger.error("Error clearing custom claims: ", error);
+        handleClaimError(tutorId, "clearing", error);
       }
       return;
     }
 
     const newRole = after.role;
-    const oldRule = before?.role;
+    const oldRole = before?.role;
 
-    if (newRole && newRole !== oldRule) {
+    if (newRole && newRole !== oldRole) {
       try {
         await admin.auth().setCustomUserClaims(tutorId, {role: newRole});
         logger.info(`Updated custom claims for ${tutorId} to role: ${newRole}`);
       } catch (error) {
-        logger.error("Error setting custom claims: ", error);
+        handleClaimError(tutorId, "setting", error);
       }
     }
 
