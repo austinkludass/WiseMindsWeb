@@ -6,20 +6,20 @@ in-memory Firestore, so it behaves like prod without touching prod.
 
 ## Prerequisites
 
-- **Node.js** (v22+)
-- **Java** (JDK 11+) — required by the Firestore emulator
+- **Node.js** (v22+) (youse will have this already)
+- **Java (based)** (JDK 11+) — required by the Firestore emulator
 - **Firebase CLI**: `npm install -g firebase-tools`
 
-## One-time setup
+## setup
 
-1. Install dependencies:
+1. Install deps:
 
    ```bash
    cd functions
    npm install
    ```
 
-2. Create `functions/.env.local` (gitignored) with:
+2. Create `functions/.env.local` with:
 
    ```bash
    # Key the local API expects in the `x-api-key` header
@@ -32,22 +32,15 @@ in-memory Firestore, so it behaves like prod without touching prod.
 
 ## Running
 
-From the `functions/` directory:
+From the `functions/` directory again:
 
 ```bash
 npm run serve
 ```
 
-This builds the TypeScript, starts the **functions**, **firestore**, and
-**auth** emulators, and automatically seeds reference data once Firestore is
-ready.
-
-| Service        | URL   (the emulator will tell you these things too!)             |
-| -------------- | ---------------------------------------------------------------- |
-| Emulator UI    | http://127.0.0.1:4000                                            |
-| API base       | http://127.0.0.1:5001/wisemindsadmin/australia-southeast1/api    |
-| Firestore      | 127.0.0.1:8080                                                   |
-| Auth           | 127.0.0.1:9099                                                   |
+This builds it, starts the **functions**, **firestore**, and
+**auth** emulators, and automatically seeds (read only) reference data once Firestore is
+ready (not everything - only stuff is seeded that I needed lols).
 
 ## Calling the API
 
